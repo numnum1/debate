@@ -21,6 +21,7 @@ export function DebateView() {
     currentUser, 
     addMessageToDebate, 
     updateDebate,
+    deleteDebate,
     addPosition,
     updatePosition,
     removePosition,
@@ -29,7 +30,6 @@ export function DebateView() {
     removeSlot
   } = useDebate();
   const [messageText, setMessageText] = useState('');
-  const [selectedPositionId, setSelectedPositionId] = useState<string | undefined>(undefined);
   
   // Settings state for pending debates
   const [editTitle, setEditTitle] = useState('');
@@ -57,8 +57,23 @@ export function DebateView() {
     );
   }
 
+  // Find the position and slot of the current user in this debate
+  const getUserPositionAndSlot = () => {
+    for (const position of currentDebate.positions) {
+      const slot = position.slots.find(
+        s => s.participant?.id === currentUser.id
+      );
+      if (slot) {
+        return { positionId: position.id, slotId: slot.id };
+      }
+    }
+    return { positionId: undefined, slotId: undefined };
+  };
+
   const handleSendMessage = () => {
     if (!messageText.trim()) return;
+
+    const { positionId, slotId } = getUserPositionAndSlot();
 
     const newMessage: DebateMessage = {
       id: Date.now().toString(),
@@ -66,7 +81,8 @@ export function DebateView() {
       userName: currentUser.name,
       text: messageText.trim(),
       timestamp: new Date(),
-      positionId: selectedPositionId,
+      positionId,
+      slotId,
     };
 
     addMessageToDebate(currentDebate.id, newMessage);
@@ -88,6 +104,12 @@ export function DebateView() {
     updateDebate(currentDebate.id, {
       status: 'active',
     });
+  };
+
+  const handleDeleteDebate = () => {
+    if (currentDebate && currentDebate.createdBy.id === currentUser.id) {
+      deleteDebate(currentDebate.id);
+    }
   };
 
   const handleAddPosition = () => {
@@ -464,6 +486,26 @@ export function DebateView() {
               <Text style={styles.startButtonText}>Debatte jetzt starten</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Delete Debate Section - Only for creator */}
+          {currentDebate.createdBy.id === currentUser.id && (
+            <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.settingsSectionHeader}>
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
+                <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Debatte löschen</Text>
+              </View>
+              <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+                Diese Aktion kann nicht rückgängig gemacht werden. Die Debatte wird dauerhaft gelöscht.
+              </Text>
+              <TouchableOpacity
+                style={[styles.deleteButton, { backgroundColor: colors.error }]}
+                onPress={handleDeleteDebate}
+              >
+                <Ionicons name="trash" size={20} color="#fff" />
+                <Text style={styles.deleteButtonText}>Debatte löschen</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       </View>
     );
@@ -583,44 +625,6 @@ export function DebateView() {
 
       {/* Input Area */}
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        {/* Position Selector */}
-        {currentDebate.positions.length > 0 && (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.positionSelector}
-          >
-            {currentDebate.positions.map((position) => (
-              <TouchableOpacity
-                key={position.id}
-                style={[
-                  styles.positionButton,
-                  { borderColor: colors.border },
-                  selectedPositionId === position.id && {
-                    backgroundColor: position.color + '20',
-                    borderColor: position.color,
-                  },
-                ]}
-                onPress={() => setSelectedPositionId(position.id)}
-              >
-                <View style={[styles.positionButtonDot, { backgroundColor: position.color }]} />
-                <Text
-                  style={[
-                    styles.positionButtonText,
-                    { color: colors.textSecondary },
-                    selectedPositionId === position.id && { 
-                      color: position.color,
-                      fontWeight: '600',
-                    },
-                  ]}
-                >
-                  {position.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-
         <View style={styles.inputRow}>
           <TextInput
             style={[
@@ -953,6 +957,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 10,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   // Position Management Styles
   addPositionContainer: {
     gap: 12,
@@ -1121,29 +1143,6 @@ const styles = StyleSheet.create({
   },
   slotMenuDescription: {
     fontSize: 12,
-  },
-  // Position Selector in Input Area
-  positionSelector: {
-    marginBottom: 12,
-  },
-  positionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
-    gap: 6,
-  },
-  positionButtonDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  positionButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
 });
 
