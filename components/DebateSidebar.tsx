@@ -9,13 +9,15 @@ import {
     View,
 } from 'react-native';
 import { Colors } from '../constants/Colors';
+import { useAuth } from '../context/AuthContext';
 import { useDebate } from '../context/DebateContext';
 import { Debate } from '../types';
 
 export function DebateSidebar({ onCreateNew }: { onCreateNew: () => void }) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { debates, currentDebate, setCurrentDebate } = useDebate();
+  const { debates, currentDebate, setCurrentDebate, currentUser } = useDebate();
+  const { logout } = useAuth();
 
   const formatDate = (date: Date) => {
     const now = new Date();
@@ -58,7 +60,7 @@ export function DebateSidebar({ onCreateNew }: { onCreateNew: () => void }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.list}>
+      <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
         {debates.map((debate) => (
           <TouchableOpacity
             key={debate.id}
@@ -105,6 +107,32 @@ export function DebateSidebar({ onCreateNew }: { onCreateNew: () => void }) {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* User Profile / Logout Section */}
+      <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+        <View style={styles.userInfo}>
+          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+            <Text style={styles.avatarText}>
+              {currentUser.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+              {currentUser.name}
+            </Text>
+            <Text style={[styles.userEmail, { color: colors.textSecondary }]} numberOfLines={1}>
+              {currentUser.email}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: colors.error + '15' }]}
+          onPress={logout}
+        >
+          <Ionicons name="log-out-outline" size={20} color={colors.error} />
+          <Text style={[styles.logoutText, { color: colors.error }]}>Abmelden</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -113,6 +141,7 @@ const styles = StyleSheet.create({
   container: {
     width: 320,
     borderRightWidth: 1,
+    flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
@@ -139,6 +168,9 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
+  },
+  listContent: {
+    paddingBottom: 8,
   },
   debateItem: {
     padding: 16,
@@ -186,6 +218,52 @@ const styles = StyleSheet.create({
   },
   debateDate: {
     fontSize: 12,
+  },
+  footer: {
+    borderTopWidth: 1,
+    padding: 16,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  userDetails: {
+    flex: 1,
+    minWidth: 0,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  userEmail: {
+    fontSize: 12,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 8,
+    gap: 8,
+  },
+  logoutText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
