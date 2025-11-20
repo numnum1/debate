@@ -10,15 +10,20 @@ import { useAuth } from '../context/AuthContext';
 export default function Index() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Debug-Logs
+  console.log('[INDEX] Render - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user?.email);
 
   // Show auth screen (login/register) if not authenticated
   if (!isAuthenticated) {
+    console.log('[INDEX] Zeige AuthScreen');
     return <AuthScreen />;
   }
 
   // Show main app if authenticated
+  console.log('[INDEX] Zeige Haupt-App');
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar 

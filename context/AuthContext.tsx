@@ -1,134 +1,343 @@
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import { getKeycloakEndpoints, keycloakConfig } from '../config/keycloak.config';
 import { User } from '../types';
+
+// Sichere Storage-Wrapper mit Fallback für Web
+const secureStorage = {
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      // Fallback für Web: localStorage
+      localStorage.setItem(key, value);
+    } else {
+      // Native: SecureStore
+      await SecureStore.setItemAsync(key, value);
+    }
+  },
+  
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      // Fallback für Web: localStorage
+      return localStorage.getItem(key);
+    } else {
+      // Native: SecureStore
+      return await SecureStore.getItemAsync(key);
+    }
+  },
+  
+  async removeItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      // Fallback für Web: localStorage
+      localStorage.removeItem(key);
+    } else {
+      // Native: SecureStore
+      await SecureStore.deleteItemAsync(key);
+    }
+  },
+};
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email?: string, password?: string) => Promise<void>;
+  register: (name?: string, email?: string, password?: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  accessToken: string | null;
+  refreshToken: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user für Entwicklung - später durch echte API ersetzen
-const mockUsers = [
-  {
-    id: '1',
-    name: 'Max Mustermann',
-    email: 'max@example.com',
-    password: 'password123',
-  },
-  {
-    id: '2',
-    name: 'Anna Schmidt',
-    email: 'anna@example.com',
-    password: 'password123',
-  },
-];
+// Secure Store Keys
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'keycloak_access_token',
+  REFRESH_TOKEN: 'keycloak_refresh_token',
+  ID_TOKEN: 'keycloak_id_token',
+  USER_INFO: 'keycloak_user_info',
+};
+
+/**
+ * Keycloak Token Response
+ */
+interface KeycloakTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  id_token?: string;
+  expires_in: number;
+  token_type: string;
+}
+
+/**
+ * Keycloak UserInfo Response
+ */
+interface KeycloakUserInfo {
+  sub: string;
+  email?: string;
+  name?: string;
+  preferred_username?: string;
+  given_name?: string;
+  family_name?: string;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
 
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    
-    // Simuliere API-Aufruf
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = mockUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-    
-    if (foundUser) {
-      setUser({
-        id: foundUser.id,
-        name: foundUser.name,
-        email: foundUser.email,
-      });
-    } else {
-      throw new Error('Ungültige E-Mail oder Passwort');
+  const endpoints = getKeycloakEndpoints();
+
+  /**
+   * Initialisierung: Gespeicherte Tokens laden
+   */
+  useEffect(() => {
+    loadStoredAuth();
+  }, []);
+
+  /**
+   * Gespeicherte Authentifizierung laden
+   */
+  const loadStoredAuth = async () => {
+    try {
+      setIsLoading(true);
+      const storedAccessToken = await secureStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const storedRefreshToken = await secureStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      const storedUserInfo = await secureStorage.getItem(STORAGE_KEYS.USER_INFO);
+
+      if (storedAccessToken && storedUserInfo) {
+        console.log('[AUTH] Gespeicherte Session gefunden');
+        setAccessToken(storedAccessToken);
+        setRefreshToken(storedRefreshToken);
+        setUser(JSON.parse(storedUserInfo));
+      } else {
+        console.log('[AUTH] Keine gespeicherte Session');
+      }
+    } catch (error) {
+      console.error('[AUTH] Fehler beim Laden der gespeicherten Authentifizierung:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
-    
-    // Simuliere API-Aufruf
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if email already exists
-    const existingUser = mockUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase()
-    );
-    
-    if (existingUser) {
-      setIsLoading(false);
-      throw new Error('Diese E-Mail-Adresse ist bereits registriert');
+  /**
+   * Tokens sicher speichern
+   */
+  const storeTokens = async (
+    accessToken: string,
+    refreshToken: string,
+    idToken?: string
+  ) => {
+    try {
+      await secureStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+      await secureStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+      if (idToken) {
+        await secureStorage.setItem(STORAGE_KEYS.ID_TOKEN, idToken);
+      }
+    } catch (error) {
+      console.error('[AUTH] Fehler beim Speichern der Tokens:', error);
     }
-    
-    // Create new user
-    const newUser = {
-      id: 'user_' + Date.now(),
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      password: password,
+  };
+
+  /**
+   * Benutzerdaten von Keycloak abrufen
+   */
+  const fetchUserInfo = async (token: string): Promise<User> => {
+    const response = await fetch(endpoints.userInfo, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Fehler beim Abrufen der Benutzerdaten');
+    }
+
+    const userInfo: KeycloakUserInfo = await response.json();
+
+    const user: User = {
+      id: userInfo.sub,
+      name: userInfo.name || userInfo.preferred_username || 'Benutzer',
+      email: userInfo.email || '',
     };
-    
-    mockUsers.push(newUser);
-    
-    // Auto-login after registration
-    setUser({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-    });
-    
-    setIsLoading(false);
+
+    // Benutzerdaten speichern
+    await secureStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(user));
+
+    return user;
   };
 
-  const loginWithGoogle = async () => {
-    setIsLoading(true);
-    
-    // Simuliere Google OAuth
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock Google User
-    setUser({
-      id: 'google_' + Date.now(),
-      name: 'Google User',
-      email: 'google.user@gmail.com',
-    });
-    
-    setIsLoading(false);
-  };
+  /**
+   * Login mit Email und Passwort (Direct Access Grants)
+   * Einfacher und zuverlässiger für Mobile Apps
+   */
+  const login = async (email: string, password: string) => {
+    try {
+      console.log('[AUTH] Login gestartet für:', email);
+      setIsLoading(true);
 
-  const logout = () => {
-    setUser(null);
-  };
+      if (!email || !password) {
+        throw new Error('E-Mail und Passwort sind erforderlich');
+      }
 
-  const resetPassword = async (email: string) => {
-    setIsLoading(true);
-    
-    // Simuliere API-Aufruf für Password Reset
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const userExists = mockUsers.some(
-      u => u.email.toLowerCase() === email.toLowerCase()
-    );
-    
-    if (!userExists) {
+      // Direct Access Grants: Username/Password direkt an Keycloak
+      const tokenResponse = await fetch(endpoints.token, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'password',
+          client_id: keycloakConfig.clientId,
+          username: email,
+          password: password,
+          scope: keycloakConfig.scopes.join(' '),
+        }).toString(),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json().catch(() => ({ error: 'unknown' }));
+        console.error('[AUTH] Token-Fehler:', errorData);
+        
+        if (errorData.error === 'invalid_grant') {
+          throw new Error('Ungültige E-Mail oder Passwort');
+        }
+        throw new Error('Anmeldung fehlgeschlagen');
+      }
+
+      const tokens: KeycloakTokenResponse = await tokenResponse.json();
+      console.log('[AUTH] ✓ Tokens erhalten');
+
+      // Tokens speichern
+      await storeTokens(
+        tokens.access_token,
+        tokens.refresh_token,
+        tokens.id_token
+      );
+
+      setAccessToken(tokens.access_token);
+      setRefreshToken(tokens.refresh_token);
+
+      // Benutzerdaten abrufen
+      const userData = await fetchUserInfo(tokens.access_token);
+      console.log('[AUTH] ✓ Benutzer angemeldet:', userData.email);
+      
+      setUser(userData);
+    } catch (error) {
+      console.error('[AUTH] ✗ Login-Fehler:', error);
+      setUser(null);
+      setAccessToken(null);
+      setRefreshToken(null);
+      throw error;
+    } finally {
       setIsLoading(false);
-      throw new Error('E-Mail-Adresse nicht gefunden');
     }
-    
-    setIsLoading(false);
+  };
+
+  /**
+   * Registrierung über Keycloak Admin API
+   * Hinweis: In Produktion sollte dies über ein Backend erfolgen!
+   * Für Entwicklung: Nutzen Sie die Keycloak Admin Console zur Benutzeranlage
+   */
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      console.log('[AUTH] Registrierung gestartet für:', email);
+      setIsLoading(true);
+
+      if (!name || !email || !password) {
+        throw new Error('Alle Felder sind erforderlich');
+      }
+
+      // Für die Registrierung gibt es mehrere Optionen:
+      // 1. Keycloak Admin API (benötigt Admin-Token)
+      // 2. Keycloak selbst-Registrierung via Browser (bereits implementiert)
+      // 3. Backend-Service der die Registrierung durchführt
+
+      // Einfachste Lösung: Benutzer manuell in Keycloak anlegen
+      // Oder: Self-Registration in Keycloak aktivieren
+      
+      throw new Error(
+        'Bitte registrieren Sie sich direkt in Keycloak:\n' +
+        `${keycloakConfig.url}/realms/${keycloakConfig.realm}/account\n\n` +
+        'Oder kontaktieren Sie den Administrator zur Benutzeranlage.'
+      );
+    } catch (error) {
+      console.error('[AUTH] ✗ Registrierungs-Fehler:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Social Login (z.B. Google)
+   * Hinweis: Keycloak muss Identity Provider konfiguriert haben
+   * Nicht implementiert für Direct Access Flow
+   */
+  const loginWithGoogle = async () => {
+    throw new Error(
+      'Social Login ist mit Direct Access Grants nicht verfügbar.\n' +
+      'Bitte verwenden Sie Email und Passwort.'
+    );
+  };
+
+  /**
+   * Logout - Lokale Daten löschen
+   */
+  const logout = async () => {
+    try {
+      console.log('[AUTH] Logout gestartet');
+      setIsLoading(true);
+
+      // Optional: Keycloak Logout-Endpoint aufrufen
+      if (accessToken && refreshToken) {
+        try {
+          await fetch(endpoints.logout, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Authorization': `Bearer ${accessToken}`,
+            },
+            body: new URLSearchParams({
+              client_id: keycloakConfig.clientId,
+              refresh_token: refreshToken,
+            }).toString(),
+          });
+        } catch (error) {
+          console.warn('[AUTH] Keycloak Logout fehlgeschlagen:', error);
+        }
+      }
+
+      // Tokens und Benutzerdaten löschen
+      await secureStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      await secureStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      await secureStorage.removeItem(STORAGE_KEYS.ID_TOKEN);
+      await secureStorage.removeItem(STORAGE_KEYS.USER_INFO);
+
+      setUser(null);
+      setAccessToken(null);
+      setRefreshToken(null);
+      
+      console.log('[AUTH] ✓ Logout erfolgreich');
+    } catch (error) {
+      console.error('[AUTH] ✗ Logout-Fehler:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Passwort zurücksetzen
+   * Hinweis: Muss über Keycloak Admin Console oder Email erfolgen
+   */
+  const resetPassword = async (email: string) => {
+    throw new Error(
+      'Passwort-Reset bitte über Ihren Administrator oder:\n' +
+      `${keycloakConfig.url}/realms/${keycloakConfig.realm}/account`
+    );
   };
 
   return (
@@ -142,6 +351,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         logout,
         resetPassword,
+        accessToken,
+        refreshToken,
       }}
     >
       {children}

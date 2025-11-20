@@ -23,31 +23,31 @@ interface LoginScreenProps {
 export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { login, loginWithGoogle, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [forgotPasswordVisible, setForgotPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Fehler', 'Bitte E-Mail und Passwort eingeben');
+    if (!email.trim()) {
+      Alert.alert('Fehler', 'Bitte E-Mail-Adresse eingeben');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Fehler', 'Bitte Passwort eingeben');
       return;
     }
 
     try {
       await login(email.trim(), password);
+      // Navigation erfolgt automatisch durch isAuthenticated-Änderung
     } catch (error) {
-      Alert.alert('Login fehlgeschlagen', (error as Error).message);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      await loginWithGoogle();
-    } catch {
-      Alert.alert('Google Login fehlgeschlagen', 'Bitte versuchen Sie es erneut');
+      Alert.alert(
+        'Anmeldung fehlgeschlagen', 
+        (error as Error).message || 'Bitte überprüfen Sie Ihre Anmeldedaten'
+      );
     }
   };
 
@@ -65,7 +65,7 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
           <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
             <Ionicons name="chatbubbles" size={48} color="#fff" />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Debattier-App</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Debate App</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Melden Sie sich an, um fortzufahren
           </Text>
@@ -75,11 +75,11 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
         <View style={styles.form}>
           {/* Email Input */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>E-Mail</Text>
+            <Text style={[styles.label, { color: colors.text }]}>E-Mail / Benutzername</Text>
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: colors.text, backgroundColor: 'transparent' }]}
                 placeholder="ihre.email@example.com"
                 placeholderTextColor={colors.textSecondary}
                 value={email}
@@ -88,6 +88,8 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!isLoading}
+                autoFocus
+                selectionColor={colors.primary}
               />
             </View>
           </View>
@@ -98,7 +100,7 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: colors.text, backgroundColor: 'transparent' }]}
                 placeholder="Ihr Passwort"
                 placeholderTextColor={colors.textSecondary}
                 value={password}
@@ -107,10 +109,13 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!isLoading}
+                onSubmitEditing={handleLogin}
+                selectionColor={colors.primary}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
+                disabled={isLoading}
               >
                 <Ionicons
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'}
@@ -120,17 +125,6 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Forgot Password */}
-          <TouchableOpacity
-            onPress={() => setForgotPasswordVisible(true)}
-            style={styles.forgotPassword}
-            disabled={isLoading}
-          >
-            <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
-              Passwort vergessen?
-            </Text>
-          </TouchableOpacity>
 
           {/* Login Button */}
           <TouchableOpacity
@@ -152,38 +146,16 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
             )}
           </TouchableOpacity>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>oder</Text>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-          </View>
-
-          {/* Google Login Button */}
-          <TouchableOpacity
-            style={[
-              styles.googleButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-              isLoading && { opacity: 0.7 },
-            ]}
-            onPress={handleGoogleLogin}
-            disabled={isLoading}
-          >
-            <View style={styles.googleIcon}>
-              <Text style={styles.googleIconText}>G</Text>
-            </View>
-            <Text style={[styles.googleButtonText, { color: colors.text }]}>
-              Mit Google anmelden
-            </Text>
-          </TouchableOpacity>
-
-          {/* Demo Info */}
-          <View style={[styles.demoInfo, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
-            <View style={styles.demoInfoText}>
-              <Text style={[styles.demoInfoTitle, { color: colors.text }]}>Demo-Zugang</Text>
-              <Text style={[styles.demoInfoSubtext, { color: colors.textSecondary }]}>
-                E-Mail: max@example.com{'\n'}Passwort: password123
+          {/* Info Box */}
+          <View style={[styles.infoBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="information-circle" size={20} color={colors.primary} />
+            <View style={styles.infoText}>
+              <Text style={[styles.infoTitle, { color: colors.text }]}>
+                Keycloak Authentifizierung
+              </Text>
+              <Text style={[styles.infoSubtext, { color: colors.textSecondary }]}>
+                Verwenden Sie Ihre Keycloak-Anmeldedaten.
+                {'\n'}Bei Problemen wenden Sie sich an Ihren Administrator.
               </Text>
             </View>
           </View>
@@ -195,105 +167,13 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
             </Text>
             <TouchableOpacity onPress={onSwitchToRegister} disabled={isLoading}>
               <Text style={[styles.registerLinkButton, { color: colors.primary }]}>
-                Jetzt registrieren
+                Administrator kontaktieren
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-      {/* Forgot Password Modal */}
-      {forgotPasswordVisible && (
-        <ForgotPasswordModal
-          visible={forgotPasswordVisible}
-          onClose={() => setForgotPasswordVisible(false)}
-        />
-      )}
     </KeyboardAvoidingView>
-  );
-}
-
-// Forgot Password Modal Component
-function ForgotPasswordModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-  const { resetPassword, isLoading } = useAuth();
-  const [email, setEmail] = useState('');
-
-  const handleReset = async () => {
-    if (!email.trim()) {
-      Alert.alert('Fehler', 'Bitte E-Mail-Adresse eingeben');
-      return;
-    }
-
-    try {
-      await resetPassword(email.trim());
-      Alert.alert(
-        'E-Mail gesendet',
-        'Wir haben Ihnen eine E-Mail mit Anweisungen zum Zurücksetzen Ihres Passworts gesendet.',
-        [{ text: 'OK', onPress: onClose }]
-      );
-    } catch (error) {
-      Alert.alert('Fehler', (error as Error).message);
-    }
-  };
-
-  if (!visible) return null;
-
-  return (
-    <View style={styles.modalOverlay}>
-      <View style={[styles.modal, { backgroundColor: colors.surface }]}>
-        <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Passwort zurücksetzen</Text>
-          <TouchableOpacity onPress={onClose} disabled={isLoading}>
-            <Ionicons name="close" size={24} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-          Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.
-        </Text>
-
-        <View style={styles.modalInputGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>E-Mail</Text>
-          <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="ihre.email@example.com"
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isLoading}
-            />
-          </View>
-        </View>
-
-        <View style={styles.modalButtons}>
-          <TouchableOpacity
-            style={[styles.modalButton, { borderColor: colors.border }]}
-            onPress={onClose}
-            disabled={isLoading}
-          >
-            <Text style={[styles.modalButtonText, { color: colors.textSecondary }]}>Abbrechen</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.modalButtonPrimary, { backgroundColor: colors.primary }]}
-            onPress={handleReset}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={[styles.modalButtonText, styles.modalButtonPrimaryText]}>Senden</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
   );
 }
 
@@ -330,6 +210,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    textAlign: 'center',
   },
   form: {
     maxWidth: 400,
@@ -363,15 +244,6 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 4,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-    padding: 4,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   loginButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -379,6 +251,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 12,
     gap: 8,
+    marginTop: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -390,47 +263,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 32,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 2,
-    gap: 12,
-  },
-  googleIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4285F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleIconText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  demoInfo: {
+  infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginTop: 32,
@@ -439,15 +272,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 12,
   },
-  demoInfoText: {
+  infoText: {
     flex: 1,
   },
-  demoInfoTitle: {
+  infoTitle: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
   },
-  demoInfoSubtext: {
+  infoSubtext: {
     fontSize: 13,
     lineHeight: 18,
   },
@@ -456,6 +289,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
+    flexWrap: 'wrap',
   },
   registerLinkText: {
     fontSize: 15,
@@ -464,67 +298,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modal: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  modalDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  modalInputGroup: {
-    marginBottom: 24,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  modalButtonPrimary: {
-    borderWidth: 0,
-  },
-  modalButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  modalButtonPrimaryText: {
-    color: '#fff',
-  },
 });
-

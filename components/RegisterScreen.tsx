@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -8,7 +8,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     useColorScheme,
     View,
@@ -25,42 +24,10 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
   const colors = Colors[colorScheme ?? 'light'];
   const { register, loginWithGoogle, isLoading } = useAuth();
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const handleRegister = async () => {
-    // Validierung
-    if (!name.trim()) {
-      Alert.alert('Fehler', 'Bitte geben Sie Ihren Namen ein');
-      return;
-    }
-
-    if (!email.trim()) {
-      Alert.alert('Fehler', 'Bitte geben Sie eine E-Mail-Adresse ein');
-      return;
-    }
-
-    if (!password.trim()) {
-      Alert.alert('Fehler', 'Bitte geben Sie ein Passwort ein');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Fehler', 'Das Passwort muss mindestens 6 Zeichen lang sein');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Fehler', 'Die Passwörter stimmen nicht überein');
-      return;
-    }
-
     try {
-      await register(name.trim(), email.trim(), password);
+      // Keycloak Registrierung - öffnet Browser mit Keycloak Registrierungs-Seite
+      await register();
     } catch (error) {
       Alert.alert('Registrierung fehlgeschlagen', (error as Error).message);
     }
@@ -69,7 +36,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
-    } catch (error) {
+    } catch {
       Alert.alert('Google Login fehlgeschlagen', 'Bitte versuchen Sie es erneut');
     }
   };
@@ -105,97 +72,16 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
 
         {/* Registration Form */}
         <View style={styles.form}>
-          {/* Name Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Name *</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="person-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Ihr vollständiger Name"
-                placeholderTextColor={colors.textSecondary}
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-                editable={!isLoading}
-              />
-            </View>
-          </View>
-
-          {/* Email Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>E-Mail *</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="ihre.email@example.com"
-                placeholderTextColor={colors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
-            </View>
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Passwort *</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Mindestens 6 Zeichen"
-                placeholderTextColor={colors.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Confirm Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Passwort bestätigen *</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Passwort wiederholen"
-                placeholderTextColor={colors.textSecondary}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeIcon}
-              >
-                <Ionicons
-                  name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
+          {/* Info Text für Keycloak */}
+          <View style={[styles.keycloakInfo, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="shield-checkmark" size={24} color={colors.primary} />
+            <View style={styles.keycloakInfoText}>
+              <Text style={[styles.keycloakInfoTitle, { color: colors.text }]}>
+                Sichere Registrierung mit Keycloak
+              </Text>
+              <Text style={[styles.keycloakInfoSubtext, { color: colors.textSecondary }]}>
+                Sie werden zur sicheren Keycloak-Registrierungsseite weitergeleitet
+              </Text>
             </View>
           </View>
 
@@ -393,6 +279,27 @@ const styles = StyleSheet.create({
   googleButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  keycloakInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  keycloakInfoText: {
+    flex: 1,
+  },
+  keycloakInfoTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  keycloakInfoSubtext: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   loginLink: {
     flexDirection: 'row',
