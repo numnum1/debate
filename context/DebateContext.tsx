@@ -8,6 +8,7 @@ interface DebateContextType {
   currentUser: User;
   setCurrentDebate: (debate: Debate | null) => void;
   addDebate: (debate: Debate) => void;
+  updateDebate: (debateId: string, updates: Partial<Debate>) => void;
   inviteUserToDebate: (debateId: string, user: User) => void;
   addMessageToDebate: (debateId: string, message: any) => void;
 }
@@ -99,6 +100,17 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     setDebates([debate, ...debates]);
   };
 
+  const updateDebate = (debateId: string, updates: Partial<Debate>) => {
+    setDebates(debates.map(debate => 
+      debate.id === debateId 
+        ? { ...debate, ...updates }
+        : debate
+    ));
+    if (currentDebate?.id === debateId) {
+      setCurrentDebate({ ...currentDebate, ...updates });
+    }
+  };
+
   const inviteUserToDebate = (debateId: string, user: User) => {
     setDebates(debates.map(debate => 
       debate.id === debateId 
@@ -123,6 +135,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         currentUser,
         setCurrentDebate,
         addDebate,
+        updateDebate,
         inviteUserToDebate,
         addMessageToDebate,
       }}

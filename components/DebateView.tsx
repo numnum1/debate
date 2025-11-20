@@ -16,9 +16,21 @@ import { DebateMessage } from '../types';
 export function DebateView() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { currentDebate, currentUser, addMessageToDebate } = useDebate();
+  const { currentDebate, currentUser, addMessageToDebate, updateDebate } = useDebate();
   const [messageText, setMessageText] = useState('');
   const [selectedStance, setSelectedStance] = useState<'pro' | 'contra' | 'neutral'>('neutral');
+  
+  // Settings state for pending debates
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+
+  // Initialize edit fields when debate changes
+  React.useEffect(() => {
+    if (currentDebate) {
+      setEditTitle(currentDebate.title);
+      setEditDescription(currentDebate.description || '');
+    }
+  }, [currentDebate?.id]);
 
   if (!currentDebate) {
     return (
@@ -68,6 +80,166 @@ export function DebateView() {
     return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleSaveSettings = () => {
+    updateDebate(currentDebate.id, {
+      title: editTitle.trim(),
+      description: editDescription.trim(),
+    });
+  };
+
+  const handleStartDebate = () => {
+    updateDebate(currentDebate.id, {
+      status: 'active',
+    });
+  };
+
+  const handleRemoveParticipant = (userId: string) => {
+    if (currentDebate.participants.length <= 1) return;
+    updateDebate(currentDebate.id, {
+      participants: currentDebate.participants.filter(p => p.id !== userId),
+    });
+  };
+
+  // Render Settings View for pending debates
+  if (currentDebate.status === 'pending') {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTop}>
+              <Text style={[styles.title, { color: colors.text }]}>Debatte einrichten</Text>
+              <View style={[styles.statusBadge, { backgroundColor: colors.warning + '20' }]}>
+                <Text style={[styles.statusBadgeText, { color: colors.warning }]}>
+                  Noch nicht gestartet
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Settings Content */}
+        <ScrollView style={styles.settingsContainer} contentContainerStyle={styles.settingsContent}>
+          {/* Title Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="text-outline" size={20} color={colors.primary} />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Titel</Text>
+            </View>
+            <TextInput
+              style={[
+                styles.settingsInput,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder="Debattentitel"
+              placeholderTextColor={colors.textSecondary}
+              value={editTitle}
+              onChangeText={setEditTitle}
+              onBlur={handleSaveSettings}
+            />
+          </View>
+
+          {/* Description Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="document-text-outline" size={20} color={colors.primary} />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Beschreibung</Text>
+            </View>
+            <TextInput
+              style={[
+                styles.settingsInput,
+                styles.settingsTextArea,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder="Worum geht es in dieser Debatte?"
+              placeholderTextColor={colors.textSecondary}
+              value={editDescription}
+              onChangeText={setEditDescription}
+              onBlur={handleSaveSettings}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* Participants Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="people-outline" size={20} color={colors.primary} />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Teilnehmer</Text>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
+                <Ionicons name="add" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.participantsList}>
+              {currentDebate.participants.map((participant) => (
+                <View
+                  key={participant.id}
+                  style={[styles.participantItem, { backgroundColor: colors.background, borderColor: colors.border }]}
+                >
+                  <View style={styles.participantInfo}>
+                    <View style={[styles.participantAvatar, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.participantAvatarText}>
+                        {participant.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.participantDetails}>
+                      <Text style={[styles.participantName, { color: colors.text }]}>
+                        {participant.name}
+                      </Text>
+                      <Text style={[styles.participantEmail, { color: colors.textSecondary }]}>
+                        {participant.email}
+                      </Text>
+                    </View>
+                  </View>
+                  {participant.id === currentDebate.createdBy.id ? (
+                    <View style={[styles.creatorBadge, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.creatorBadgeText, { color: colors.primary }]}>Ersteller</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => handleRemoveParticipant(participant.id)}
+                    >
+                      <Ionicons name="close-circle" size={24} color={colors.error} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Start Debate Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="rocket-outline" size={20} color={colors.primary} />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Debatte starten</Text>
+            </View>
+            <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+              Sobald Sie die Debatte starten, können Teilnehmer Beiträge verfassen und die Diskussion beginnt.
+            </Text>
+            <TouchableOpacity
+              style={[styles.startButton, { backgroundColor: colors.success }]}
+              onPress={handleStartDebate}
+            >
+              <Ionicons name="play" size={20} color="#fff" />
+              <Text style={styles.startButtonText}>Debatte jetzt starten</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Render Chat View for active debates
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -409,6 +581,137 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  // Settings View Styles
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  settingsContainer: {
+    flex: 1,
+  },
+  settingsContent: {
+    padding: 20,
+    gap: 20,
+  },
+  settingsSection: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  settingsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  settingsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  settingsInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+  },
+  settingsTextArea: {
+    minHeight: 100,
+    paddingTop: 12,
+  },
+  settingsHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  addButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  participantsList: {
+    gap: 10,
+  },
+  participantItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  participantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  participantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  participantAvatarText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  participantDetails: {
+    flex: 1,
+  },
+  participantName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  participantEmail: {
+    fontSize: 12,
+  },
+  creatorBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  creatorBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  removeButton: {
+    padding: 4,
+  },
+  startButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 10,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

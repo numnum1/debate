@@ -13,11 +13,27 @@ import { useAuth } from '../context/AuthContext';
 import { useDebate } from '../context/DebateContext';
 import { Debate } from '../types';
 
-export function DebateSidebar({ onCreateNew }: { onCreateNew: () => void }) {
+export function DebateSidebar() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { debates, currentDebate, setCurrentDebate, currentUser } = useDebate();
+  const { debates, currentDebate, setCurrentDebate, currentUser, addDebate } = useDebate();
   const { logout } = useAuth();
+
+  const handleCreateNew = () => {
+    const newDebate: Debate = {
+      id: Date.now().toString(),
+      title: 'Neue Debatte',
+      description: '',
+      createdBy: currentUser,
+      participants: [currentUser],
+      createdAt: new Date(),
+      status: 'pending',
+      messages: [],
+    };
+
+    addDebate(newDebate);
+    setCurrentDebate(newDebate);
+  };
 
   const formatDate = (date: Date) => {
     const now = new Date();
@@ -43,7 +59,7 @@ export function DebateSidebar({ onCreateNew }: { onCreateNew: () => void }) {
     switch (status) {
       case 'active': return 'Aktiv';
       case 'completed': return 'Beendet';
-      case 'pending': return 'Ausstehend';
+      case 'pending': return 'Noch nicht gestartet';
       default: return status;
     }
   };
@@ -54,7 +70,7 @@ export function DebateSidebar({ onCreateNew }: { onCreateNew: () => void }) {
         <Text style={[styles.headerTitle, { color: colors.text }]}>Debatten</Text>
         <TouchableOpacity 
           style={[styles.createButton, { backgroundColor: colors.primary }]}
-          onPress={onCreateNew}
+          onPress={handleCreateNew}
         >
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>

@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, useColorScheme, StatusBar } from 'react-native';
 import { DebateSidebar } from '../components/DebateSidebar';
 import { DebateView } from '../components/DebateView';
-import { CreateDebateModal } from '../components/CreateDebateModal';
 import { AuthScreen } from '../components/AuthScreen';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +10,6 @@ export default function Index() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { isAuthenticated, user, isLoading } = useAuth();
-  const [modalVisible, setModalVisible] = useState(false);
 
   // Debug-Logs
   console.log('[INDEX] Render - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user?.email);
@@ -32,14 +30,9 @@ export default function Index() {
       />
       
       <View style={styles.content}>
-        <DebateSidebar onCreateNew={() => setModalVisible(true)} />
+        <DebateSidebar />
         <DebateView />
       </View>
-
-      <CreateDebateModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-      />
     </View>
   );
 }
