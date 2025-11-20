@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +28,26 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Fix für Web: Autocomplete-Styles überschreiben
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const style = document.createElement('style');
+      style.innerHTML = `
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px ${colorScheme === 'dark' ? '#1a1d2e' : '#f8f9fa'} inset !important;
+          -webkit-text-fill-color: ${colorScheme === 'dark' ? '#ffffff' : '#000000'} !important;
+        }
+      `;
+      document.head.appendChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, [colorScheme]);
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -79,7 +99,10 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: colors.text, backgroundColor: 'transparent' }]}
+                style={[styles.input, { 
+                  color: colors.text, 
+                  backgroundColor: 'transparent',
+                }]}
                 placeholder="ihre.email@example.com"
                 placeholderTextColor={colors.textSecondary}
                 value={email}
@@ -90,6 +113,7 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
                 editable={!isLoading}
                 autoFocus
                 selectionColor={colors.primary}
+                autoComplete="email"
               />
             </View>
           </View>
@@ -100,7 +124,10 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: colors.text, backgroundColor: 'transparent' }]}
+                style={[styles.input, { 
+                  color: colors.text, 
+                  backgroundColor: 'transparent',
+                }]}
                 placeholder="Ihr Passwort"
                 placeholderTextColor={colors.textSecondary}
                 value={password}
@@ -111,6 +138,7 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
                 editable={!isLoading}
                 onSubmitEditing={handleLogin}
                 selectionColor={colors.primary}
+                autoComplete="password"
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -232,6 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 52,
+    overflow: 'hidden', // Wichtig für backgroundColor
   },
   inputIcon: {
     marginRight: 12,
