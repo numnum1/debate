@@ -1,0 +1,441 @@
+{
+	"info": {
+		"name": "Debate Server API",
+		"description": "API Collection für den Debate Server mit Keycloak Authentication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api",
+			"type": "string"
+		},
+		{
+			"key": "keycloak_url",
+			"value": "http://localhost:8180",
+			"type": "string"
+		},
+		{
+			"key": "realm",
+			"value": "debate",
+			"type": "string"
+		},
+		{
+			"key": "client_id",
+			"value": "debate-server",
+			"type": "string"
+		},
+		{
+			"key": "client_secret",
+			"value": "your-client-secret",
+			"type": "string"
+		},
+		{
+			"key": "username",
+			"value": "testuser",
+			"type": "string"
+		},
+		{
+			"key": "password",
+			"value": "password123",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get Access Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"access_token\", jsonData.access_token);",
+									"    console.log(\"Access token saved:\", jsonData.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "client_id",
+									"value": "{{client_id}}",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{client_secret}}",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "{{username}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"type": "text"
+								},
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+							"host": [
+								"{{keycloak_url}}"
+							],
+							"path": [
+								"realms",
+								"{{realm}}",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Public Endpoints",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/public/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"public",
+								"health"
+							]
+						}
+					}
+				},
+				{
+					"name": "Server Info",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/public/info",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"public",
+								"info"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Debates",
+			"item": [
+				{
+					"name": "Get All Debates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Debate by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "debate-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get My Debates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates/my-debates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								"my-debates"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Participating Debates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates/participating",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								"participating"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Debates by Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates/status/OPEN",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								"status",
+								"OPEN"
+							]
+						}
+					}
+				},
+				{
+					"name": "Search Debates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates/search?title=KI",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								"search"
+							],
+							"query": [
+								{
+									"key": "title",
+									"value": "KI"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Debate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Sollte KI reguliert werden?\",\n  \"description\": \"Eine Debatte über die Notwendigkeit von KI-Regulierung und deren Auswirkungen auf Innovation und Sicherheit.\",\n  \"status\": \"OPEN\",\n  \"participantIds\": [],\n  \"arguments\": []\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/debates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates"
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Debate",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Aktualisierter Titel\",\n  \"description\": \"Aktualisierte Beschreibung\",\n  \"status\": \"CLOSED\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/debates/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "debate-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Argument",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"KI-Regulierung ist wichtig für die Sicherheit und ethische Entwicklung von künstlicher Intelligenz.\",\n  \"type\": \"PRO\",\n  \"supportingEvidences\": [\n    \"https://example.com/evidence1\",\n    \"https://example.com/evidence2\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/debates/:id/arguments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								":id",
+								"arguments"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "debate-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Debate",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "debate-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Count Debates by Status (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/debates/stats/count?status=OPEN",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"debates",
+								"stats",
+								"count"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "OPEN"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}
+

@@ -1,0 +1,55 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: debate-server
+  
+  # MongoDB Configuration
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/debate
+      # Alternative: Einzelne Parameter
+      # host: localhost
+      # port: 27017
+      # database: debate
+      # username: ${MONGO_USERNAME:admin}
+      # password: ${MONGO_PASSWORD:password}
+      # authentication-database: admin
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/debate}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/debate/protocol/openid-connect/certs}
+
+# Keycloak Configuration (für Referenz)
+# Die Integration erfolgt über Spring Security OAuth2 Resource Server
+# Realm: debate
+# Auth Server: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8180}
+# Client ID: debate-server
+# Client Secret: Wird für Token-Validierung nicht benötigt (nur issuer-uri und jwk-set-uri)
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    info.mm.debate: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.keycloak: DEBUG
+
+# Actuator Configuration (optional)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+

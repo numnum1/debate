@@ -1,0 +1,20 @@
+# Beispiel Umgebungsvariablen für den Debate Server
+# Kopieren Sie diese Datei und passen Sie die Werte an Ihre Umgebung an
+
+# MongoDB Configuration
+MONGO_URI=mongodb://localhost:27017/debate
+MONGO_USERNAME=admin
+MONGO_PASSWORD=password
+
+# Keycloak Configuration
+KEYCLOAK_AUTH_SERVER_URL=http://localhost:8180
+KEYCLOAK_ISSUER_URI=http://localhost:8180/realms/debate
+KEYCLOAK_JWK_SET_URI=http://localhost:8180/realms/debate/protocol/openid-connect/certs
+KEYCLOAK_CLIENT_SECRET=your-client-secret-here
+
+# Server Configuration
+SERVER_PORT=8080
+
+# Diese Variablen können in der application.yml oder als Umgebungsvariablen verwendet werden
+# Beispiel: export KEYCLOAK_CLIENT_SECRET=ihr-secret
+
