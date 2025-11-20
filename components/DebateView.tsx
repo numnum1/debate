@@ -16,13 +16,25 @@ import { DebateMessage } from '../types';
 export function DebateView() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { currentDebate, currentUser, addMessageToDebate, updateDebate } = useDebate();
+  const { 
+    currentDebate, 
+    currentUser, 
+    addMessageToDebate, 
+    updateDebate,
+    addPosition,
+    updatePosition,
+    removePosition,
+    addUserToPosition,
+    removeUserFromPosition 
+  } = useDebate();
   const [messageText, setMessageText] = useState('');
-  const [selectedStance, setSelectedStance] = useState<'pro' | 'contra' | 'neutral'>('neutral');
+  const [selectedPositionId, setSelectedPositionId] = useState<string | undefined>(undefined);
   
   // Settings state for pending debates
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [newPositionName, setNewPositionName] = useState('');
+  const [newPositionColor, setNewPositionColor] = useState('#3b82f6');
 
   // Initialize edit fields when debate changes
   React.useEffect(() => {
@@ -52,28 +64,11 @@ export function DebateView() {
       userName: currentUser.name,
       text: messageText.trim(),
       timestamp: new Date(),
-      stance: selectedStance,
+      positionId: selectedPositionId,
     };
 
     addMessageToDebate(currentDebate.id, newMessage);
     setMessageText('');
-    setSelectedStance('neutral');
-  };
-
-  const getStanceColor = (stance: DebateMessage['stance']) => {
-    switch (stance) {
-      case 'pro': return colors.success;
-      case 'contra': return colors.error;
-      case 'neutral': return colors.textSecondary;
-    }
-  };
-
-  const getStanceLabel = (stance: DebateMessage['stance']) => {
-    switch (stance) {
-      case 'pro': return 'Pro';
-      case 'contra': return 'Contra';
-      case 'neutral': return 'Neutral';
-    }
   };
 
   const formatTimestamp = (date: Date) => {
@@ -93,12 +88,22 @@ export function DebateView() {
     });
   };
 
-  const handleRemoveParticipant = (userId: string) => {
-    if (currentDebate.participants.length <= 1) return;
-    updateDebate(currentDebate.id, {
-      participants: currentDebate.participants.filter(p => p.id !== userId),
-    });
+  const handleAddPosition = () => {
+    if (!newPositionName.trim()) return;
+
+    const newPosition = {
+      id: Date.now().toString(),
+      name: newPositionName.trim(),
+      color: newPositionColor,
+      participants: [],
+    };
+
+    addPosition(currentDebate.id, newPosition);
+    setNewPositionName('');
+    setNewPositionColor('#3b82f6');
   };
+
+  const predefinedColors = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'];
 
   // Render Settings View for pending debates
   if (currentDebate.status === 'pending') {
@@ -170,48 +175,127 @@ export function DebateView() {
             />
           </View>
 
-          {/* Participants Section */}
+          {/* Positions Section */}
           <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.settingsSectionHeader}>
-              <Ionicons name="people-outline" size={20} color={colors.primary} />
-              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Teilnehmer</Text>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
+              <Ionicons name="flag-outline" size={20} color={colors.primary} />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Positionen</Text>
+            </View>
+            <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+              Erstellen Sie Positionen für Ihre Debatte (z.B. "Pro", "Contra", etc.) und laden Sie Teilnehmer zu jeder Position ein.
+            </Text>
+            
+            {/* Add New Position */}
+            <View style={styles.addPositionContainer}>
+              <TextInput
+                style={[
+                  styles.positionNameInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                placeholder="Positionsname (z.B. Pro)"
+                placeholderTextColor={colors.textSecondary}
+                value={newPositionName}
+                onChangeText={setNewPositionName}
+              />
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.colorPickerContainer}
+              >
+                {predefinedColors.map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.colorOption,
+                      { backgroundColor: color },
+                      newPositionColor === color && styles.colorOptionSelected,
+                    ]}
+                    onPress={() => setNewPositionColor(color)}
+                  >
+                    {newPositionColor === color && (
+                      <Ionicons name="checkmark" size={16} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={[
+                  styles.addPositionButton,
+                  { backgroundColor: colors.primary },
+                  !newPositionName.trim() && { opacity: 0.5 },
+                ]}
+                onPress={handleAddPosition}
+                disabled={!newPositionName.trim()}
+              >
                 <Ionicons name="add" size={20} color="#fff" />
+                <Text style={styles.addPositionButtonText}>Position hinzufügen</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.participantsList}>
-              {currentDebate.participants.map((participant) => (
+
+            {/* Existing Positions */}
+            <View style={styles.positionsList}>
+              {currentDebate.positions.map((position) => (
                 <View
-                  key={participant.id}
-                  style={[styles.participantItem, { backgroundColor: colors.background, borderColor: colors.border }]}
+                  key={position.id}
+                  style={[
+                    styles.positionCard,
+                    { backgroundColor: colors.background, borderColor: colors.border },
+                  ]}
                 >
-                  <View style={styles.participantInfo}>
-                    <View style={[styles.participantAvatar, { backgroundColor: colors.primary }]}>
-                      <Text style={styles.participantAvatarText}>
-                        {participant.name.charAt(0).toUpperCase()}
+                  <View style={styles.positionHeader}>
+                    <View style={styles.positionTitleRow}>
+                      <View style={[styles.positionColorDot, { backgroundColor: position.color }]} />
+                      <Text style={[styles.positionName, { color: colors.text }]}>
+                        {position.name}
                       </Text>
                     </View>
-                    <View style={styles.participantDetails}>
-                      <Text style={[styles.participantName, { color: colors.text }]}>
-                        {participant.name}
-                      </Text>
-                      <Text style={[styles.participantEmail, { color: colors.textSecondary }]}>
-                        {participant.email}
-                      </Text>
-                    </View>
-                  </View>
-                  {participant.id === currentDebate.createdBy.id ? (
-                    <View style={[styles.creatorBadge, { backgroundColor: colors.primary + '20' }]}>
-                      <Text style={[styles.creatorBadgeText, { color: colors.primary }]}>Ersteller</Text>
-                    </View>
-                  ) : (
                     <TouchableOpacity
                       style={styles.removeButton}
-                      onPress={() => handleRemoveParticipant(participant.id)}
+                      onPress={() => removePosition(currentDebate.id, position.id)}
                     >
-                      <Ionicons name="close-circle" size={24} color={colors.error} />
+                      <Ionicons name="trash-outline" size={20} color={colors.error} />
                     </TouchableOpacity>
-                  )}
+                  </View>
+
+                  {/* Participants in this position */}
+                  <View style={styles.positionParticipants}>
+                    {position.participants.length === 0 ? (
+                      <Text style={[styles.noParticipantsText, { color: colors.textSecondary }]}>
+                        Keine Teilnehmer
+                      </Text>
+                    ) : (
+                      position.participants.map((participant) => (
+                        <View
+                          key={participant.id}
+                          style={[
+                            styles.participantChip,
+                            { backgroundColor: position.color + '20', borderColor: position.color },
+                          ]}
+                        >
+                          <Text style={[styles.participantChipText, { color: position.color }]}>
+                            {participant.name}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => removeUserFromPosition(currentDebate.id, position.id, participant.id)}
+                          >
+                            <Ionicons name="close" size={16} color={position.color} />
+                          </TouchableOpacity>
+                        </View>
+                      ))
+                    )}
+                    <TouchableOpacity
+                      style={[styles.addParticipantButton, { borderColor: position.color }]}
+                    >
+                      <Ionicons name="person-add-outline" size={16} color={position.color} />
+                      <Text style={[styles.addParticipantButtonText, { color: position.color }]}>
+                        Einladen
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </View>
@@ -260,11 +344,11 @@ export function DebateView() {
             {currentDebate.description}
           </Text>
           
-          {/* Participants */}
+          {/* Positions */}
           <View style={styles.participants}>
-            <Ionicons name="people" size={16} color={colors.textSecondary} />
+            <Ionicons name="flag" size={16} color={colors.textSecondary} />
             <Text style={[styles.participantsText, { color: colors.textSecondary }]}>
-              Teilnehmer: {currentDebate.participants.map(p => p.name).join(', ')}
+              Positionen: {currentDebate.positions.map(p => p.name).join(', ') || 'Keine Positionen'}
             </Text>
           </View>
         </View>
@@ -285,6 +369,7 @@ export function DebateView() {
         ) : (
           currentDebate.messages.map((message) => {
             const isOwn = message.userId === currentUser.id;
+            const position = currentDebate.positions.find(p => p.id === message.positionId);
             return (
               <View
                 key={message.id}
@@ -309,21 +394,23 @@ export function DebateView() {
                     >
                       {message.userName}
                     </Text>
-                    <View
-                      style={[
-                        styles.stanceBadge,
-                        { backgroundColor: getStanceColor(message.stance) + '30' },
-                      ]}
-                    >
-                      <Text
+                    {position && (
+                      <View
                         style={[
-                          styles.stanceText,
-                          { color: isOwn ? '#fff' : getStanceColor(message.stance) },
+                          styles.stanceBadge,
+                          { backgroundColor: position.color + '30' },
                         ]}
                       >
-                        {getStanceLabel(message.stance)}
-                      </Text>
-                    </View>
+                        <Text
+                          style={[
+                            styles.stanceText,
+                            { color: isOwn ? '#fff' : position.color },
+                          ]}
+                        >
+                          {position.name}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <Text
                     style={[
@@ -350,36 +437,43 @@ export function DebateView() {
 
       {/* Input Area */}
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        {/* Stance Selector */}
-        <View style={styles.stanceSelector}>
-          {(['pro', 'contra', 'neutral'] as const).map((stance) => (
-            <TouchableOpacity
-              key={stance}
-              style={[
-                styles.stanceButton,
-                { borderColor: colors.border },
-                selectedStance === stance && {
-                  backgroundColor: getStanceColor(stance) + '20',
-                  borderColor: getStanceColor(stance),
-                },
-              ]}
-              onPress={() => setSelectedStance(stance)}
-            >
-              <Text
+        {/* Position Selector */}
+        {currentDebate.positions.length > 0 && (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.positionSelector}
+          >
+            {currentDebate.positions.map((position) => (
+              <TouchableOpacity
+                key={position.id}
                 style={[
-                  styles.stanceButtonText,
-                  { color: colors.textSecondary },
-                  selectedStance === stance && { 
-                    color: getStanceColor(stance),
-                    fontWeight: '600',
+                  styles.positionButton,
+                  { borderColor: colors.border },
+                  selectedPositionId === position.id && {
+                    backgroundColor: position.color + '20',
+                    borderColor: position.color,
                   },
                 ]}
+                onPress={() => setSelectedPositionId(position.id)}
               >
-                {getStanceLabel(stance)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <View style={[styles.positionButtonDot, { backgroundColor: position.color }]} />
+                <Text
+                  style={[
+                    styles.positionButtonText,
+                    { color: colors.textSecondary },
+                    selectedPositionId === position.id && { 
+                      color: position.color,
+                      fontWeight: '600',
+                    },
+                  ]}
+                >
+                  {position.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         <View style={styles.inputRow}>
           <TextInput
@@ -712,6 +806,140 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Position Management Styles
+  addPositionContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
+  positionNameInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+  },
+  colorPickerContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  colorOption: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorOptionSelected: {
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  addPositionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  addPositionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  positionsList: {
+    gap: 12,
+    marginTop: 12,
+  },
+  positionCard: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  positionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  positionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  positionColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  positionName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  positionParticipants: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  noParticipantsText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  participantChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  participantChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  addParticipantButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  addParticipantButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  // Position Selector in Input Area
+  positionSelector: {
+    marginBottom: 12,
+  },
+  positionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+    gap: 6,
+  },
+  positionButtonDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  positionButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
 

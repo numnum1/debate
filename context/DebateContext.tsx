@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
-import { Debate, User } from '../types';
+import { Debate, Position, User } from '../types';
 import { useAuth } from './AuthContext';
 
 interface DebateContextType {
@@ -9,7 +9,11 @@ interface DebateContextType {
   setCurrentDebate: (debate: Debate | null) => void;
   addDebate: (debate: Debate) => void;
   updateDebate: (debateId: string, updates: Partial<Debate>) => void;
-  inviteUserToDebate: (debateId: string, user: User) => void;
+  addPosition: (debateId: string, position: Position) => void;
+  updatePosition: (debateId: string, positionId: string, updates: Partial<Position>) => void;
+  removePosition: (debateId: string, positionId: string) => void;
+  addUserToPosition: (debateId: string, positionId: string, user: User) => void;
+  removeUserFromPosition: (debateId: string, positionId: string, userId: string) => void;
   addMessageToDebate: (debateId: string, message: any) => void;
 }
 
@@ -31,9 +35,19 @@ export function DebateProvider({ children }: { children: ReactNode }) {
           title: 'Künstliche Intelligenz in der Bildung',
           description: 'Sollte KI stärker in Schulen eingesetzt werden?',
           createdBy: user,
-          participants: [
-            user,
-            { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
+          positions: [
+            {
+              id: 'pos1',
+              name: 'Pro',
+              color: '#10b981',
+              participants: [user],
+            },
+            {
+              id: 'pos2',
+              name: 'Contra',
+              color: '#ef4444',
+              participants: [{ id: '2', name: 'Anna Schmidt', email: 'anna@example.com' }],
+            },
           ],
           createdAt: new Date('2024-11-18'),
           status: 'active',
@@ -44,7 +58,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
               userName: user.name,
               text: 'KI kann personalisiertes Lernen ermöglichen und Lehrer entlasten.',
               timestamp: new Date('2024-11-18T10:00:00'),
-              stance: 'pro',
+              positionId: 'pos1',
             },
             {
               id: '2',
@@ -52,7 +66,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
               userName: 'Anna Schmidt',
               text: 'Aber es besteht die Gefahr, dass soziale Kompetenzen vernachlässigt werden.',
               timestamp: new Date('2024-11-18T10:15:00'),
-              stance: 'contra',
+              positionId: 'pos2',
             },
           ],
         },
@@ -61,10 +75,22 @@ export function DebateProvider({ children }: { children: ReactNode }) {
           title: 'Homeoffice vs. Büro',
           description: 'Was ist produktiver für moderne Teams?',
           createdBy: { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
-          participants: [
-            user,
-            { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
-            { id: '3', name: 'Peter Müller', email: 'peter@example.com' },
+          positions: [
+            {
+              id: 'pos1',
+              name: 'Homeoffice',
+              color: '#3b82f6',
+              participants: [user],
+            },
+            {
+              id: 'pos2',
+              name: 'Büro',
+              color: '#f59e0b',
+              participants: [
+                { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
+                { id: '3', name: 'Peter Müller', email: 'peter@example.com' },
+              ],
+            },
           ],
           createdAt: new Date('2024-11-19'),
           status: 'active',
@@ -75,7 +101,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
           title: 'Elektroautos: Die Zukunft?',
           description: 'Sind Elektroautos wirklich umweltfreundlicher?',
           createdBy: user,
-          participants: [user],
+          positions: [],
           createdAt: new Date('2024-11-20'),
           status: 'pending',
           messages: [],
@@ -111,12 +137,105 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const inviteUserToDebate = (debateId: string, user: User) => {
-    setDebates(debates.map(debate => 
+  const addPosition = (debateId: string, position: Position) => {
+    const updatedDebates = debates.map(debate => 
       debate.id === debateId 
-        ? { ...debate, participants: [...debate.participants, user] }
+        ? { ...debate, positions: [...debate.positions, position] }
         : debate
-    ));
+    );
+    setDebates(updatedDebates);
+    if (currentDebate?.id === debateId) {
+      setCurrentDebate({ ...currentDebate, positions: [...currentDebate.positions, position] });
+    }
+  };
+
+  const updatePosition = (debateId: string, positionId: string, updates: Partial<Position>) => {
+    const updatedDebates = debates.map(debate => 
+      debate.id === debateId 
+        ? { 
+            ...debate, 
+            positions: debate.positions.map(pos => 
+              pos.id === positionId ? { ...pos, ...updates } : pos
+            )
+          }
+        : debate
+    );
+    setDebates(updatedDebates);
+    if (currentDebate?.id === debateId) {
+      setCurrentDebate({
+        ...currentDebate,
+        positions: currentDebate.positions.map(pos => 
+          pos.id === positionId ? { ...pos, ...updates } : pos
+        )
+      });
+    }
+  };
+
+  const removePosition = (debateId: string, positionId: string) => {
+    const updatedDebates = debates.map(debate => 
+      debate.id === debateId 
+        ? { ...debate, positions: debate.positions.filter(pos => pos.id !== positionId) }
+        : debate
+    );
+    setDebates(updatedDebates);
+    if (currentDebate?.id === debateId) {
+      setCurrentDebate({
+        ...currentDebate,
+        positions: currentDebate.positions.filter(pos => pos.id !== positionId)
+      });
+    }
+  };
+
+  const addUserToPosition = (debateId: string, positionId: string, user: User) => {
+    const updatedDebates = debates.map(debate => 
+      debate.id === debateId 
+        ? { 
+            ...debate, 
+            positions: debate.positions.map(pos => 
+              pos.id === positionId 
+                ? { ...pos, participants: [...pos.participants, user] }
+                : pos
+            )
+          }
+        : debate
+    );
+    setDebates(updatedDebates);
+    if (currentDebate?.id === debateId) {
+      setCurrentDebate({
+        ...currentDebate,
+        positions: currentDebate.positions.map(pos => 
+          pos.id === positionId 
+            ? { ...pos, participants: [...pos.participants, user] }
+            : pos
+        )
+      });
+    }
+  };
+
+  const removeUserFromPosition = (debateId: string, positionId: string, userId: string) => {
+    const updatedDebates = debates.map(debate => 
+      debate.id === debateId 
+        ? { 
+            ...debate, 
+            positions: debate.positions.map(pos => 
+              pos.id === positionId 
+                ? { ...pos, participants: pos.participants.filter(p => p.id !== userId) }
+                : pos
+            )
+          }
+        : debate
+    );
+    setDebates(updatedDebates);
+    if (currentDebate?.id === debateId) {
+      setCurrentDebate({
+        ...currentDebate,
+        positions: currentDebate.positions.map(pos => 
+          pos.id === positionId 
+            ? { ...pos, participants: pos.participants.filter(p => p.id !== userId) }
+            : pos
+        )
+      });
+    }
   };
 
   const addMessageToDebate = (debateId: string, message: any) => {
@@ -136,7 +255,11 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         setCurrentDebate,
         addDebate,
         updateDebate,
-        inviteUserToDebate,
+        addPosition,
+        updatePosition,
+        removePosition,
+        addUserToPosition,
+        removeUserFromPosition,
         addMessageToDebate,
       }}
     >

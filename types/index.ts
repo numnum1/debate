@@ -5,12 +5,19 @@ export interface User {
   email: string;
 }
 
+export interface Position {
+  id: string;
+  name: string;
+  color: string;
+  participants: User[];
+}
+
 export interface Debate {
   id: string;
   title: string;
   description: string;
   createdBy: User;
-  participants: User[];
+  positions: Position[];
   createdAt: Date;
   status: 'active' | 'completed' | 'pending';
   messages: DebateMessage[];
@@ -22,6 +29,6 @@ export interface DebateMessage {
   userName: string;
   text: string;
   timestamp: Date;
-  stance: 'pro' | 'contra' | 'neutral';
+  positionId?: string;
 }
 
