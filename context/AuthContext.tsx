@@ -6,6 +6,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
@@ -56,6 +57,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   };
 
+  const register = async (name: string, email: string, password: string) => {
+    setIsLoading(true);
+    
+    // Simuliere API-Aufruf
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Check if email already exists
+    const existingUser = mockUsers.find(
+      u => u.email.toLowerCase() === email.toLowerCase()
+    );
+    
+    if (existingUser) {
+      setIsLoading(false);
+      throw new Error('Diese E-Mail-Adresse ist bereits registriert');
+    }
+    
+    // Create new user
+    const newUser = {
+      id: 'user_' + Date.now(),
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: password,
+    };
+    
+    mockUsers.push(newUser);
+    
+    // Auto-login after registration
+    setUser({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+    });
+    
+    setIsLoading(false);
+  };
+
   const loginWithGoogle = async () => {
     setIsLoading(true);
     
@@ -101,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        register,
         loginWithGoogle,
         logout,
         resetPassword,

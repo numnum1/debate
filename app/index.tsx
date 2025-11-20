@@ -3,7 +3,7 @@ import { View, StyleSheet, useColorScheme, StatusBar } from 'react-native';
 import { DebateSidebar } from '../components/DebateSidebar';
 import { DebateView } from '../components/DebateView';
 import { CreateDebateModal } from '../components/CreateDebateModal';
-import { LoginScreen } from '../components/LoginScreen';
+import { AuthScreen } from '../components/AuthScreen';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,9 +13,9 @@ export default function Index() {
   const { isAuthenticated } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Show login screen if not authenticated
+  // Show auth screen (login/register) if not authenticated
   if (!isAuthenticated) {
-    return <LoginScreen />;
+    return <AuthScreen />;
   }
 
   // Show main app if authenticated

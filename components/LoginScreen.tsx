@@ -1,22 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 
-export function LoginScreen() {
+interface LoginScreenProps {
+  onSwitchToRegister: () => void;
+}
+
+export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { login, loginWithGoogle, isLoading } = useAuth();
@@ -42,7 +46,7 @@ export function LoginScreen() {
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
-    } catch (error) {
+    } catch {
       Alert.alert('Google Login fehlgeschlagen', 'Bitte versuchen Sie es erneut');
     }
   };
@@ -182,6 +186,18 @@ export function LoginScreen() {
                 E-Mail: max@example.com{'\n'}Passwort: password123
               </Text>
             </View>
+          </View>
+
+          {/* Register Link */}
+          <View style={styles.registerLink}>
+            <Text style={[styles.registerLinkText, { color: colors.textSecondary }]}>
+              Noch kein Konto?{' '}
+            </Text>
+            <TouchableOpacity onPress={onSwitchToRegister} disabled={isLoading}>
+              <Text style={[styles.registerLinkButton, { color: colors.primary }]}>
+                Jetzt registrieren
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -434,6 +450,19 @@ const styles = StyleSheet.create({
   demoInfoSubtext: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  registerLink: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  registerLinkText: {
+    fontSize: 15,
+  },
+  registerLinkButton: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   modalOverlay: {
     position: 'absolute',

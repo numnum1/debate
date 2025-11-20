@@ -60,8 +60,15 @@ npm run ios
 
 ## Verwendung
 
-### Anmeldung
-**Demo-Zugang:**
+### Registrierung & Anmeldung
+
+**Neues Konto erstellen:**
+1. Klicken Sie auf "Jetzt registrieren" auf der Login-Seite
+2. Geben Sie Ihren Namen, E-Mail und Passwort ein
+3. Bestätigen Sie Ihr Passwort
+4. Klicken Sie auf "Registrieren"
+
+**Anmeldung - Demo-Zugang:**
 - E-Mail: `max@example.com`
 - Passwort: `password123`
 
@@ -69,9 +76,10 @@ Oder:
 - E-Mail: `anna@example.com`
 - Passwort: `password123`
 
-**Optionen:**
+**Login-Optionen:**
 - Mit Username/Passwort anmelden
 - Mit Google-Account anmelden (simuliert)
+- Neues Konto registrieren
 - Passwort vergessen? Link zum Zurücksetzen
 
 ### Eine neue Debatte erstellen
@@ -159,6 +167,7 @@ GET    /api/users             // Benutzer suchen
 
 - [x] ✅ Authentifizierung implementieren
 - [x] ✅ Login-Screen mit Passwort vergessen
+- [x] ✅ Registrierungs-Screen
 - [x] ✅ Logout-Funktionalität
 - [ ] Backend-API anbinden
 - [ ] Echte OAuth-Integration (Google, Apple)
