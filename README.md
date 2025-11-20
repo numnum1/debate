@@ -1,50 +1,132 @@
-# Welcome to your Expo app 👋
+# Debattierungs-App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Eine moderne Debattierungs-App, die es Benutzern ermöglicht, Debatten zu erstellen, andere einzuladen und strukturierte Diskussionen zu führen.
 
-## Get started
+## Features
 
-1. Install dependencies
+✨ **Hauptfunktionen:**
+- 📝 Debatten erstellen mit Titel und Beschreibung
+- 👥 Andere Benutzer zu Debatten einladen
+- 💬 Nachrichten mit Pro/Contra/Neutral-Positionierung
+- 📊 Übersicht aller laufenden Debatten in der Sidebar
+- 🎨 Modernes, responsives Design mit Light/Dark Mode
+- 📱 Vorbereitet für spätere Backend-Integration
 
-   ```bash
-   npm install
-   ```
+## Projektstruktur
 
-2. Start the app
+```
+debate-app/
+├── app/                      # Expo Router App-Verzeichnis
+│   ├── _layout.tsx          # Root Layout mit Provider
+│   └── index.tsx            # Hauptseite
+├── components/              # React-Komponenten
+│   ├── DebateSidebar.tsx   # Sidebar mit Debattenliste
+│   ├── DebateView.tsx      # Hauptansicht für Debatten
+│   └── CreateDebateModal.tsx # Modal zum Erstellen neuer Debatten
+├── context/                 # React Context
+│   └── DebateContext.tsx   # State Management für Debatten
+├── types/                   # TypeScript-Typen
+│   └── index.ts            # Interface-Definitionen
+├── constants/               # Konstanten
+│   └── Colors.ts           # Farbschema
+└── hooks/                   # Custom Hooks
+    └── useColorScheme.ts   # Theme Hook
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Installation & Start
 
-## Learn more
+```bash
+# Abhängigkeiten installieren
+npm install
 
-To learn more about developing your project with Expo, look at the following resources:
+# App starten
+npm start
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Für Web
+npm run web
 
-## Join the community
+# Für Android
+npm run android
 
-Join our community of developers creating universal apps.
+# Für iOS
+npm run ios
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Verwendung
+
+### Eine neue Debatte erstellen
+1. Klicken Sie auf den "+" Button in der Sidebar
+2. Geben Sie Titel und Beschreibung ein
+3. Optional: Laden Sie Teilnehmer per E-Mail ein
+4. Klicken Sie auf "Erstellen"
+
+### An einer Debatte teilnehmen
+1. Wählen Sie eine Debatte aus der Sidebar
+2. Wählen Sie Ihre Position (Pro/Contra/Neutral)
+3. Geben Sie Ihren Beitrag ein
+4. Senden Sie die Nachricht
+
+## Design-Highlights
+
+- 🎨 Modernes UI mit Indigo/Pink Farbschema
+- 🌓 Automatischer Light/Dark Mode Support
+- 📱 Responsive Layout
+- 🔔 Status-Badges für Debatten (Aktiv/Ausstehend/Beendet)
+- 💭 Chat-ähnliche Nachrichtenansicht mit Stance-Indikatoren
+
+## Backend-Integration (Vorbereitet)
+
+Die App ist für die spätere Backend-Integration vorbereitet:
+
+**Zu implementierende API-Endpunkte:**
+
+```typescript
+// Debatten
+GET    /api/debates           // Alle Debatten abrufen
+POST   /api/debates           // Neue Debatte erstellen
+GET    /api/debates/:id       // Einzelne Debatte abrufen
+PUT    /api/debates/:id       // Debatte aktualisieren
+DELETE /api/debates/:id       // Debatte löschen
+
+// Teilnehmer
+POST   /api/debates/:id/invite  // Teilnehmer einladen
+DELETE /api/debates/:id/participants/:userId
+
+// Nachrichten
+GET    /api/debates/:id/messages  // Nachrichten abrufen
+POST   /api/debates/:id/messages  // Nachricht senden
+
+// Benutzer
+GET    /api/users/me          // Aktuellen Benutzer abrufen
+GET    /api/users             // Benutzer suchen
+```
+
+**Integration in `context/DebateContext.tsx`:**
+- Ersetzen Sie Mock-Daten durch API-Aufrufe
+- Implementieren Sie Echtzeit-Updates (z.B. WebSockets)
+- Fügen Sie Authentifizierung hinzu
+
+## Technologie-Stack
+
+- **Framework:** React Native mit Expo
+- **Navigation:** Expo Router
+- **Sprache:** TypeScript
+- **State Management:** React Context API
+- **Icons:** @expo/vector-icons (Ionicons)
+- **UI:** Native Components mit custom Styling
+
+## Nächste Schritte
+
+- [ ] Backend-API anbinden
+- [ ] Authentifizierung implementieren
+- [ ] WebSocket für Echtzeit-Updates
+- [ ] Push-Benachrichtigungen
+- [ ] Benutzerprofile und Avatare
+- [ ] Debattenverlauf und Statistiken
+- [ ] Export-Funktion für Debatten
+- [ ] Suche und Filter in der Sidebar
+
+## Lizenz
+
+Private Projekt
