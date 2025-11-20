@@ -11,20 +11,14 @@ import java.util.Optional;
 @Repository
 public interface DebateRepository extends MongoRepository<Debate, String> {
     
-    // Finde alle Debatten nach Creator
-    List<Debate> findByCreatorId(String creatorId);
-    
     // Finde alle Debatten nach Status
     List<Debate> findByStatus(Debate.DebateStatus status);
-    
-    // Finde alle Debatten, bei denen ein Benutzer Teilnehmer ist
-    List<Debate> findByParticipantIdsContaining(String userId);
     
     // Finde Debatten nach Titel (Case-insensitive)
     @Query("{ 'title': { $regex: ?0, $options: 'i' } }")
     List<Debate> findByTitleContainingIgnoreCase(String title);
     
-    // Finde alle offenen Debatten
+    // Finde alle Debatten nach Status sortiert nach Erstellungsdatum
     List<Debate> findByStatusOrderByCreatedAtDesc(Debate.DebateStatus status);
     
     // Zähle Debatten nach Status

@@ -34,6 +34,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Öffentliche Endpoints
                 .requestMatchers("/api/public/**", "/actuator/health", "/actuator/info").permitAll()
+                // WebSocket-Endpunkt (Authentifizierung erfolgt über Interceptor)
+                .requestMatchers("/ws/**").permitAll()
                 // Alle anderen Endpoints benötigen Authentifizierung
                 .anyRequest().authenticated()
             )

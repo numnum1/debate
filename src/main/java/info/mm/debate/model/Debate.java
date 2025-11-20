@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Document(collection = "debates")
@@ -24,7 +25,7 @@ public class Debate {
     
     private String description;
     
-    private String creatorId;
+    private User createdBy; // Changed from creatorId to full User object
     
     private LocalDateTime createdAt;
     
@@ -32,34 +33,17 @@ public class Debate {
     
     private DebateStatus status;
     
-    private List<String> participantIds;
+    @Builder.Default
+    private List<Position> positions = new ArrayList<>();
     
-    private List<Argument> arguments;
+    @Builder.Default
+    private List<DebateMessage> messages = new ArrayList<>();
     
     public enum DebateStatus {
-        DRAFT,
-        OPEN,
-        CLOSED,
-        ARCHIVED
-    }
-    
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Argument {
-        private String id;
-        private String userId;
-        private String content;
-        private ArgumentType type;
-        private LocalDateTime createdAt;
-        private List<String> supportingEvidences;
-        
-        public enum ArgumentType {
-            PRO,
-            CONTRA,
-            NEUTRAL
-        }
+        pending,   // Frontend expects lowercase
+        active,
+        completed
     }
 }
+
 

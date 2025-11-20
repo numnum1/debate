@@ -1,6 +1,7 @@
 package info.mm.debate.service;
 
 import info.mm.debate.model.Debate;
+import info.mm.debate.model.User;
 import info.mm.debate.repository.DebateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,9 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -31,17 +32,15 @@ public class DebateService {
     
     public List<Debate> getDebatesByCreator(String creatorId) {
         log.debug("Fetching debates for creator: {}", creatorId);
-        return debateRepository.findByCreatorId(creatorId);
+        // Note: We need to query by createdBy.id
+        return debateRepository.findAll().stream()
+                .filter(d -> d.getCreatedBy() != null && d.getCreatedBy().getId().equals(creatorId))
+                .toList();
     }
     
     public List<Debate> getDebatesByStatus(Debate.DebateStatus status) {
         log.debug("Fetching debates with status: {}", status);
         return debateRepository.findByStatusOrderByCreatedAtDesc(status);
-    }
-    
-    public List<Debate> getDebatesByParticipant(String userId) {
-        log.debug("Fetching debates for participant: {}", userId);
-        return debateRepository.findByParticipantIdsContaining(userId);
     }
     
     public List<Debate> searchDebatesByTitle(String title) {
@@ -50,15 +49,25 @@ public class DebateService {
     }
     
     @Transactional
-    public Debate createDebate(Debate debate, String creatorId) {
+    public Debate createDebate(Debate debate, User creator) {
         log.info("Creating new debate: {}", debate.getTitle());
         debate.setId(null); // Ensure new ID is generated
-        debate.setCreatorId(creatorId);
+        debate.setCreatedBy(creator);
         debate.setCreatedAt(LocalDateTime.now());
         debate.setUpdatedAt(LocalDateTime.now());
+        
         if (debate.getStatus() == null) {
-            debate.setStatus(Debate.DebateStatus.DRAFT);
+            debate.setStatus(Debate.DebateStatus.pending);
         }
+        
+        if (debate.getPositions() == null) {
+            debate.setPositions(new ArrayList<>());
+        }
+        
+        if (debate.getMessages() == null) {
+            debate.setMessages(new ArrayList<>());
+        }
+        
         return debateRepository.save(debate);
     }
     
@@ -76,35 +85,14 @@ public class DebateService {
                     if (updatedDebate.getStatus() != null) {
                         existingDebate.setStatus(updatedDebate.getStatus());
                     }
-                    if (updatedDebate.getParticipantIds() != null) {
-                        existingDebate.setParticipantIds(updatedDebate.getParticipantIds());
+                    if (updatedDebate.getPositions() != null) {
+                        existingDebate.setPositions(updatedDebate.getPositions());
                     }
-                    if (updatedDebate.getArguments() != null) {
-                        existingDebate.setArguments(updatedDebate.getArguments());
+                    if (updatedDebate.getMessages() != null) {
+                        existingDebate.setMessages(updatedDebate.getMessages());
                     }
                     existingDebate.setUpdatedAt(LocalDateTime.now());
                     return debateRepository.save(existingDebate);
-                });
-    }
-    
-    @Transactional
-    public Optional<Debate> addArgument(String debateId, Debate.Argument argument, String userId) {
-        log.info("Adding argument to debate: {}", debateId);
-        return debateRepository.findById(debateId)
-                .map(debate -> {
-                    argument.setId(UUID.randomUUID().toString());
-                    argument.setUserId(userId);
-                    argument.setCreatedAt(LocalDateTime.now());
-                    
-                    List<Debate.Argument> arguments = debate.getArguments();
-                    if (arguments == null) {
-                        arguments = List.of(argument);
-                    } else {
-                        arguments.add(argument);
-                    }
-                    debate.setArguments(arguments);
-                    debate.setUpdatedAt(LocalDateTime.now());
-                    return debateRepository.save(debate);
                 });
     }
     
