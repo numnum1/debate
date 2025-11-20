@@ -30,9 +30,12 @@ docker-compose up -d
 ```
 
 Dies startet:
-- **MongoDB** auf Port 27017
-- **Keycloak** auf Port 8180
+- **MongoDB** auf Port 27017 (mit persistentem Volume)
+- **PostgreSQL** für Keycloak (intern, mit persistentem Volume)
+- **Keycloak** auf Port 8180 (mit persistenten Einstellungen ✅)
 - **Mongo Express** (Web UI) auf Port 8081
+
+**Hinweis:** Ihre Keycloak-Konfiguration bleibt nach Container-Neustarts erhalten!
 
 ### 2. Keycloak konfigurieren
 

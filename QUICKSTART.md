@@ -15,6 +15,9 @@ Warten Sie ca. 30-60 Sekunden, bis alle Services laufen.
 docker-compose ps
 ```
 
+**✅ Wichtig:** Ihre Keycloak-Einstellungen werden jetzt **persistent gespeichert**! 
+Nach einem Neustart bleiben alle Realms, Clients und User erhalten.
+
 ## Schritt 2: Keycloak konfigurieren (5 Minuten)
 
 ### Schnellkonfiguration:
