@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { DebateProvider } from "../context/DebateContext";
+import "./global.css";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();

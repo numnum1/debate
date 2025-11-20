@@ -24,8 +24,9 @@ export function DebateView() {
     addPosition,
     updatePosition,
     removePosition,
-    addUserToPosition,
-    removeUserFromPosition 
+    addSlotToPosition,
+    updateSlot,
+    removeSlot
   } = useDebate();
   const [messageText, setMessageText] = useState('');
   const [selectedPositionId, setSelectedPositionId] = useState<string | undefined>(undefined);
@@ -35,6 +36,7 @@ export function DebateView() {
   const [editDescription, setEditDescription] = useState('');
   const [newPositionName, setNewPositionName] = useState('');
   const [newPositionColor, setNewPositionColor] = useState('#3b82f6');
+  const [showSlotMenu, setShowSlotMenu] = useState<string | null>(null); // positionId
 
   // Initialize edit fields when debate changes
   React.useEffect(() => {
@@ -94,13 +96,34 @@ export function DebateView() {
     const newPosition = {
       id: Date.now().toString(),
       name: newPositionName.trim(),
+      description: '',
       color: newPositionColor,
-      participants: [],
+      slots: [],
     };
 
     addPosition(currentDebate.id, newPosition);
     setNewPositionName('');
     setNewPositionColor('#3b82f6');
+  };
+
+  const handleAddSlot = (positionId: string, type: 'open' | 'invited' | 'ai') => {
+    const newSlot = {
+      id: Date.now().toString(),
+      type,
+      ...(type === 'ai' && {
+        participant: { 
+          id: `ai-${Date.now()}`, 
+          name: 'KI Teilnehmer', 
+          email: 'ai@debate.app' 
+        },
+        aiConfig: {
+          model: 'gpt-4',
+        },
+      }),
+    };
+
+    addSlotToPosition(currentDebate.id, positionId, newSlot);
+    setShowSlotMenu(null);
   };
 
   const predefinedColors = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -261,40 +284,163 @@ export function DebateView() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Participants in this position */}
-                  <View style={styles.positionParticipants}>
-                    {position.participants.length === 0 ? (
-                      <Text style={[styles.noParticipantsText, { color: colors.textSecondary }]}>
-                        Keine Teilnehmer
+                  {/* Position Description */}
+                  <TextInput
+                    style={[
+                      styles.positionDescriptionInput,
+                      {
+                        backgroundColor: colors.surface,
+                        color: colors.text,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    placeholder="Beschreibung dieser Position (optional)"
+                    placeholderTextColor={colors.textSecondary}
+                    value={position.description}
+                    onChangeText={(text) => 
+                      updatePosition(currentDebate.id, position.id, { description: text })
+                    }
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                  />
+
+                  {/* Slots in this position */}
+                  <View style={styles.slotsContainer}>
+                    {position.slots.length === 0 ? (
+                      <Text style={[styles.noSlotsText, { color: colors.textSecondary }]}>
+                        Keine Slots
                       </Text>
                     ) : (
-                      position.participants.map((participant) => (
+                      position.slots.map((slot) => (
                         <View
-                          key={participant.id}
+                          key={slot.id}
                           style={[
-                            styles.participantChip,
-                            { backgroundColor: position.color + '20', borderColor: position.color },
+                            styles.slotCard,
+                            { backgroundColor: colors.surface, borderColor: position.color + '50' },
                           ]}
                         >
-                          <Text style={[styles.participantChipText, { color: position.color }]}>
-                            {participant.name}
-                          </Text>
+                          <View style={styles.slotContent}>
+                            {slot.type === 'open' && (
+                              <>
+                                <View style={[styles.slotIcon, { backgroundColor: position.color + '20' }]}>
+                                  <Ionicons name="lock-open-outline" size={20} color={position.color} />
+                                </View>
+                                <View style={styles.slotInfo}>
+                                  <Text style={[styles.slotType, { color: colors.text }]}>Offener Slot</Text>
+                                  <Text style={[styles.slotDescription, { color: colors.textSecondary }]}>
+                                    Jeder kann beitreten
+                                  </Text>
+                                </View>
+                              </>
+                            )}
+                            {slot.type === 'invited' && (
+                              <>
+                                <View style={[styles.slotIcon, { backgroundColor: position.color + '20' }]}>
+                                  <Ionicons 
+                                    name={slot.participant ? "person" : "person-add-outline"} 
+                                    size={20} 
+                                    color={position.color} 
+                                  />
+                                </View>
+                                <View style={styles.slotInfo}>
+                                  {slot.participant ? (
+                                    <>
+                                      <Text style={[styles.slotType, { color: colors.text }]}>
+                                        {slot.participant.name}
+                                      </Text>
+                                      <Text style={[styles.slotDescription, { color: colors.textSecondary }]}>
+                                        {slot.participant.email}
+                                      </Text>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Text style={[styles.slotType, { color: colors.text }]}>Einladung ausstehend</Text>
+                                      <Text style={[styles.slotDescription, { color: colors.textSecondary }]}>
+                                        Teilnehmer einladen
+                                      </Text>
+                                    </>
+                                  )}
+                                </View>
+                              </>
+                            )}
+                            {slot.type === 'ai' && (
+                              <>
+                                <View style={[styles.slotIcon, { backgroundColor: position.color + '20' }]}>
+                                  <Ionicons name="sparkles" size={20} color={position.color} />
+                                </View>
+                                <View style={styles.slotInfo}>
+                                  <Text style={[styles.slotType, { color: colors.text }]}>
+                                    {slot.participant?.name || 'KI'}
+                                  </Text>
+                                  <Text style={[styles.slotDescription, { color: colors.textSecondary }]}>
+                                    {slot.aiConfig?.model || 'KI-Assistent'}
+                                  </Text>
+                                </View>
+                              </>
+                            )}
+                          </View>
                           <TouchableOpacity
-                            onPress={() => removeUserFromPosition(currentDebate.id, position.id, participant.id)}
+                            style={styles.removeSlotButton}
+                            onPress={() => removeSlot(currentDebate.id, position.id, slot.id)}
                           >
-                            <Ionicons name="close" size={16} color={position.color} />
+                            <Ionicons name="close-circle" size={20} color={colors.error} />
                           </TouchableOpacity>
                         </View>
                       ))
                     )}
-                    <TouchableOpacity
-                      style={[styles.addParticipantButton, { borderColor: position.color }]}
-                    >
-                      <Ionicons name="person-add-outline" size={16} color={position.color} />
-                      <Text style={[styles.addParticipantButtonText, { color: position.color }]}>
-                        Einladen
-                      </Text>
-                    </TouchableOpacity>
+                    
+                    {/* Add Slot Menu */}
+                    {showSlotMenu === position.id ? (
+                      <View style={[styles.slotMenu, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                        <TouchableOpacity
+                          style={[styles.slotMenuOption, { borderBottomColor: colors.border }]}
+                          onPress={() => handleAddSlot(position.id, 'open')}
+                        >
+                          <Ionicons name="lock-open-outline" size={20} color={colors.text} />
+                          <View style={styles.slotMenuOptionText}>
+                            <Text style={[styles.slotMenuTitle, { color: colors.text }]}>Offener Slot</Text>
+                            <Text style={[styles.slotMenuDescription, { color: colors.textSecondary }]}>
+                              Jeder kann beitreten
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.slotMenuOption, { borderBottomColor: colors.border }]}
+                          onPress={() => handleAddSlot(position.id, 'invited')}
+                        >
+                          <Ionicons name="person-add-outline" size={20} color={colors.text} />
+                          <View style={styles.slotMenuOptionText}>
+                            <Text style={[styles.slotMenuTitle, { color: colors.text }]}>Teilnehmer einladen</Text>
+                            <Text style={[styles.slotMenuDescription, { color: colors.textSecondary }]}>
+                              Spezifischen Nutzer einladen
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.slotMenuOption}
+                          onPress={() => handleAddSlot(position.id, 'ai')}
+                        >
+                          <Ionicons name="sparkles" size={20} color={colors.text} />
+                          <View style={styles.slotMenuOptionText}>
+                            <Text style={[styles.slotMenuTitle, { color: colors.text }]}>KI hinzufügen</Text>
+                            <Text style={[styles.slotMenuDescription, { color: colors.textSecondary }]}>
+                              KI-Teilnehmer zur Debatte hinzufügen
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.addSlotButton, { borderColor: position.color }]}
+                        onPress={() => setShowSlotMenu(position.id)}
+                      >
+                        <Ionicons name="add" size={16} color={position.color} />
+                        <Text style={[styles.addSlotButtonText, { color: position.color }]}>
+                          Slot hinzufügen
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ))}
@@ -882,41 +1028,99 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  positionParticipants: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  positionDescriptionInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 13,
+    minHeight: 60,
+    marginBottom: 12,
   },
-  noParticipantsText: {
+  // Slots Styles
+  slotsContainer: {
+    gap: 10,
+  },
+  noSlotsText: {
     fontSize: 13,
     fontStyle: 'italic',
   },
-  participantChip: {
+  slotCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 16,
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
   },
-  participantChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  addParticipantButton: {
+  slotContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  slotIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slotInfo: {
+    flex: 1,
+  },
+  slotType: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  slotDescription: {
+    fontSize: 12,
+  },
+  removeSlotButton: {
+    padding: 4,
+  },
+  addSlotButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderStyle: 'dashed',
   },
-  addParticipantButtonText: {
+  addSlotButtonText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  slotMenu: {
+    borderWidth: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  slotMenuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+  },
+  slotMenuOptionText: {
+    flex: 1,
+  },
+  slotMenuTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  slotMenuDescription: {
+    fontSize: 12,
   },
   // Position Selector in Input Area
   positionSelector: {

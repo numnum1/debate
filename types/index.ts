@@ -5,11 +5,22 @@ export interface User {
   email: string;
 }
 
+export interface Slot {
+  id: string;
+  type: 'open' | 'invited' | 'ai';
+  participant?: User; // Set when type is 'invited' and user has joined, or for 'ai'
+  aiConfig?: {
+    model: string;
+    personality?: string;
+  };
+}
+
 export interface Position {
   id: string;
   name: string;
+  description: string;
   color: string;
-  participants: User[];
+  slots: Slot[];
 }
 
 export interface Debate {
@@ -30,5 +41,6 @@ export interface DebateMessage {
   text: string;
   timestamp: Date;
   positionId?: string;
+  slotId?: string;
 }
 

@@ -113,7 +113,7 @@ export function DebateSidebar() {
               <View style={styles.participants}>
                 <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
                 <Text style={[styles.participantCount, { color: colors.textSecondary }]}>
-                  {debate.positions.reduce((sum, pos) => sum + pos.participants.length, 0)} Teilnehmer
+                  {debate.positions.reduce((sum, pos) => sum + pos.slots.filter(s => s.participant).length, 0)} Teilnehmer
                 </Text>
               </View>
               <Text style={[styles.debateDate, { color: colors.textSecondary }]}>

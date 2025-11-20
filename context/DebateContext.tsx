@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
-import { Debate, Position, User } from '../types';
+import { Debate, Position, Slot, User } from '../types';
 import { useAuth } from './AuthContext';
 
 interface DebateContextType {
@@ -12,8 +12,9 @@ interface DebateContextType {
   addPosition: (debateId: string, position: Position) => void;
   updatePosition: (debateId: string, positionId: string, updates: Partial<Position>) => void;
   removePosition: (debateId: string, positionId: string) => void;
-  addUserToPosition: (debateId: string, positionId: string, user: User) => void;
-  removeUserFromPosition: (debateId: string, positionId: string, userId: string) => void;
+  addSlotToPosition: (debateId: string, positionId: string, slot: Slot) => void;
+  updateSlot: (debateId: string, positionId: string, slotId: string, updates: Partial<Slot>) => void;
+  removeSlot: (debateId: string, positionId: string, slotId: string) => void;
   addMessageToDebate: (debateId: string, message: any) => void;
 }
 
@@ -39,14 +40,32 @@ export function DebateProvider({ children }: { children: ReactNode }) {
             {
               id: 'pos1',
               name: 'Pro',
+              description: 'Argumente für den Einsatz von KI in der Bildung',
               color: '#10b981',
-              participants: [user],
+              slots: [
+                {
+                  id: 'slot1',
+                  type: 'invited',
+                  participant: user,
+                },
+              ],
             },
             {
               id: 'pos2',
               name: 'Contra',
+              description: 'Kritische Bedenken zum KI-Einsatz in Schulen',
               color: '#ef4444',
-              participants: [{ id: '2', name: 'Anna Schmidt', email: 'anna@example.com' }],
+              slots: [
+                {
+                  id: 'slot2',
+                  type: 'invited',
+                  participant: { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
+                },
+                {
+                  id: 'slot3',
+                  type: 'open',
+                },
+              ],
             },
           ],
           createdAt: new Date('2024-11-18'),
@@ -59,6 +78,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
               text: 'KI kann personalisiertes Lernen ermöglichen und Lehrer entlasten.',
               timestamp: new Date('2024-11-18T10:00:00'),
               positionId: 'pos1',
+              slotId: 'slot1',
             },
             {
               id: '2',
@@ -67,6 +87,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
               text: 'Aber es besteht die Gefahr, dass soziale Kompetenzen vernachlässigt werden.',
               timestamp: new Date('2024-11-18T10:15:00'),
               positionId: 'pos2',
+              slotId: 'slot2',
             },
           ],
         },
@@ -79,16 +100,35 @@ export function DebateProvider({ children }: { children: ReactNode }) {
             {
               id: 'pos1',
               name: 'Homeoffice',
+              description: 'Vorteile von flexibler Arbeit von Zuhause',
               color: '#3b82f6',
-              participants: [user],
+              slots: [
+                {
+                  id: 'slot1',
+                  type: 'invited',
+                  participant: user,
+                },
+              ],
             },
             {
               id: 'pos2',
               name: 'Büro',
+              description: 'Argumente für Präsenzarbeit im Büro',
               color: '#f59e0b',
-              participants: [
-                { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
-                { id: '3', name: 'Peter Müller', email: 'peter@example.com' },
+              slots: [
+                {
+                  id: 'slot2',
+                  type: 'invited',
+                  participant: { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
+                },
+                {
+                  id: 'slot3',
+                  type: 'ai',
+                  participant: { id: 'ai1', name: 'KI Assistent', email: 'ai@debate.app' },
+                  aiConfig: {
+                    model: 'gpt-4',
+                  },
+                },
               ],
             },
           ],
@@ -186,14 +226,14 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addUserToPosition = (debateId: string, positionId: string, user: User) => {
+  const addSlotToPosition = (debateId: string, positionId: string, slot: Slot) => {
     const updatedDebates = debates.map(debate => 
       debate.id === debateId 
         ? { 
             ...debate, 
             positions: debate.positions.map(pos => 
               pos.id === positionId 
-                ? { ...pos, participants: [...pos.participants, user] }
+                ? { ...pos, slots: [...pos.slots, slot] }
                 : pos
             )
           }
@@ -205,21 +245,26 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         ...currentDebate,
         positions: currentDebate.positions.map(pos => 
           pos.id === positionId 
-            ? { ...pos, participants: [...pos.participants, user] }
+            ? { ...pos, slots: [...pos.slots, slot] }
             : pos
         )
       });
     }
   };
 
-  const removeUserFromPosition = (debateId: string, positionId: string, userId: string) => {
+  const updateSlot = (debateId: string, positionId: string, slotId: string, updates: Partial<Slot>) => {
     const updatedDebates = debates.map(debate => 
       debate.id === debateId 
         ? { 
             ...debate, 
             positions: debate.positions.map(pos => 
               pos.id === positionId 
-                ? { ...pos, participants: pos.participants.filter(p => p.id !== userId) }
+                ? { 
+                    ...pos, 
+                    slots: pos.slots.map(slot => 
+                      slot.id === slotId ? { ...slot, ...updates } : slot
+                    )
+                  }
                 : pos
             )
           }
@@ -231,7 +276,38 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         ...currentDebate,
         positions: currentDebate.positions.map(pos => 
           pos.id === positionId 
-            ? { ...pos, participants: pos.participants.filter(p => p.id !== userId) }
+            ? { 
+                ...pos, 
+                slots: pos.slots.map(slot => 
+                  slot.id === slotId ? { ...slot, ...updates } : slot
+                )
+              }
+            : pos
+        )
+      });
+    }
+  };
+
+  const removeSlot = (debateId: string, positionId: string, slotId: string) => {
+    const updatedDebates = debates.map(debate => 
+      debate.id === debateId 
+        ? { 
+            ...debate, 
+            positions: debate.positions.map(pos => 
+              pos.id === positionId 
+                ? { ...pos, slots: pos.slots.filter(slot => slot.id !== slotId) }
+                : pos
+            )
+          }
+        : debate
+    );
+    setDebates(updatedDebates);
+    if (currentDebate?.id === debateId) {
+      setCurrentDebate({
+        ...currentDebate,
+        positions: currentDebate.positions.map(pos => 
+          pos.id === positionId 
+            ? { ...pos, slots: pos.slots.filter(slot => slot.id !== slotId) }
             : pos
         )
       });
@@ -258,8 +334,9 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         addPosition,
         updatePosition,
         removePosition,
-        addUserToPosition,
-        removeUserFromPosition,
+        addSlotToPosition,
+        updateSlot,
+        removeSlot,
         addMessageToDebate,
       }}
     >
