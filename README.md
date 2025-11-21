@@ -10,8 +10,10 @@ Ein Spring Boot Server mit Keycloak-Authentifizierung und MongoDB-Anbindung für
 - **Spring Security OAuth2 Resource Server** mit JWT-Token-Validierung
 - **RESTful API** mit vollständigem CRUD für Debates
 - **Role-based Access Control (RBAC)** über Keycloak
+- **EECC API Integration** für KI-Modelle (Claude, Qwen3)
 - **CORS** Support
 - **Lombok** für reduzierten Boilerplate-Code
+- **Swagger/OpenAPI** Dokumentation
 
 ## 📋 Voraussetzungen
 
@@ -101,6 +103,46 @@ POST   /api/debates/{id}/arguments     - Argument hinzufügen
 DELETE /api/debates/{id}               - Debate löschen (nur Creator oder Admin)
 GET    /api/debates/stats/count        - Statistiken (nur Admin)
 ```
+
+#### AI Models
+
+```
+GET /api/ai/models                     - Alle verfügbaren KI-Modelle abrufen
+```
+
+#### EECC API (KI-Modelle)
+
+```
+POST /api/eecc/chat/completions        - Chat Completion mit EECC-Modell erstellen
+```
+
+**Verfügbare EECC Modelle:**
+- `claude-sonnet-4-20250514` - Claude Sonnet 4
+- `claude-sonnet-4-5-20250929` - Claude Sonnet 4.5 (empfohlen)
+- `qwen3-coder` - Qwen3 Coder (für Code-Aufgaben)
+- `qwen3-coder-max` - Qwen3 Coder Max
+- `claude-opus-4-1-20250805` - Claude Opus 4.1 (höchste Leistung)
+
+**Beispiel Request:**
+```json
+{
+  "model": "claude-sonnet-4-5-20250929",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Du bist ein hilfreicher Assistent."
+    },
+    {
+      "role": "user",
+      "content": "Erkläre die Relativitätstheorie."
+    }
+  ],
+  "temperature": 0.7,
+  "maxTokens": 2000
+}
+```
+
+Weitere Details siehe [EECC API Integration Dokumentation](EECC_API_INTEGRATION.md)
 
 ### Status-Werte
 

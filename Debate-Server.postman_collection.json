@@ -435,6 +435,141 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "AI Models",
+			"item": [
+				{
+					"name": "Get Available AI Models",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/ai/models",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ai",
+								"models"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "EECC API",
+			"item": [
+				{
+					"name": "Create Chat Completion",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"model\": \"claude-sonnet-4-5-20250929\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Du bist ein hilfreicher Assistent.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Erkläre mir die Relativitätstheorie in einfachen Worten.\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"maxTokens\": 2000,\n  \"stream\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/eecc/chat/completions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"eecc",
+								"chat",
+								"completions"
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Chat Completion (Claude Sonnet 4)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Was sind die wichtigsten Argumente für erneuerbare Energien?\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"maxTokens\": 1500\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/eecc/chat/completions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"eecc",
+								"chat",
+								"completions"
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Chat Completion (Qwen3 Coder)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"model\": \"qwen3-coder\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Schreibe eine Java-Funktion zum Sortieren einer Liste.\"\n    }\n  ],\n  \"temperature\": 0.5,\n  \"maxTokens\": 1000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/eecc/chat/completions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"eecc",
+								"chat",
+								"completions"
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Chat Completion (Claude Opus 4.1)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"model\": \"claude-opus-4-1-20250805\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Du bist ein Experte für philosophische Debatten.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Argumentiere für die These: 'Künstliche Intelligenz wird die menschliche Kreativität nicht ersetzen können.'\"\n    }\n  ],\n  \"temperature\": 0.8,\n  \"maxTokens\": 2500\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/eecc/chat/completions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"eecc",
+								"chat",
+								"completions"
+							]
+						}
+					}
+				}
+			]
 		}
 	]
 }
