@@ -16,23 +16,37 @@ import { Debate } from '../types';
 export function DebateSidebar() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { debates, currentDebate, setCurrentDebate, currentUser, addDebate } = useDebate();
+  const { debates, currentDebate, setCurrentDebate, currentUser, addDebate, deleteDebate } = useDebate();
   const { logout } = useAuth();
 
-  const handleCreateNew = () => {
-    const newDebate: Debate = {
-      id: Date.now().toString(),
-      title: 'Neue Debatte',
-      description: '',
-      createdBy: currentUser,
-      positions: [],
-      createdAt: new Date(),
-      status: 'pending',
-      messages: [],
-    };
+  const handleCreateNew = async () => {
+    // Find and delete all existing pending debates created by current user
+    const pendingDebates = debates.filter(d => 
+      d.status === 'pending' && d.createdBy?.id === currentUser.id
+    );
+    
+    try {
+      // Delete all pending debates created by current user
+      for (const debate of pendingDebates) {
+        await deleteDebate(debate.id);
+      }
 
-    addDebate(newDebate);
-    setCurrentDebate(newDebate);
+      const newDebate: Debate = {
+        id: Date.now().toString(),
+        title: 'Neue Debatte',
+        description: '',
+        createdBy: currentUser,
+        positions: [],
+        createdAt: new Date(),
+        status: 'pending',
+        messages: [],
+      };
+
+      await addDebate(newDebate);
+      setCurrentDebate(newDebate);
+    } catch (error) {
+      console.error('Error creating new debate:', error);
+    }
   };
 
   const formatDate = (date: Date | string) => {
@@ -82,12 +96,16 @@ export function DebateSidebar() {
   };
 
   // Gruppiere Debatten
+  const pendingDebates = debates.filter(d => 
+    d.status === 'pending'
+  );
+  
   const activeDebates = debates.filter(d => 
-    (d.status === 'active' || d.status === 'pending') && isParticipant(d)
+    d.status === 'active' && isParticipant(d)
   );
   
   const observerDebates = debates.filter(d => 
-    (d.status === 'active' || d.status === 'pending') && !isParticipant(d)
+    d.status === 'active' && !isParticipant(d)
   );
   
   const archivedDebates = debates.filter(d => 
@@ -154,6 +172,13 @@ export function DebateSidebar() {
       </View>
 
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+        {/* Noch nicht gestartete Debatten - ohne Gruppenüberschrift ganz oben */}
+        {pendingDebates.length > 0 && (
+          <>
+            {pendingDebates.map(renderDebate)}
+          </>
+        )}
+
         {/* Laufende Debatten */}
         {activeDebates.length > 0 && (
           <>
