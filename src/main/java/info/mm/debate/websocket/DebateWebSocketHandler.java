@@ -3,6 +3,7 @@ package info.mm.debate.websocket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.mm.debate.dto.WebSocketMessage;
 import info.mm.debate.model.DebateMessage;
+import info.mm.debate.service.AiDebateService;
 import info.mm.debate.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,12 +26,23 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
 
     private final ObjectMapper objectMapper;
     private final MessageService messageService;
+    private final AiDebateService aiDebateService;
     
     // Map: debateId -> Set of sessions in that debate room
     private final Map<String, CopyOnWriteArraySet<WebSocketSession>> debateRooms = new ConcurrentHashMap<>();
     
     // Map: sessionId -> debateId (for tracking which room a session is in)
     private final Map<String, String> sessionDebateMap = new ConcurrentHashMap<>();
+
+    /**
+     * Initialisierung nach der Konstruktion
+     */
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        // Setze den Broadcast-Callback für den AiDebateService
+        aiDebateService.setBroadcastCallback(this::broadcastAiMessage);
+        log.info("AI Debate Service broadcast callback configured");
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -192,6 +204,15 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
                                 
                                 broadcastToDebateRoom(debateId, broadcastMessage);
                                 log.info("✓ Message broadcasted to debate room: {} (from {})", debateId, debateMessage.getUserName());
+                                
+                                // Trigger KI-Antworten asynchron
+                                new Thread(() -> {
+                                    try {
+                                        aiDebateService.processAiResponses(debateId, savedMessage);
+                                    } catch (Exception e) {
+                                        log.error("Error processing AI responses: {}", e.getMessage(), e);
+                                    }
+                                }).start();
                             },
                             () -> {
                                 sendError(session, "Failed to save message");
@@ -341,6 +362,27 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         broadcastToDebateRoom(debateId, updateMessage);
         
         log.info("✓ Debate update broadcast completed for room: {}", debateId);
+    }
+    
+    /**
+     * Broadcast einer KI-Nachricht an alle Teilnehmer
+     * Wird vom AiDebateService aufgerufen
+     * 
+     * @param debateId Die ID der Debatte
+     * @param aiMessage Die KI-Nachricht
+     */
+    public void broadcastAiMessage(String debateId, DebateMessage aiMessage) {
+        log.info("Broadcasting AI message from {} to debate room: {}", aiMessage.getUserName(), debateId);
+        
+        WebSocketMessage broadcastMessage = WebSocketMessage.builder()
+                .type("debate:message:received")
+                .payload(aiMessage)
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, broadcastMessage);
+        
+        log.info("✓ AI message broadcasted to debate room: {}", debateId);
     }
 }
 

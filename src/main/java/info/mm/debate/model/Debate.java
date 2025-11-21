@@ -8,7 +8,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Document(collection = "debates")
@@ -33,11 +32,9 @@ public class Debate {
     
     private DebateStatus status;
     
-    @Builder.Default
-    private List<Position> positions = new ArrayList<>();
+    private List<Position> positions;
     
-    @Builder.Default
-    private List<DebateMessage> messages = new ArrayList<>();
+    private List<DebateMessage> messages;
     
     public enum DebateStatus {
         pending,   // Frontend expects lowercase

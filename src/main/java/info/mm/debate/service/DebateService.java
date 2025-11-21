@@ -102,9 +102,12 @@ public class DebateService {
                         }
                         existingDebate.setStatus(updatedDebate.getStatus());
                     }
+                    // Nur Positionen überschreiben, wenn explizit mitgesendet
+                    // WICHTIG: Leere Arrays werden NICHT ignoriert - wenn bewusst gelöscht werden soll
                     if (updatedDebate.getPositions() != null) {
                         existingDebate.setPositions(updatedDebate.getPositions());
                     }
+                    // Nur Messages überschreiben, wenn explizit mitgesendet  
                     if (updatedDebate.getMessages() != null) {
                         existingDebate.setMessages(updatedDebate.getMessages());
                     }
