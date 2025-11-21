@@ -23,6 +23,7 @@ export function DebateView() {
     addMessageToDebate, 
     updateDebate,
     deleteDebate,
+    closeDebate,
     addPosition,
     updatePosition,
     removePosition,
@@ -167,6 +168,12 @@ export function DebateView() {
   const handleDeleteDebate = () => {
     if (currentDebate && currentDebate.createdBy.id === currentUser.id) {
       deleteDebate(currentDebate.id);
+    }
+  };
+
+  const handleCloseDebate = () => {
+    if (currentDebate && currentDebate.createdBy.id === currentUser.id) {
+      closeDebate(currentDebate.id);
     }
   };
 
@@ -592,7 +599,42 @@ export function DebateView() {
     );
   }
 
-  // Render Chat View for active debates
+  // Render Chat View for active/completed debates
+  // Show archived message if debate is archived
+  if (currentDebate.status === 'archived') {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTop}>
+              <Text style={[styles.title, { color: colors.text }]}>{currentDebate.title}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: colors.textSecondary + '20' }]}>
+                <Text style={[styles.statusBadgeText, { color: colors.textSecondary }]}>
+                  Archiviert
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              {currentDebate.description}
+            </Text>
+          </View>
+        </View>
+
+        {/* Archived Message */}
+        <View style={styles.emptyContainer}>
+          <Ionicons name="archive-outline" size={64} color={colors.textSecondary} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Diese Debatte wurde geschlossen und archiviert
+          </Text>
+          <Text style={[styles.emptyMessagesSubtext, { color: colors.textSecondary, marginTop: 8 }]}>
+            Erstellt von {currentDebate.createdBy.name}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -601,6 +643,16 @@ export function DebateView() {
           <View style={styles.headerTop}>
             <Text style={[styles.title, { color: colors.text }]}>{currentDebate.title}</Text>
             <View style={styles.headerActions}>
+              {/* Close Debate Button - Only for owner on active/completed debates */}
+              {currentDebate.createdBy.id === currentUser.id && 
+               (currentDebate.status === 'active' || currentDebate.status === 'completed') && (
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={handleCloseDebate}
+                >
+                  <Ionicons name="archive-outline" size={20} color={colors.warning} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.iconButton}>
                 <Ionicons name="person-add-outline" size={20} color={colors.text} />
               </TouchableOpacity>

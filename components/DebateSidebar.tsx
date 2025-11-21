@@ -71,8 +71,9 @@ export function DebateSidebar() {
   const getStatusColor = (status: Debate['status']) => {
     switch (status) {
       case 'active': return colors.success;
-      case 'completed': return colors.textSecondary;
+      case 'completed': return colors.primary;
       case 'pending': return colors.warning;
+      case 'archived': return colors.textSecondary;
       default: return colors.textSecondary;
     }
   };
@@ -82,6 +83,7 @@ export function DebateSidebar() {
       case 'active': return 'Aktiv';
       case 'completed': return 'Beendet';
       case 'pending': return 'Noch nicht gestartet';
+      case 'archived': return 'Archiviert';
       default: return status;
     }
   };
@@ -108,8 +110,12 @@ export function DebateSidebar() {
     d.status === 'active' && !isParticipant(d)
   );
   
-  const archivedDebates = debates.filter(d => 
+  const completedDebates = debates.filter(d => 
     d.status === 'completed'
+  );
+  
+  const archivedDebates = debates.filter(d => 
+    d.status === 'archived'
   );
 
   // Render-Funktion für eine einzelne Debatte
@@ -212,6 +218,24 @@ export function DebateSidebar() {
               </View>
             </View>
             {observerDebates.map(renderDebate)}
+          </>
+        )}
+
+        {/* Beendete Debatten */}
+        {completedDebates.length > 0 && (
+          <>
+            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+              <Ionicons name="checkmark-circle-outline" size={16} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Beendete Debatten
+              </Text>
+              <View style={[styles.sectionBadge, { backgroundColor: colors.primary + '20' }]}>
+                <Text style={[styles.sectionBadgeText, { color: colors.primary }]}>
+                  {completedDebates.length}
+                </Text>
+              </View>
+            </View>
+            {completedDebates.map(renderDebate)}
           </>
         )}
 

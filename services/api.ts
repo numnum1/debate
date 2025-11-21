@@ -226,6 +226,17 @@ class ApiService {
     );
   }
 
+  /**
+   * Close and archive debate (only owner can do this)
+   */
+  async closeDebate(id: string): Promise<Debate> {
+    const response = await this.post<ApiResponse<Debate>>(
+      `${apiConfig.endpoints.debateById(id)}/close`,
+      {}
+    );
+    return response.data;
+  }
+
   // ==================== Message Endpoints ====================
 
   /**

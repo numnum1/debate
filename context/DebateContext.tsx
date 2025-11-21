@@ -20,6 +20,7 @@ interface DebateContextType {
   addDebate: (debate: Debate) => Promise<void>;
   updateDebate: (debateId: string, updates: Partial<Debate>) => Promise<void>;
   deleteDebate: (debateId: string) => Promise<void>;
+  closeDebate: (debateId: string) => Promise<void>;
   addPosition: (debateId: string, position: Position) => Promise<void>;
   updatePosition: (debateId: string, positionId: string, updates: Partial<Position>) => Promise<void>;
   removePosition: (debateId: string, positionId: string) => Promise<void>;
@@ -331,6 +332,32 @@ export function DebateProvider({ children }: { children: ReactNode }) {
   };
 
   /**
+   * Close debate and archive it (only owner can do this)
+   */
+  const closeDebate = async (debateId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // No optimistic update - wait for WebSocket broadcast
+      
+      // API call
+      const archived = await api.closeDebate(debateId);
+      console.log('[DebateContext] ✓ Debate closed and archived:', archived.id);
+      
+      // The WebSocket broadcast will update the state automatically
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Schließen der Debatte';
+      console.error('[DebateContext] ✗ Error closing debate:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
    * Add position to debate
    */
   const addPosition = async (debateId: string, position: Position) => {
@@ -534,6 +561,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         addDebate,
         updateDebate,
         deleteDebate,
+        closeDebate,
         addPosition,
         updatePosition,
         removePosition,

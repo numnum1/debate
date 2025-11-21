@@ -30,7 +30,7 @@ export interface Debate {
   createdBy: User;
   positions: Position[];
   createdAt: Date | string; // Can be string when coming from API/WebSocket
-  status: 'active' | 'completed' | 'pending';
+  status: 'active' | 'completed' | 'pending' | 'archived';
   messages: DebateMessage[];
 }
 
