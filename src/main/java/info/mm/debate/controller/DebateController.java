@@ -4,6 +4,7 @@ import info.mm.debate.dto.ApiResponse;
 import info.mm.debate.model.Debate;
 import info.mm.debate.service.DebateService;
 import info.mm.debate.service.UserService;
+import info.mm.debate.websocket.DebateWebSocketHandler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,6 +34,7 @@ public class DebateController {
     
     private final DebateService debateService;
     private final UserService userService;
+    private final DebateWebSocketHandler webSocketHandler;
     
     @Operation(
             summary = "Alle Debatten abrufen",
@@ -155,8 +157,13 @@ public class DebateController {
         log.info("PUT /debates/{} - Updating debate by user: {}", id, jwt.getSubject());
         
         return debateService.updateDebate(id, debate)
-                .map(updated -> ResponseEntity.ok(
-                        ApiResponse.success(updated, "Debate updated successfully")))
+                .map(updated -> {
+                    // Broadcast debate update via WebSocket
+                    webSocketHandler.broadcastDebateUpdate(id, updated);
+                    
+                    return ResponseEntity.ok(
+                            ApiResponse.success(updated, "Debate updated successfully"));
+                })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Debate not found")));
     }

@@ -3,7 +3,9 @@ package info.mm.debate.controller;
 import info.mm.debate.dto.ApiResponse;
 import info.mm.debate.model.Position;
 import info.mm.debate.model.Slot;
+import info.mm.debate.service.DebateService;
 import info.mm.debate.service.PositionService;
+import info.mm.debate.websocket.DebateWebSocketHandler;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 public class PositionController {
     
     private final PositionService positionService;
+    private final DebateService debateService;
+    private final DebateWebSocketHandler webSocketHandler;
     
     @PostMapping
     @PreAuthorize("isAuthenticated()")
@@ -28,8 +32,15 @@ public class PositionController {
         log.info("POST /debates/{}/positions - Adding position", debateId);
         
         return positionService.addPosition(debateId, position)
-                .map(savedPosition -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success(savedPosition, "Position added successfully")))
+                .map(savedPosition -> {
+                    // Broadcast debate update via WebSocket
+                    debateService.getDebateById(debateId).ifPresent(debate -> 
+                        webSocketHandler.broadcastDebateUpdate(debateId, debate)
+                    );
+                    
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body(ApiResponse.success(savedPosition, "Position added successfully"));
+                })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Debate not found")));
     }
@@ -43,8 +54,15 @@ public class PositionController {
         log.info("PUT /debates/{}/positions/{} - Updating position", debateId, positionId);
         
         return positionService.updatePosition(debateId, positionId, position)
-                .map(updatedPosition -> ResponseEntity.ok(
-                        ApiResponse.success(updatedPosition, "Position updated successfully")))
+                .map(updatedPosition -> {
+                    // Broadcast debate update via WebSocket
+                    debateService.getDebateById(debateId).ifPresent(debate -> 
+                        webSocketHandler.broadcastDebateUpdate(debateId, debate)
+                    );
+                    
+                    return ResponseEntity.ok(
+                            ApiResponse.success(updatedPosition, "Position updated successfully"));
+                })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Position or debate not found")));
     }
@@ -58,6 +76,11 @@ public class PositionController {
         
         boolean deleted = positionService.deletePosition(debateId, positionId);
         if (deleted) {
+            // Broadcast debate update via WebSocket
+            debateService.getDebateById(debateId).ifPresent(debate -> 
+                webSocketHandler.broadcastDebateUpdate(debateId, debate)
+            );
+            
             return ResponseEntity.ok(ApiResponse.success(null, "Position deleted successfully"));
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -74,8 +97,15 @@ public class PositionController {
         log.info("POST /debates/{}/positions/{}/slots - Adding slot", debateId, positionId);
         
         return positionService.addSlot(debateId, positionId, slot)
-                .map(savedSlot -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success(savedSlot, "Slot added successfully")))
+                .map(savedSlot -> {
+                    // Broadcast debate update via WebSocket
+                    debateService.getDebateById(debateId).ifPresent(debate -> 
+                        webSocketHandler.broadcastDebateUpdate(debateId, debate)
+                    );
+                    
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body(ApiResponse.success(savedSlot, "Slot added successfully"));
+                })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Position or debate not found")));
     }
@@ -90,8 +120,15 @@ public class PositionController {
         log.info("PUT /debates/{}/positions/{}/slots/{} - Updating slot", debateId, positionId, slotId);
         
         return positionService.updateSlot(debateId, positionId, slotId, slot)
-                .map(updatedSlot -> ResponseEntity.ok(
-                        ApiResponse.success(updatedSlot, "Slot updated successfully")))
+                .map(updatedSlot -> {
+                    // Broadcast debate update via WebSocket
+                    debateService.getDebateById(debateId).ifPresent(debate -> 
+                        webSocketHandler.broadcastDebateUpdate(debateId, debate)
+                    );
+                    
+                    return ResponseEntity.ok(
+                            ApiResponse.success(updatedSlot, "Slot updated successfully"));
+                })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Slot, position or debate not found")));
     }
@@ -106,6 +143,11 @@ public class PositionController {
         
         boolean deleted = positionService.deleteSlot(debateId, positionId, slotId);
         if (deleted) {
+            // Broadcast debate update via WebSocket
+            debateService.getDebateById(debateId).ifPresent(debate -> 
+                webSocketHandler.broadcastDebateUpdate(debateId, debate)
+            );
+            
             return ResponseEntity.ok(ApiResponse.success(null, "Slot deleted successfully"));
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

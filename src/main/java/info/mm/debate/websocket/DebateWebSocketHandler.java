@@ -309,5 +309,24 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
             log.error("Error sending error message", e);
         }
     }
+
+    /**
+     * Broadcast a debate update to all sessions in a debate room
+     * This is used when a debate is modified (e.g., position added, status changed)
+     * 
+     * @param debateId The ID of the debate that was updated
+     * @param debate The updated debate object
+     */
+    public void broadcastDebateUpdate(String debateId, Object debate) {
+        log.info("Broadcasting debate update to room: {}", debateId);
+        
+        WebSocketMessage updateMessage = WebSocketMessage.builder()
+                .type("debate:updated")
+                .payload(debate)
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, updateMessage);
+    }
 }
 
