@@ -24,12 +24,13 @@ mongodb:
   uri: ${MONGODB_URI:mongodb://admin:password@localhost:27017/debate?authSource=admin}
   database: ${MONGODB_DATABASE:debate}
 
-# Keycloak Configuration (für Referenz)
-# Die Integration erfolgt über Spring Security OAuth2 Resource Server
-# Realm: debate
-# Auth Server: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8180}
-# Client ID: debate-server
-# Client Secret: Wird für Token-Validierung nicht benötigt (nur issuer-uri und jwk-set-uri)
+# Keycloak Admin Client Configuration
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8180}
+  realm: ${KEYCLOAK_REALM:debate}
+  admin-client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
+  admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+  admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
 
 # Logging Configuration
 logging:

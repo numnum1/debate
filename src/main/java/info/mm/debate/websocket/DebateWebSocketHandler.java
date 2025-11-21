@@ -97,6 +97,7 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         try {
             Map<String, Object> payload = (Map<String, Object>) message.getPayload();
             String debateId = (String) payload.get("debateId");
+            String userName = (String) session.getAttributes().get("userName");
             
             if (debateId == null) {
                 sendError(session, "debateId is required");
@@ -109,6 +110,7 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
                 CopyOnWriteArraySet<WebSocketSession> oldSessions = debateRooms.get(oldDebateId);
                 if (oldSessions != null) {
                     oldSessions.remove(session);
+                    log.info("Removed session {} from old room: {}", session.getId(), oldDebateId);
                 }
             }
             
@@ -116,7 +118,11 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
             debateRooms.computeIfAbsent(debateId, k -> new CopyOnWriteArraySet<>()).add(session);
             sessionDebateMap.put(session.getId(), debateId);
             
-            log.info("Session {} joined debate room: {}", session.getId(), debateId);
+            int sessionCount = debateRooms.get(debateId).size();
+            log.info("=".repeat(60));
+            log.info("✓ Session {} (User: {}) joined debate room: {}", session.getId(), userName, debateId);
+            log.info("  Total sessions in this room: {}", sessionCount);
+            log.info("=".repeat(60));
             
         } catch (Exception e) {
             log.error("Error handling debate:join", e);
@@ -318,7 +324,13 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
      * @param debate The updated debate object
      */
     public void broadcastDebateUpdate(String debateId, Object debate) {
+        CopyOnWriteArraySet<WebSocketSession> sessions = debateRooms.get(debateId);
+        int sessionCount = sessions != null ? sessions.size() : 0;
+        
+        log.info("=".repeat(60));
         log.info("Broadcasting debate update to room: {}", debateId);
+        log.info("Active sessions in this room: {}", sessionCount);
+        log.info("=".repeat(60));
         
         WebSocketMessage updateMessage = WebSocketMessage.builder()
                 .type("debate:updated")
@@ -327,6 +339,8 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
                 .build();
         
         broadcastToDebateRoom(debateId, updateMessage);
+        
+        log.info("✓ Debate update broadcast completed for room: {}", debateId);
     }
 }
 
