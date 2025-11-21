@@ -3,7 +3,7 @@
  */
 
 import { apiConfig } from '../config/api.config';
-import { Debate, DebateMessage, Position, Slot, User } from '../types';
+import { Debate, DebateMessage, Position, Slot, User, AiModelInfo } from '../types';
 
 /**
  * API Response Types
@@ -374,6 +374,18 @@ class ApiService {
    */
   async syncUsersFromKeycloak(): Promise<number> {
     const response = await this.post<ApiResponse<number>>('/api/users/sync', {});
+    return response.data;
+  }
+
+  // ==================== AI Model Endpoints ====================
+
+  /**
+   * Get available AI models
+   */
+  async getAvailableAiModels(): Promise<AiModelInfo[]> {
+    const response = await this.get<ApiResponse<AiModelInfo[]>>(
+      '/api/ai/models'
+    );
     return response.data;
   }
 }

@@ -13,6 +13,7 @@ import { useDebate } from '../context/DebateContext';
 import { Colors } from '../constants/Colors';
 import { DebateMessage, User } from '../types';
 import { InviteParticipantModal } from './InviteParticipantModal';
+import { AiModelSelector } from './AiModelSelector';
 
 export function DebateView() {
   const colorScheme = useColorScheme();
@@ -46,6 +47,10 @@ export function DebateView() {
   // Invite participant modal state
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [invitePositionId, setInvitePositionId] = useState<string | null>(null);
+  
+  // AI Model selector state
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<{ positionId: string; slotId: string; currentModel: string } | null>(null);
 
   // Initialize edit fields when debate changes
   React.useEffect(() => {
@@ -260,6 +265,33 @@ export function DebateView() {
     console.log('[DebateView] Invite cancelled');
     setShowInviteModal(false);
     setInvitePositionId(null);
+  };
+
+  const handleOpenModelSelector = (positionId: string, slotId: string, currentModel: string) => {
+    console.log('[DebateView] Opening model selector for slot:', { positionId, slotId, currentModel });
+    setEditingSlot({ positionId, slotId, currentModel });
+    setShowModelSelector(true);
+  };
+
+  const handleSelectModel = async (modelId: string) => {
+    console.log('[DebateView] Model selected:', modelId);
+    if (!editingSlot) return;
+
+    try {
+      await updateSlot(currentDebate.id, editingSlot.positionId, editingSlot.slotId, {
+        aiConfig: {
+          model: modelId,
+        },
+      });
+      console.log('[DebateView] ✓ Model updated successfully');
+    } catch (err) {
+      console.error('[DebateView] ✗ Error updating model:', err);
+    }
+  };
+
+  const handleCloseModelSelector = () => {
+    setShowModelSelector(false);
+    setEditingSlot(null);
   };
 
   const predefinedColors = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -513,6 +545,12 @@ export function DebateView() {
                                     {slot.aiConfig?.model || 'KI-Assistent'}
                                   </Text>
                                 </View>
+                                <TouchableOpacity
+                                  style={[styles.editModelButton, { backgroundColor: colors.primary + '20' }]}
+                                  onPress={() => handleOpenModelSelector(position.id, slot.id, slot.aiConfig?.model || 'gpt-4')}
+                                >
+                                  <Ionicons name="settings-outline" size={16} color={colors.primary} />
+                                </TouchableOpacity>
                               </>
                             )}
                           </View>
@@ -651,6 +689,14 @@ export function DebateView() {
           onClose={handleCancelInvite}
           onSelectUser={handleSelectUserForInvite}
         />
+
+        {/* AI Model Selector Modal */}
+        <AiModelSelector
+          visible={showModelSelector}
+          currentModel={editingSlot?.currentModel || 'gpt-4'}
+          onSelect={handleSelectModel}
+          onClose={handleCloseModelSelector}
+        />
       </View>
     );
   }
@@ -693,6 +739,14 @@ export function DebateView() {
           visible={showInviteModal}
           onClose={handleCancelInvite}
           onSelectUser={handleSelectUserForInvite}
+        />
+
+        {/* AI Model Selector Modal */}
+        <AiModelSelector
+          visible={showModelSelector}
+          currentModel={editingSlot?.currentModel || 'gpt-4'}
+          onSelect={handleSelectModel}
+          onClose={handleCloseModelSelector}
         />
       </View>
     );
@@ -869,6 +923,14 @@ export function DebateView() {
         visible={showInviteModal}
         onClose={handleCancelInvite}
         onSelectUser={handleSelectUserForInvite}
+      />
+
+      {/* AI Model Selector Modal */}
+      <AiModelSelector
+        visible={showModelSelector}
+        currentModel={editingSlot?.currentModel || 'gpt-4'}
+        onSelect={handleSelectModel}
+        onClose={handleCloseModelSelector}
       />
     </View>
   );
@@ -1325,6 +1387,11 @@ const styles = StyleSheet.create({
   },
   removeSlotButton: {
     padding: 4,
+  },
+  editModelButton: {
+    padding: 8,
+    borderRadius: 8,
+    marginLeft: 8,
   },
   addSlotButton: {
     flexDirection: 'row',

@@ -44,3 +44,11 @@ export interface DebateMessage {
   slotId?: string;
 }
 
+export interface AiModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  available: boolean;
+}
+
