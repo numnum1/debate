@@ -150,7 +150,11 @@ export function DebateProvider({ children }: { children: ReactNode }) {
   // Listen for debate updates (positions, slots, status changes, etc.)
   useEffect(() => {
     const unsubscribe = websocket.onDebateUpdate((updatedDebate: Debate) => {
-      console.log('[DebateContext] Debate updated via WebSocket:', updatedDebate.id);
+      console.log('='.repeat(60));
+      console.log('[DebateContext] ✓ Debate updated via WebSocket:', updatedDebate.id);
+      console.log('[DebateContext] Updated debate has', updatedDebate.positions?.length || 0, 'positions');
+      console.log('[DebateContext] Current debate ID:', currentDebate?.id);
+      console.log('='.repeat(60));
       
       // Update the debates list
       setDebates(prev => prev.map(d => 
@@ -160,6 +164,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       // Update current debate if it's the one that was updated
       setCurrentDebate(prev => {
         if (prev && prev.id === updatedDebate.id) {
+          console.log('[DebateContext] ✓ Updating current debate with new data');
           return updatedDebate;
         }
         return prev;
@@ -180,10 +185,13 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     
     if (currentDebate?.id) {
       if (previousDebateId && previousDebateId !== currentDebate.id) {
+        console.log('[DebateContext] Leaving previous debate:', previousDebateId);
         websocket.leaveDebate(previousDebateId);
       }
+      console.log('[DebateContext] Joining debate room:', currentDebate.id);
       websocket.joinDebate(currentDebate.id);
     } else if (previousDebateId) {
+      console.log('[DebateContext] Leaving debate:', previousDebateId);
       websocket.leaveDebate(previousDebateId);
     }
   }, [currentDebate?.id]);

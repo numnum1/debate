@@ -11,7 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDebate } from '../context/DebateContext';
 import { Colors } from '../constants/Colors';
-import { DebateMessage } from '../types';
+import { DebateMessage, User } from '../types';
+import { InviteParticipantModal } from './InviteParticipantModal';
 
 export function DebateView() {
   const colorScheme = useColorScheme();
@@ -41,6 +42,10 @@ export function DebateView() {
   const [newPositionName, setNewPositionName] = useState('');
   const [newPositionColor, setNewPositionColor] = useState('#3b82f6');
   const [showSlotMenu, setShowSlotMenu] = useState<string | null>(null); // positionId
+  
+  // Invite participant modal state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [invitePositionId, setInvitePositionId] = useState<string | null>(null);
 
   // Initialize edit fields when debate changes
   React.useEffect(() => {
@@ -49,6 +54,11 @@ export function DebateView() {
       setEditDescription(currentDebate.description || '');
     }
   }, [currentDebate?.id]);
+
+  // Debug: Log modal state changes
+  React.useEffect(() => {
+    console.log('[DebateView] Modal state changed:', { showInviteModal, invitePositionId });
+  }, [showInviteModal, invitePositionId]);
 
   // Handle typing indicator with debounce
   React.useEffect(() => {
@@ -194,6 +204,18 @@ export function DebateView() {
   };
 
   const handleAddSlot = (positionId: string, type: 'open' | 'invited' | 'ai') => {
+    console.log('[DebateView] handleAddSlot called:', { positionId, type });
+    
+    // For invited slots, open the invite modal
+    if (type === 'invited') {
+      console.log('[DebateView] Opening invite modal for position:', positionId);
+      setInvitePositionId(positionId);
+      setShowInviteModal(true);
+      setShowSlotMenu(null);
+      return;
+    }
+
+    // For other slot types, create immediately
     const newSlot = {
       id: Date.now().toString(),
       type,
@@ -211,6 +233,33 @@ export function DebateView() {
 
     addSlotToPosition(currentDebate.id, positionId, newSlot);
     setShowSlotMenu(null);
+  };
+
+  const handleSelectUserForInvite = (user: User) => {
+    console.log('[DebateView] User selected for invite:', user);
+    if (!invitePositionId) {
+      console.log('[DebateView] Warning: No invitePositionId set');
+      return;
+    }
+
+    // Create invited slot with selected user
+    const newSlot = {
+      id: Date.now().toString(),
+      type: 'invited' as const,
+      participant: user,
+    };
+
+    console.log('[DebateView] Creating invited slot:', newSlot);
+    addSlotToPosition(currentDebate.id, invitePositionId, newSlot);
+    
+    // Reset state
+    setInvitePositionId(null);
+  };
+
+  const handleCancelInvite = () => {
+    console.log('[DebateView] Invite cancelled');
+    setShowInviteModal(false);
+    setInvitePositionId(null);
   };
 
   const predefinedColors = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -595,6 +644,13 @@ export function DebateView() {
             </View>
           )}
         </ScrollView>
+
+        {/* Invite Participant Modal */}
+        <InviteParticipantModal
+          visible={showInviteModal}
+          onClose={handleCancelInvite}
+          onSelectUser={handleSelectUserForInvite}
+        />
       </View>
     );
   }
@@ -631,6 +687,13 @@ export function DebateView() {
             Erstellt von {currentDebate.createdBy.name}
           </Text>
         </View>
+
+        {/* Invite Participant Modal */}
+        <InviteParticipantModal
+          visible={showInviteModal}
+          onClose={handleCancelInvite}
+          onSelectUser={handleSelectUserForInvite}
+        />
       </View>
     );
   }
@@ -800,6 +863,13 @@ export function DebateView() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Invite Participant Modal */}
+      <InviteParticipantModal
+        visible={showInviteModal}
+        onClose={handleCancelInvite}
+        onSelectUser={handleSelectUserForInvite}
+      />
     </View>
   );
 }

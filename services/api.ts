@@ -3,7 +3,7 @@
  */
 
 import { apiConfig } from '../config/api.config';
-import { Debate, DebateMessage, Position, Slot } from '../types';
+import { Debate, DebateMessage, Position, Slot, User } from '../types';
 
 /**
  * API Response Types
@@ -347,6 +347,34 @@ class ApiService {
     await this.delete<ApiResponse<void>>(
       `${apiConfig.endpoints.slots(debateId, positionId)}/${slotId}`
     );
+  }
+
+  // ==================== User Endpoints ====================
+
+  /**
+   * Search users by name
+   */
+  async searchUsers(query: string): Promise<User[]> {
+    const response = await this.get<ApiResponse<User[]>>(
+      `/api/users/search?query=${encodeURIComponent(query)}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get current user
+   */
+  async getCurrentUser(): Promise<User> {
+    const response = await this.get<ApiResponse<User>>('/api/users/me');
+    return response.data;
+  }
+
+  /**
+   * Sync users from Keycloak
+   */
+  async syncUsersFromKeycloak(): Promise<number> {
+    const response = await this.post<ApiResponse<number>>('/api/users/sync', {});
+    return response.data;
   }
 }
 
