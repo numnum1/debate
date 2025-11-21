@@ -72,6 +72,75 @@ export function DebateSidebar() {
     }
   };
 
+  // Prüft, ob der aktuelle Benutzer an einer Debatte teilnimmt
+  const isParticipant = (debate: Debate) => {
+    return debate.positions.some(position => 
+      position.slots.some(slot => 
+        slot.participant && slot.participant.id === currentUser.id
+      )
+    );
+  };
+
+  // Gruppiere Debatten
+  const activeDebates = debates.filter(d => 
+    (d.status === 'active' || d.status === 'pending') && isParticipant(d)
+  );
+  
+  const observerDebates = debates.filter(d => 
+    (d.status === 'active' || d.status === 'pending') && !isParticipant(d)
+  );
+  
+  const archivedDebates = debates.filter(d => 
+    d.status === 'completed'
+  );
+
+  // Render-Funktion für eine einzelne Debatte
+  const renderDebate = (debate: Debate) => (
+    <TouchableOpacity
+      key={debate.id}
+      style={[
+        styles.debateItem,
+        currentDebate?.id === debate.id && { backgroundColor: colors.primary + '15' },
+        { borderBottomColor: colors.border }
+      ]}
+      onPress={() => setCurrentDebate(debate)}
+    >
+      <View style={styles.debateHeader}>
+        <Text 
+          style={[
+            styles.debateTitle, 
+            { color: colors.text },
+            currentDebate?.id === debate.id && { color: colors.primary, fontWeight: '700' }
+          ]} 
+          numberOfLines={1}
+        >
+          {debate.title}
+        </Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(debate.status) + '20' }]}>
+          <Text style={[styles.statusText, { color: getStatusColor(debate.status) }]}>
+            {getStatusLabel(debate.status)}
+          </Text>
+        </View>
+      </View>
+      
+      <Text style={[styles.debateDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+        {debate.description}
+      </Text>
+      
+      <View style={styles.debateFooter}>
+        <View style={styles.participants}>
+          <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+          <Text style={[styles.participantCount, { color: colors.textSecondary }]}>
+            {debate.positions.reduce((sum, pos) => sum + pos.slots.filter(s => s.participant).length, 0)} Teilnehmer
+          </Text>
+        </View>
+        <Text style={[styles.debateDate, { color: colors.textSecondary }]}>
+          {formatDate(debate.createdAt)}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderRightColor: colors.border }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -85,51 +154,72 @@ export function DebateSidebar() {
       </View>
 
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-        {debates.map((debate) => (
-          <TouchableOpacity
-            key={debate.id}
-            style={[
-              styles.debateItem,
-              currentDebate?.id === debate.id && { backgroundColor: colors.primary + '15' },
-              { borderBottomColor: colors.border }
-            ]}
-            onPress={() => setCurrentDebate(debate)}
-          >
-            <View style={styles.debateHeader}>
-              <Text 
-                style={[
-                  styles.debateTitle, 
-                  { color: colors.text },
-                  currentDebate?.id === debate.id && { color: colors.primary, fontWeight: '700' }
-                ]} 
-                numberOfLines={1}
-              >
-                {debate.title}
+        {/* Laufende Debatten */}
+        {activeDebates.length > 0 && (
+          <>
+            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+              <Ionicons name="flame-outline" size={16} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Laufende Debatten
               </Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(debate.status) + '20' }]}>
-                <Text style={[styles.statusText, { color: getStatusColor(debate.status) }]}>
-                  {getStatusLabel(debate.status)}
+              <View style={[styles.sectionBadge, { backgroundColor: colors.primary + '20' }]}>
+                <Text style={[styles.sectionBadgeText, { color: colors.primary }]}>
+                  {activeDebates.length}
                 </Text>
               </View>
             </View>
-            
-            <Text style={[styles.debateDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-              {debate.description}
+            {activeDebates.map(renderDebate)}
+          </>
+        )}
+
+        {/* Beobachter */}
+        {observerDebates.length > 0 && (
+          <>
+            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+              <Ionicons name="eye-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Beobachter
+              </Text>
+              <View style={[styles.sectionBadge, { backgroundColor: colors.textSecondary + '20' }]}>
+                <Text style={[styles.sectionBadgeText, { color: colors.textSecondary }]}>
+                  {observerDebates.length}
+                </Text>
+              </View>
+            </View>
+            {observerDebates.map(renderDebate)}
+          </>
+        )}
+
+        {/* Archiv */}
+        {archivedDebates.length > 0 && (
+          <>
+            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+              <Ionicons name="archive-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Archiv
+              </Text>
+              <View style={[styles.sectionBadge, { backgroundColor: colors.textSecondary + '20' }]}>
+                <Text style={[styles.sectionBadgeText, { color: colors.textSecondary }]}>
+                  {archivedDebates.length}
+                </Text>
+              </View>
+            </View>
+            {archivedDebates.map(renderDebate)}
+          </>
+        )}
+
+        {/* Keine Debatten vorhanden */}
+        {debates.length === 0 && (
+          <View style={styles.emptyState}>
+            <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+              Noch keine Debatten
             </Text>
-            
-            <View style={styles.debateFooter}>
-              <View style={styles.participants}>
-                <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-                <Text style={[styles.participantCount, { color: colors.textSecondary }]}>
-                  {debate.positions.reduce((sum, pos) => sum + pos.slots.filter(s => s.participant).length, 0)} Teilnehmer
-                </Text>
-              </View>
-              <Text style={[styles.debateDate, { color: colors.textSecondary }]}>
-                {formatDate(debate.createdAt)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            <Text style={[styles.emptyStateSubtext, { color: colors.textSecondary }]}>
+              Erstelle eine neue Debatte, um zu beginnen
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* User Profile / Logout Section */}
@@ -195,6 +285,32 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  sectionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  sectionBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   debateItem: {
     padding: 16,
@@ -288,6 +404,22 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    gap: 12,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    fontSize: 13,
+    textAlign: 'center',
   },
 });
 

@@ -3,9 +3,10 @@
  */
 
 import { apiConfig } from '../config/api.config';
-import { DebateMessage } from '../types';
+import { Debate, DebateMessage } from '../types';
 
 type MessageCallback = (message: DebateMessage) => void;
+type DebateUpdateCallback = (debate: Debate) => void;
 type ErrorCallback = (error: Error) => void;
 type ConnectionCallback = () => void;
 type TypingCallback = (data: { userId: string; userName: string; isTyping: boolean }) => void;
@@ -24,6 +25,7 @@ class WebSocketService {
   
   // Callbacks
   private messageCallbacks: MessageCallback[] = [];
+  private debateUpdateCallbacks: DebateUpdateCallback[] = [];
   private errorCallbacks: ErrorCallback[] = [];
   private connectCallbacks: ConnectionCallback[] = [];
   private disconnectCallbacks: ConnectionCallback[] = [];
@@ -76,6 +78,13 @@ class WebSocketService {
               // New message received
               const message: DebateMessage = data.payload;
               this.messageCallbacks.forEach(cb => cb(message));
+              break;
+
+            case 'debate:updated':
+              // Debate structure updated (positions, slots, etc.)
+              const debate: Debate = data.payload;
+              console.log('[WebSocket] Debate updated:', debate.id);
+              this.debateUpdateCallbacks.forEach(cb => cb(debate));
               break;
 
             case 'debate:typing:update':
@@ -265,6 +274,16 @@ class WebSocketService {
     this.typingCallbacks.push(callback);
     return () => {
       this.typingCallbacks = this.typingCallbacks.filter(cb => cb !== callback);
+    };
+  }
+
+  /**
+   * Register callback for debate updates
+   */
+  onDebateUpdate(callback: DebateUpdateCallback) {
+    this.debateUpdateCallbacks.push(callback);
+    return () => {
+      this.debateUpdateCallbacks = this.debateUpdateCallbacks.filter(cb => cb !== callback);
     };
   }
 
