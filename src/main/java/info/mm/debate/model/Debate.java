@@ -42,7 +42,8 @@ public class Debate {
     public enum DebateStatus {
         pending,   // Frontend expects lowercase
         active,
-        completed
+        completed,
+        archived   // Debate is closed and archived
     }
 }
 

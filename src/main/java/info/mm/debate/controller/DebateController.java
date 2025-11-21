@@ -1,6 +1,7 @@
 package info.mm.debate.controller;
 
 import info.mm.debate.dto.ApiResponse;
+import info.mm.debate.exception.UnauthorizedException;
 import info.mm.debate.model.Debate;
 import info.mm.debate.service.DebateService;
 import info.mm.debate.service.UserService;
@@ -222,6 +223,55 @@ public class DebateController {
         log.info("GET /debates/stats/count?status={} - Counting debates", status);
         long count = debateService.countDebatesByStatus(status);
         return ResponseEntity.ok(ApiResponse.success(count));
+    }
+    
+    @Operation(
+            summary = "Debate schließen und archivieren",
+            description = "Schließt eine Debate und verschiebt sie ins Archiv. Nur der Ersteller (Owner) der Debate kann diese schließen."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Debate erfolgreich geschlossen und archiviert"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Keine Berechtigung - nur der Ersteller darf die Debate schließen"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Debate nicht gefunden"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Nicht authentifiziert"
+            )
+    })
+    @PostMapping("/{id}/close")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Debate>> closeDebate(
+            @Parameter(description = "ID der zu schließenden Debate", required = true)
+            @PathVariable String id,
+            @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt) {
+        log.info("POST /debates/{}/close - Closing debate by user: {}", id, jwt.getSubject());
+        
+        try {
+            Debate archivedDebate = debateService.closeDebate(id, jwt.getSubject());
+            
+            // Broadcast debate update via WebSocket
+            webSocketHandler.broadcastDebateUpdate(id, archivedDebate);
+            
+            return ResponseEntity.ok(
+                    ApiResponse.success(archivedDebate, "Debate wurde erfolgreich geschlossen und archiviert"));
+        } catch (UnauthorizedException e) {
+            log.warn("Unauthorized attempt to close debate {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.warn("Debate not found: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
     }
 }
 

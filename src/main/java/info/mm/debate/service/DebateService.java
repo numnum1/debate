@@ -1,5 +1,6 @@
 package info.mm.debate.service;
 
+import info.mm.debate.exception.UnauthorizedException;
 import info.mm.debate.model.Debate;
 import info.mm.debate.model.User;
 import info.mm.debate.repository.DebateRepository;
@@ -124,6 +125,44 @@ public class DebateService {
     
     public long countDebatesByStatus(Debate.DebateStatus status) {
         return debateRepository.countByStatus(status);
+    }
+    
+    /**
+     * Closes a debate and archives it. Only the owner (creator) of the debate can close it.
+     * 
+     * @param debateId The ID of the debate to close
+     * @param userId The ID of the user attempting to close the debate
+     * @return The updated debate with archived status
+     * @throws UnauthorizedException if the user is not the owner of the debate
+     * @throws IllegalArgumentException if the debate is not found
+     */
+    @Transactional
+    public Debate closeDebate(String debateId, String userId) {
+        log.info("User {} attempting to close debate {}", userId, debateId);
+        
+        Debate debate = debateRepository.findById(debateId)
+                .orElseThrow(() -> new IllegalArgumentException("Debate not found with id: " + debateId));
+        
+        // Check if user is the owner
+        if (debate.getCreatedBy() == null || !debate.getCreatedBy().getId().equals(userId)) {
+            log.warn("User {} attempted to close debate {} but is not the owner", userId, debateId);
+            throw new UnauthorizedException("Nur der Ersteller der Debatte kann diese schließen");
+        }
+        
+        // Check if debate is already archived
+        if (debate.getStatus() == Debate.DebateStatus.archived) {
+            log.info("Debate {} is already archived", debateId);
+            return debate;
+        }
+        
+        // Close and archive the debate
+        debate.setStatus(Debate.DebateStatus.archived);
+        debate.setUpdatedAt(LocalDateTime.now());
+        
+        Debate archivedDebate = debateRepository.save(debate);
+        log.info("Debate {} successfully closed and archived by user {}", debateId, userId);
+        
+        return archivedDebate;
     }
 }
 
