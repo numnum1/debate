@@ -4,12 +4,18 @@ import { websocket } from '../services/websocket';
 import { Debate, DebateMessage, Position, Slot, User } from '../types';
 import { useAuth } from './AuthContext';
 
+interface TypingUser {
+  userId: string;
+  userName: string;
+}
+
 interface DebateContextType {
   debates: Debate[];
   currentDebate: Debate | null;
   currentUser: User;
   isLoading: boolean;
   error: string | null;
+  typingUsers: TypingUser[];
   setCurrentDebate: (debate: Debate | null) => void;
   addDebate: (debate: Debate) => Promise<void>;
   updateDebate: (debateId: string, updates: Partial<Debate>) => Promise<void>;
@@ -21,6 +27,7 @@ interface DebateContextType {
   updateSlot: (debateId: string, positionId: string, slotId: string, updates: Partial<Slot>) => Promise<void>;
   removeSlot: (debateId: string, positionId: string, slotId: string) => Promise<void>;
   addMessageToDebate: (debateId: string, message: DebateMessage) => Promise<void>;
+  sendTypingIndicator: (isTyping: boolean) => void;
   refreshDebates: () => Promise<void>;
   refreshCurrentDebate: () => Promise<void>;
 }
@@ -34,6 +41,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
   const [currentDebate, setCurrentDebate] = useState<Debate | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   
   // Initialize API and WebSocket with access token
   useEffect(() => {
@@ -110,9 +118,40 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Listen for typing indicators
+  useEffect(() => {
+    const unsubscribe = websocket.onTyping((data) => {
+      console.log('[DebateContext] Typing indicator:', data);
+      
+      if (data.isTyping) {
+        // Add user to typing list if not already there
+        setTypingUsers(prev => {
+          const exists = prev.some(u => u.userId === data.userId);
+          if (exists) return prev;
+          return [...prev, { userId: data.userId, userName: data.userName }];
+        });
+        
+        // Auto-remove after 3 seconds (in case we don't receive isTyping: false)
+        setTimeout(() => {
+          setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+        }, 3000);
+      } else {
+        // Remove user from typing list
+        setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Join/leave debate room when current debate changes
   useEffect(() => {
     const previousDebateId = websocket.getCurrentDebateId();
+    
+    // Clear typing users when changing debates
+    setTypingUsers([]);
     
     if (currentDebate?.id) {
       if (previousDebateId && previousDebateId !== currentDebate.id) {
@@ -664,6 +703,15 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Send typing indicator for current debate
+   */
+  const sendTypingIndicator = (isTyping: boolean) => {
+    if (currentDebate?.id && websocket.isConnected()) {
+      websocket.sendTyping(currentDebate.id, isTyping);
+    }
+  };
+
   return (
     <DebateContext.Provider
       value={{
@@ -672,6 +720,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         currentUser,
         isLoading,
         error,
+        typingUsers,
         setCurrentDebate,
         addDebate,
         updateDebate,
@@ -683,6 +732,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         updateSlot,
         removeSlot,
         addMessageToDebate,
+        sendTypingIndicator,
         refreshDebates,
         refreshCurrentDebate,
       }}

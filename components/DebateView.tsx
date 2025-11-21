@@ -19,6 +19,7 @@ export function DebateView() {
   const { 
     currentDebate, 
     currentUser, 
+    typingUsers,
     addMessageToDebate, 
     updateDebate,
     deleteDebate,
@@ -27,9 +28,11 @@ export function DebateView() {
     removePosition,
     addSlotToPosition,
     updateSlot,
-    removeSlot
+    removeSlot,
+    sendTypingIndicator
   } = useDebate();
   const [messageText, setMessageText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   
   // Settings state for pending debates
   const [editTitle, setEditTitle] = useState('');
@@ -44,6 +47,36 @@ export function DebateView() {
       setEditTitle(currentDebate.title);
       setEditDescription(currentDebate.description || '');
     }
+  }, [currentDebate?.id]);
+
+  // Handle typing indicator with debounce
+  React.useEffect(() => {
+    if (messageText.trim() && !isTyping) {
+      // User started typing
+      setIsTyping(true);
+      sendTypingIndicator(true);
+    }
+
+    // Set timeout to stop typing indicator after 2 seconds of no typing
+    const timeout = setTimeout(() => {
+      if (isTyping) {
+        setIsTyping(false);
+        sendTypingIndicator(false);
+      }
+    }, 2000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [messageText, isTyping, sendTypingIndicator]);
+
+  // Reset typing indicator when message is sent or debate changes
+  React.useEffect(() => {
+    if (isTyping) {
+      setIsTyping(false);
+      sendTypingIndicator(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDebate?.id]);
 
   if (!currentDebate) {
@@ -87,6 +120,12 @@ export function DebateView() {
 
     addMessageToDebate(currentDebate.id, newMessage);
     setMessageText('');
+    
+    // Stop typing indicator
+    if (isTyping) {
+      setIsTyping(false);
+      sendTypingIndicator(false);
+    }
   };
 
   const formatTimestamp = (date: Date | string) => {
@@ -646,6 +685,19 @@ export function DebateView() {
         )}
       </ScrollView>
 
+      {/* Typing Indicator */}
+      {typingUsers.length > 0 && (
+        <View style={[styles.typingIndicator, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <Text style={[styles.typingText, { color: colors.textSecondary }]}>
+            {typingUsers.length === 1
+              ? `${typingUsers[0].userName} schreibt...`
+              : typingUsers.length === 2
+              ? `${typingUsers[0].userName} und ${typingUsers[1].userName} schreiben...`
+              : `${typingUsers[0].userName} und ${typingUsers.length - 1} weitere schreiben...`}
+          </Text>
+        </View>
+      )}
+
       {/* Input Area */}
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <View style={styles.inputRow}>
@@ -803,6 +855,15 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 11,
+  },
+  typingIndicator: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+  },
+  typingText: {
+    fontSize: 13,
+    fontStyle: 'italic',
   },
   inputContainer: {
     borderTopWidth: 1,

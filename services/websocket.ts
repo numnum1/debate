@@ -8,6 +8,7 @@ import { DebateMessage } from '../types';
 type MessageCallback = (message: DebateMessage) => void;
 type ErrorCallback = (error: Error) => void;
 type ConnectionCallback = () => void;
+type TypingCallback = (data: { userId: string; userName: string; isTyping: boolean }) => void;
 
 /**
  * WebSocket Service Class
@@ -26,6 +27,7 @@ class WebSocketService {
   private errorCallbacks: ErrorCallback[] = [];
   private connectCallbacks: ConnectionCallback[] = [];
   private disconnectCallbacks: ConnectionCallback[] = [];
+  private typingCallbacks: TypingCallback[] = [];
 
   /**
    * Set access token for authentication
@@ -74,6 +76,12 @@ class WebSocketService {
               // New message received
               const message: DebateMessage = data.payload;
               this.messageCallbacks.forEach(cb => cb(message));
+              break;
+
+            case 'debate:typing:update':
+              // Typing indicator update
+              const typingData: { userId: string; userName: string; isTyping: boolean } = data.payload;
+              this.typingCallbacks.forEach(cb => cb(typingData));
               break;
 
             case apiConfig.wsEvents.error:
@@ -198,6 +206,16 @@ class WebSocketService {
     });
   }
 
+  /**
+   * Send typing indicator
+   */
+  sendTyping(debateId: string, isTyping: boolean) {
+    this.send('debate:typing', {
+      debateId,
+      isTyping,
+    });
+  }
+
   // ==================== Event Listeners ====================
 
   /**
@@ -237,6 +255,16 @@ class WebSocketService {
     this.disconnectCallbacks.push(callback);
     return () => {
       this.disconnectCallbacks = this.disconnectCallbacks.filter(cb => cb !== callback);
+    };
+  }
+
+  /**
+   * Register callback for typing indicators
+   */
+  onTyping(callback: TypingCallback) {
+    this.typingCallbacks.push(callback);
+    return () => {
+      this.typingCallbacks = this.typingCallbacks.filter(cb => cb !== callback);
     };
   }
 
