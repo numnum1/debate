@@ -486,9 +486,24 @@ export function DebateView() {
             <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
               Sobald Sie die Debatte starten, können Teilnehmer Beiträge verfassen und die Diskussion beginnt.
             </Text>
+            {currentDebate.positions.length < 2 && (
+              <View style={[styles.warningBox, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}>
+                <Ionicons name="warning-outline" size={18} color={colors.warning} />
+                <Text style={[styles.warningText, { color: colors.warning }]}>
+                  Sie benötigen mindestens 2 Positionen, um die Debatte zu starten
+                </Text>
+              </View>
+            )}
             <TouchableOpacity
-              style={[styles.startButton, { backgroundColor: colors.success }]}
+              style={[
+                styles.startButton, 
+                { 
+                  backgroundColor: currentDebate.positions.length >= 2 ? colors.success : colors.textSecondary,
+                  opacity: currentDebate.positions.length >= 2 ? 1 : 0.5,
+                }
+              ]}
               onPress={handleStartDebate}
+              disabled={currentDebate.positions.length < 2}
             >
               <Ionicons name="play" size={20} color="#fff" />
               <Text style={styles.startButtonText}>Debatte jetzt starten</Text>
@@ -1151,6 +1166,20 @@ const styles = StyleSheet.create({
   },
   slotMenuDescription: {
     fontSize: 12,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
 
