@@ -24,65 +24,6 @@ public class AiModelService {
         
         List<AiModelInfo> models = new ArrayList<>();
         
-        // OpenAI Modelle
-        models.add(AiModelInfo.builder()
-                .id("gpt-4")
-                .name("GPT-4")
-                .provider("OpenAI")
-                .description("Leistungsstarkes Sprachmodell mit hervorragenden Argumentationsfähigkeiten")
-                .available(true)
-                .build());
-        
-        models.add(AiModelInfo.builder()
-                .id("gpt-4-turbo")
-                .name("GPT-4 Turbo")
-                .provider("OpenAI")
-                .description("Schnellere Version von GPT-4 mit verbesserter Effizienz")
-                .available(true)
-                .build());
-        
-        models.add(AiModelInfo.builder()
-                .id("gpt-3.5-turbo")
-                .name("GPT-3.5 Turbo")
-                .provider("OpenAI")
-                .description("Schnelles und kosteneffizientes Modell für allgemeine Aufgaben")
-                .available(true)
-                .build());
-        
-        // Anthropic Modelle
-        models.add(AiModelInfo.builder()
-                .id("claude-3-opus")
-                .name("Claude 3 Opus")
-                .provider("Anthropic")
-                .description("Höchste Intelligenz und Leistung für komplexe Debatten")
-                .available(true)
-                .build());
-        
-        models.add(AiModelInfo.builder()
-                .id("claude-3-sonnet")
-                .name("Claude 3 Sonnet")
-                .provider("Anthropic")
-                .description("Ausgewogenes Modell mit guter Leistung und Geschwindigkeit")
-                .available(true)
-                .build());
-        
-        models.add(AiModelInfo.builder()
-                .id("claude-3-haiku")
-                .name("Claude 3 Haiku")
-                .provider("Anthropic")
-                .description("Schnelles Modell für einfache Interaktionen")
-                .available(true)
-                .build());
-        
-        // Google Modelle
-        models.add(AiModelInfo.builder()
-                .id("gemini-pro")
-                .name("Gemini Pro")
-                .provider("Google")
-                .description("Vielseitiges Modell mit starken Analysefähigkeiten")
-                .available(true)
-                .build());
-        
         // EECC Modelle
         models.add(AiModelInfo.builder()
                 .id("claude-sonnet-4-20250514")
