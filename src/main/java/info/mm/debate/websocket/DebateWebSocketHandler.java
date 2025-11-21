@@ -34,10 +34,13 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        log.info("WebSocket connection established: {}", session.getId());
-        
         String userId = (String) session.getAttributes().get("userId");
-        log.debug("User {} connected via WebSocket", userId);
+        String userName = (String) session.getAttributes().get("userName");
+        
+        log.info("✓ WebSocket connection established - Session ID: {}, User: {} ({})", 
+                session.getId(), userName, userId);
+        log.info("   Remote Address: {}", session.getRemoteAddress());
+        log.info("   URI: {}", session.getUri());
     }
 
     @Override
@@ -148,16 +151,24 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
 
     private void handleDebateMessage(WebSocketSession session, WebSocketMessage message) {
         try {
-            // Get debate ID for this session
-            String debateId = sessionDebateMap.get(session.getId());
-            if (debateId == null) {
-                sendError(session, "Not in a debate room. Join a room first.");
+            // Parse payload
+            Map<String, Object> payload = (Map<String, Object>) message.getPayload();
+            
+            // Extract debateId and message from payload
+            String debateId = (String) payload.get("debateId");
+            Object messageObj = payload.get("message");
+            
+            log.debug("Received message for debate: {}", debateId);
+            
+            if (debateId == null || messageObj == null) {
+                sendError(session, "debateId and message are required");
                 return;
             }
             
-            // Parse message
-            Map<String, Object> payload = (Map<String, Object>) message.getPayload();
-            DebateMessage debateMessage = objectMapper.convertValue(payload, DebateMessage.class);
+            // Convert the nested message object to DebateMessage
+            DebateMessage debateMessage = objectMapper.convertValue(messageObj, DebateMessage.class);
+            
+            log.debug("Parsed message from user: {} - {}", debateMessage.getUserName(), debateMessage.getText());
             
             // Save message to database
             messageService.addMessageToDebate(debateId, debateMessage)
@@ -171,16 +182,16 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
                                         .build();
                                 
                                 broadcastToDebateRoom(debateId, broadcastMessage);
-                                log.debug("Message broadcasted to debate room: {}", debateId);
+                                log.info("✓ Message broadcasted to debate room: {} (from {})", debateId, debateMessage.getUserName());
                             },
                             () -> {
                                 sendError(session, "Failed to save message");
-                                log.error("Failed to save message to debate: {}", debateId);
+                                log.error("✗ Failed to save message to debate: {}", debateId);
                             }
                     );
             
         } catch (Exception e) {
-            log.error("Error handling debate:message", e);
+            log.error("✗ Error handling debate:message: {}", e.getMessage(), e);
             sendError(session, "Error processing message: " + e.getMessage());
         }
     }

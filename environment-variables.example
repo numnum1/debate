@@ -2,9 +2,11 @@
 # Kopieren Sie diese Datei und passen Sie die Werte an Ihre Umgebung an
 
 # MongoDB Configuration
-MONGO_URI=mongodb://localhost:27017/debate
-MONGO_USERNAME=admin
-MONGO_PASSWORD=password
+MONGODB_URI=mongodb://admin:password@localhost:27017/debate?authSource=admin
+MONGODB_DATABASE=debate
+
+# Alternative Zugangsdaten (falls gewünscht):
+# MONGODB_URI=mongodb://debateuser:debatepass@localhost:27017/debate?authSource=debate
 
 # Keycloak Configuration
 KEYCLOAK_AUTH_SERVER_URL=http://localhost:8180

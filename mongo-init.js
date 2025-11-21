@@ -1,6 +1,18 @@
 // MongoDB Initialisierungsskript
 db = db.getSiblingDB('debate');
 
+// Erstelle Benutzer für die debate Datenbank
+db.createUser({
+  user: 'debateuser',
+  pwd: 'debatepass',
+  roles: [
+    {
+      role: 'readWrite',
+      db: 'debate'
+    }
+  ]
+});
+
 // Erstelle Collections
 db.createCollection('debates');
 

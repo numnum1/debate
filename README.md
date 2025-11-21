@@ -33,7 +33,7 @@ Dies startet:
 - **MongoDB** auf Port 27017 (mit persistentem Volume)
 - **PostgreSQL** für Keycloak (intern, mit persistentem Volume)
 - **Keycloak** auf Port 8180 (mit persistenten Einstellungen ✅)
-- **Mongo Express** (Web UI) auf Port 8081
+- **Mongo Express** (Web UI) auf Port 8082
 
 **Hinweis:** Ihre Keycloak-Konfiguration bleibt nach Container-Neustarts erhalten!
 
@@ -165,7 +165,7 @@ curl -X POST http://localhost:8080/api/debates \
 
 ### Mongo Express (Web UI)
 
-Zugriff auf http://localhost:8081
+Zugriff auf http://localhost:8082
 
 - Username: `admin`
 - Password: `admin`

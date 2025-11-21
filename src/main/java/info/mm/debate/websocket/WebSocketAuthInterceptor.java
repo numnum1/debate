@@ -31,11 +31,17 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
             URI uri = request.getURI();
             String query = uri.getQuery();
             
+            log.debug("WebSocket handshake request - URI: {}", uri);
+            log.debug("WebSocket handshake request - Query: {}", query);
+            
             if (query != null && query.contains("token=")) {
                 String token = extractToken(query);
                 
+                log.debug("Extracted token (first 50 chars): {}", token != null ? token.substring(0, Math.min(50, token.length())) : "null");
+                
                 if (token != null) {
                     // Validate token
+                    log.debug("Attempting to decode JWT token...");
                     Jwt jwt = jwtDecoder.decode(token);
                     
                     // Store user info in attributes for later use
@@ -43,16 +49,17 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
                     attributes.put("userName", jwt.getClaimAsString("name"));
                     attributes.put("userEmail", jwt.getClaimAsString("email"));
                     
-                    log.info("WebSocket connection authenticated for user: {}", jwt.getSubject());
+                    log.info("✓ WebSocket connection authenticated for user: {} ({})", 
+                            jwt.getClaimAsString("name"), jwt.getSubject());
                     return true;
                 }
             }
             
-            log.warn("WebSocket connection rejected: No valid token provided");
+            log.warn("✗ WebSocket connection rejected: No valid token provided. Query: {}", query);
             return false;
             
         } catch (Exception e) {
-            log.error("WebSocket authentication failed", e);
+            log.error("✗ WebSocket authentication failed: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return false;
         }
     }

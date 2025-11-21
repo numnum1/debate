@@ -48,7 +48,7 @@ public class SecurityConfig {
                 // Swagger UI und OpenAPI Endpoints
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // WebSocket-Endpunkt (Authentifizierung erfolgt über Interceptor)
-                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/ws", "/ws/**").permitAll()
                 // Alle anderen Endpoints benötigen Authentifizierung
                 .anyRequest().authenticated()
             )

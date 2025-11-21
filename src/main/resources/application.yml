@@ -2,22 +2,14 @@ server:
   port: 1933
   servlet:
     context-path: /api
+  # WebSocket-Konfiguration
+  tomcat:
+    connection-timeout: 30000
+    max-connections: 10000
 
 spring:
   application:
     name: debate-server
-  
-  # MongoDB Configuration
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/debate
-      # Alternative: Einzelne Parameter
-      # host: localhost
-      # port: 27017
-      # database: debate
-      # username: ${MONGO_USERNAME:admin}
-      # password: ${MONGO_PASSWORD:password}
-      # authentication-database: admin
   
   # Security Configuration
   security:
@@ -26,6 +18,11 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/debate}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/debate/protocol/openid-connect/certs}
+
+# MongoDB Configuration (wird von MongoConfig.java verwendet)
+mongodb:
+  uri: ${MONGODB_URI:mongodb://admin:password@localhost:27017/debate?authSource=admin}
+  database: ${MONGODB_DATABASE:debate}
 
 # Keycloak Configuration (für Referenz)
 # Die Integration erfolgt über Spring Security OAuth2 Resource Server

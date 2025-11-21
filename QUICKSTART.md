@@ -106,7 +106,7 @@ curl -X GET http://localhost:8080/api/debates \
 
 ### MongoDB
 - **Connection:** mongodb://localhost:27017
-- **UI:** http://localhost:8081 (login: admin/admin)
+- **UI:** http://localhost:8082 (login: admin/admin)
 
 ### Keycloak
 - **Admin:** http://localhost:8180 (login: admin/admin)
