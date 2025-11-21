@@ -83,6 +83,14 @@ public class DebateService {
                         existingDebate.setDescription(updatedDebate.getDescription());
                     }
                     if (updatedDebate.getStatus() != null) {
+                        // Validate: Cannot start debate without at least 2 positions
+                        if (updatedDebate.getStatus() == Debate.DebateStatus.active) {
+                            if (existingDebate.getPositions() == null || existingDebate.getPositions().size() < 2) {
+                                log.warn("Cannot start debate {}: Need at least 2 positions (found: {})", 
+                                        id, existingDebate.getPositions() == null ? 0 : existingDebate.getPositions().size());
+                                throw new IllegalStateException("Eine Debatte benötigt mindestens 2 Positionen, um gestartet zu werden");
+                            }
+                        }
                         existingDebate.setStatus(updatedDebate.getStatus());
                     }
                     if (updatedDebate.getPositions() != null) {
