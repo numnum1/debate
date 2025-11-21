@@ -74,13 +74,35 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         
         // Avoid duplicates
         const messageExists = prev.messages.some(m => m.id === message.id);
-        if (messageExists) return prev;
+        if (messageExists) {
+          console.log('[DebateContext] Message already exists, skipping:', message.id);
+          return prev;
+        }
         
         return {
           ...prev,
           messages: [...prev.messages, message],
         };
       });
+      
+      // Also update the debates list for sidebar
+      setDebates(prev => prev.map(d => {
+        if (!d.id || !message.id) return d;
+        
+        // Find the debate this message belongs to
+        // We need to check if this is the current debate from WebSocket context
+        const currentDebateId = websocket.getCurrentDebateId();
+        if (d.id !== currentDebateId) return d;
+        
+        // Avoid duplicates
+        const messageExists = d.messages.some(m => m.id === message.id);
+        if (messageExists) return d;
+        
+        return {
+          ...d,
+          messages: [...d.messages, message],
+        };
+      }));
     });
 
     return () => {
@@ -625,54 +647,13 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     try {
       setError(null);
       
-      // Optimistic update - add immediately to UI
-      const optimisticMessage = {
-        ...message,
-        id: message.id || `temp-${Date.now()}`,
-        timestamp: message.timestamp || new Date(),
-      };
-      
-      setDebates(prev => prev.map(d => 
-        d.id === debateId 
-          ? { ...d, messages: [...d.messages, optimisticMessage] }
-          : d
-      ));
-      
-      if (currentDebate?.id === debateId) {
-        setCurrentDebate({
-          ...currentDebate,
-          messages: [...currentDebate.messages, optimisticMessage]
-        });
-      }
-      
-      // Send via WebSocket for real-time delivery to other users
+      // Send via WebSocket only - server will save and broadcast
+      // The message will appear via the WebSocket listener (lines 67-89)
       if (websocket.isConnected()) {
-        websocket.sendMessage(debateId, optimisticMessage);
-      }
-      
-      // API call to persist message
-      const saved = await api.sendMessage(debateId, message);
-      console.log('[DebateContext] ✓ Message sent:', saved.id);
-      
-      // Update with server response (replace temp ID with real ID)
-      setDebates(prev => prev.map(d => 
-        d.id === debateId 
-          ? { 
-              ...d, 
-              messages: d.messages.map(m => 
-                m.id === optimisticMessage.id ? saved : m
-              )
-            }
-          : d
-      ));
-      
-      if (currentDebate?.id === debateId) {
-        setCurrentDebate({
-          ...currentDebate,
-          messages: currentDebate.messages.map(m => 
-            m.id === optimisticMessage.id ? saved : m
-          )
-        });
+        websocket.sendMessage(debateId, message);
+        console.log('[DebateContext] ✓ Message sent via WebSocket');
+      } else {
+        throw new Error('WebSocket ist nicht verbunden');
       }
       
     } catch (err: any) {
