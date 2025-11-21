@@ -90,6 +90,14 @@ public class DebateService {
                                         id, existingDebate.getPositions() == null ? 0 : existingDebate.getPositions().size());
                                 throw new IllegalStateException("Eine Debatte benötigt mindestens 2 Positionen, um gestartet zu werden");
                             }
+                            
+                            // Validate: Each position must have at least one slot
+                            for (var position : existingDebate.getPositions()) {
+                                if (position.getSlots() == null || position.getSlots().isEmpty()) {
+                                    log.warn("Cannot start debate {}: Position '{}' has no slots", id, position.getName());
+                                    throw new IllegalStateException("Jede Position muss mindestens einen Slot haben, um die Debatte zu starten");
+                                }
+                            }
                         }
                         existingDebate.setStatus(updatedDebate.getStatus());
                     }
