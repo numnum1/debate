@@ -62,6 +62,9 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
                 case "debate:message":
                     handleDebateMessage(session, wsMessage);
                     break;
+                case "debate:typing":
+                    handleDebateTyping(session, wsMessage);
+                    break;
                 default:
                     log.warn("Unknown message type: {}", type);
                     sendError(session, "Unknown message type: " + type);
@@ -196,6 +199,40 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    private void handleDebateTyping(WebSocketSession session, WebSocketMessage message) {
+        try {
+            Map<String, Object> payload = (Map<String, Object>) message.getPayload();
+            String debateId = (String) payload.get("debateId");
+            String userId = (String) session.getAttributes().get("userId");
+            String userName = (String) session.getAttributes().get("userName");
+            Boolean isTyping = (Boolean) payload.get("isTyping");
+            
+            if (debateId == null || isTyping == null) {
+                sendError(session, "debateId and isTyping are required");
+                return;
+            }
+            
+            log.debug("Typing indicator: user {} in debate {} - isTyping: {}", userName, debateId, isTyping);
+            
+            // Broadcast typing status to other users in the room (excluding sender)
+            WebSocketMessage typingMessage = WebSocketMessage.builder()
+                    .type("debate:typing:update")
+                    .payload(Map.of(
+                            "userId", userId,
+                            "userName", userName,
+                            "isTyping", isTyping
+                    ))
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            
+            broadcastToDebateRoomExcept(debateId, typingMessage, session);
+            
+        } catch (Exception e) {
+            log.error("✗ Error handling debate:typing: {}", e.getMessage(), e);
+            sendError(session, "Error processing typing status: " + e.getMessage());
+        }
+    }
+
     private void broadcastToDebateRoom(String debateId, WebSocketMessage message) {
         CopyOnWriteArraySet<WebSocketSession> sessions = debateRooms.get(debateId);
         if (sessions == null || sessions.isEmpty()) {
@@ -212,6 +249,37 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         }
         
         for (WebSocketSession session : sessions) {
+            if (session.isOpen()) {
+                try {
+                    session.sendMessage(new TextMessage(jsonMessage));
+                } catch (IOException e) {
+                    log.error("Error sending message to session: {}", session.getId(), e);
+                }
+            }
+        }
+    }
+
+    private void broadcastToDebateRoomExcept(String debateId, WebSocketMessage message, WebSocketSession excludeSession) {
+        CopyOnWriteArraySet<WebSocketSession> sessions = debateRooms.get(debateId);
+        if (sessions == null || sessions.isEmpty()) {
+            log.debug("No sessions in debate room: {}", debateId);
+            return;
+        }
+        
+        String jsonMessage;
+        try {
+            jsonMessage = objectMapper.writeValueAsString(message);
+        } catch (Exception e) {
+            log.error("Error serializing message", e);
+            return;
+        }
+        
+        for (WebSocketSession session : sessions) {
+            // Skip the session we want to exclude
+            if (session.getId().equals(excludeSession.getId())) {
+                continue;
+            }
+            
             if (session.isOpen()) {
                 try {
                     session.sendMessage(new TextMessage(jsonMessage));
