@@ -15,7 +15,7 @@ export const keycloakConfig = {
   
   // Client ID
   // Die Client-ID, die Sie in Keycloak für diese App konfiguriert haben
-  clientId: process.env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID || 'debate-server',
+  clientId: process.env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID || 'debate-client',
   
   // Redirect URI (für OAuth Callback)
   // Dies muss in Keycloak als "Valid Redirect URIs" konfiguriert sein

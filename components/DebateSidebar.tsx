@@ -35,15 +35,23 @@ export function DebateSidebar() {
     setCurrentDebate(newDebate);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    // Konvertiere String zu Date, falls nötig
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Prüfe ob das Date-Objekt gültig ist
+    if (isNaN(dateObj.getTime())) {
+      return 'Ungültiges Datum';
+    }
+    
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffTime = Math.abs(now.getTime() - dateObj.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return 'Heute';
     if (diffDays === 1) return 'Gestern';
     if (diffDays < 7) return `vor ${diffDays} Tagen`;
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    return dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
   };
 
   const getStatusColor = (status: Debate['status']) => {

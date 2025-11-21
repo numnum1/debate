@@ -1,160 +1,106 @@
-import React, { createContext, ReactNode, useContext, useState } from 'react';
-import { Debate, Position, Slot, User } from '../types';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { api, ApiError } from '../services/api';
+import { websocket } from '../services/websocket';
+import { Debate, DebateMessage, Position, Slot, User } from '../types';
 import { useAuth } from './AuthContext';
 
 interface DebateContextType {
   debates: Debate[];
   currentDebate: Debate | null;
   currentUser: User;
+  isLoading: boolean;
+  error: string | null;
   setCurrentDebate: (debate: Debate | null) => void;
-  addDebate: (debate: Debate) => void;
-  updateDebate: (debateId: string, updates: Partial<Debate>) => void;
-  addPosition: (debateId: string, position: Position) => void;
-  updatePosition: (debateId: string, positionId: string, updates: Partial<Position>) => void;
-  removePosition: (debateId: string, positionId: string) => void;
-  addSlotToPosition: (debateId: string, positionId: string, slot: Slot) => void;
-  updateSlot: (debateId: string, positionId: string, slotId: string, updates: Partial<Slot>) => void;
-  removeSlot: (debateId: string, positionId: string, slotId: string) => void;
-  addMessageToDebate: (debateId: string, message: any) => void;
+  addDebate: (debate: Debate) => Promise<void>;
+  updateDebate: (debateId: string, updates: Partial<Debate>) => Promise<void>;
+  deleteDebate: (debateId: string) => Promise<void>;
+  addPosition: (debateId: string, position: Position) => Promise<void>;
+  updatePosition: (debateId: string, positionId: string, updates: Partial<Position>) => Promise<void>;
+  removePosition: (debateId: string, positionId: string) => Promise<void>;
+  addSlotToPosition: (debateId: string, positionId: string, slot: Slot) => Promise<void>;
+  updateSlot: (debateId: string, positionId: string, slotId: string, updates: Partial<Slot>) => Promise<void>;
+  removeSlot: (debateId: string, positionId: string, slotId: string) => Promise<void>;
+  addMessageToDebate: (debateId: string, message: DebateMessage) => Promise<void>;
+  refreshDebates: () => Promise<void>;
+  refreshCurrentDebate: () => Promise<void>;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
 
 export function DebateProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, accessToken, refreshAccessToken } = useAuth();
   
   const [debates, setDebates] = useState<Debate[]>([]);
   const [currentDebate, setCurrentDebate] = useState<Debate | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  // Update debates when user changes
-  React.useEffect(() => {
-    if (user) {
-      // Mock debates - mit dynamischem User
-      const mockDebates: Debate[] = [
-        {
-          id: '1',
-          title: 'Künstliche Intelligenz in der Bildung',
-          description: 'Sollte KI stärker in Schulen eingesetzt werden?',
-          createdBy: user,
-          positions: [
-            {
-              id: 'pos1',
-              name: 'Pro',
-              description: 'Argumente für den Einsatz von KI in der Bildung',
-              color: '#10b981',
-              slots: [
-                {
-                  id: 'slot1',
-                  type: 'invited',
-                  participant: user,
-                },
-              ],
-            },
-            {
-              id: 'pos2',
-              name: 'Contra',
-              description: 'Kritische Bedenken zum KI-Einsatz in Schulen',
-              color: '#ef4444',
-              slots: [
-                {
-                  id: 'slot2',
-                  type: 'invited',
-                  participant: { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
-                },
-                {
-                  id: 'slot3',
-                  type: 'open',
-                },
-              ],
-            },
-          ],
-          createdAt: new Date('2024-11-18'),
-          status: 'active',
-          messages: [
-            {
-              id: '1',
-              userId: user.id,
-              userName: user.name,
-              text: 'KI kann personalisiertes Lernen ermöglichen und Lehrer entlasten.',
-              timestamp: new Date('2024-11-18T10:00:00'),
-              positionId: 'pos1',
-              slotId: 'slot1',
-            },
-            {
-              id: '2',
-              userId: '2',
-              userName: 'Anna Schmidt',
-              text: 'Aber es besteht die Gefahr, dass soziale Kompetenzen vernachlässigt werden.',
-              timestamp: new Date('2024-11-18T10:15:00'),
-              positionId: 'pos2',
-              slotId: 'slot2',
-            },
-          ],
-        },
-        {
-          id: '2',
-          title: 'Homeoffice vs. Büro',
-          description: 'Was ist produktiver für moderne Teams?',
-          createdBy: { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
-          positions: [
-            {
-              id: 'pos1',
-              name: 'Homeoffice',
-              description: 'Vorteile von flexibler Arbeit von Zuhause',
-              color: '#3b82f6',
-              slots: [
-                {
-                  id: 'slot1',
-                  type: 'invited',
-                  participant: user,
-                },
-              ],
-            },
-            {
-              id: 'pos2',
-              name: 'Büro',
-              description: 'Argumente für Präsenzarbeit im Büro',
-              color: '#f59e0b',
-              slots: [
-                {
-                  id: 'slot2',
-                  type: 'invited',
-                  participant: { id: '2', name: 'Anna Schmidt', email: 'anna@example.com' },
-                },
-                {
-                  id: 'slot3',
-                  type: 'ai',
-                  participant: { id: 'ai1', name: 'KI Assistent', email: 'ai@debate.app' },
-                  aiConfig: {
-                    model: 'gpt-4',
-                  },
-                },
-              ],
-            },
-          ],
-          createdAt: new Date('2024-11-19'),
-          status: 'active',
-          messages: [],
-        },
-        {
-          id: '3',
-          title: 'Elektroautos: Die Zukunft?',
-          description: 'Sind Elektroautos wirklich umweltfreundlicher?',
-          createdBy: user,
-          positions: [],
-          createdAt: new Date('2024-11-20'),
-          status: 'pending',
-          messages: [],
-        },
-      ];
-      
-      setDebates(mockDebates);
-      setCurrentDebate(mockDebates[0] || null);
+  // Initialize API and WebSocket with access token
+  useEffect(() => {
+    if (accessToken) {
+      console.log('[DebateContext] Setting access token for API and WebSocket');
+      api.setAccessToken(accessToken);
+      api.setRefreshTokenCallback(refreshAccessToken);
+      websocket.setAccessToken(accessToken);
+      websocket.connect();
+    } else {
+      websocket.disconnect();
+    }
+
+    return () => {
+      websocket.disconnect();
+    };
+  }, [accessToken, refreshAccessToken]);
+
+  // Load debates when user logs in
+  useEffect(() => {
+    if (user && accessToken) {
+      refreshDebates();
     } else {
       setDebates([]);
       setCurrentDebate(null);
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, accessToken]);
+
+  // Listen for real-time messages
+  useEffect(() => {
+    const unsubscribe = websocket.onMessage((message: DebateMessage) => {
+      console.log('[DebateContext] Real-time message received:', message);
+      
+      // Add message to current debate - use callback to always get fresh state
+      setCurrentDebate(prev => {
+        if (!prev || !message.id) return prev;
+        
+        // Avoid duplicates
+        const messageExists = prev.messages.some(m => m.id === message.id);
+        if (messageExists) return prev;
+        
+        return {
+          ...prev,
+          messages: [...prev.messages, message],
+        };
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Join/leave debate room when current debate changes
+  useEffect(() => {
+    const previousDebateId = websocket.getCurrentDebateId();
+    
+    if (currentDebate?.id) {
+      if (previousDebateId && previousDebateId !== currentDebate.id) {
+        websocket.leaveDebate(previousDebateId);
+      }
+      websocket.joinDebate(currentDebate.id);
+    } else if (previousDebateId) {
+      websocket.leaveDebate(previousDebateId);
+    }
+  }, [currentDebate?.id]);
   
   if (!user) {
     throw new Error('DebateProvider requires authenticated user');
@@ -162,164 +108,579 @@ export function DebateProvider({ children }: { children: ReactNode }) {
 
   const currentUser = user;
 
-  const addDebate = (debate: Debate) => {
-    setDebates([debate, ...debates]);
-  };
-
-  const updateDebate = (debateId: string, updates: Partial<Debate>) => {
-    setDebates(debates.map(debate => 
-      debate.id === debateId 
-        ? { ...debate, ...updates }
-        : debate
-    ));
-    if (currentDebate?.id === debateId) {
-      setCurrentDebate({ ...currentDebate, ...updates });
+  /**
+   * Refresh all debates from backend
+   */
+  const refreshDebates = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const fetchedDebates = await api.getDebates();
+      console.log('[DebateContext] ✓ Debates loaded:', fetchedDebates.length);
+      setDebates(fetchedDebates);
+      
+      // If no current debate, select first one
+      if (!currentDebate && fetchedDebates.length > 0) {
+        setCurrentDebate(fetchedDebates[0]);
+      }
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Laden der Debatten';
+      console.error('[DebateContext] ✗ Error loading debates:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const addPosition = (debateId: string, position: Position) => {
-    const updatedDebates = debates.map(debate => 
-      debate.id === debateId 
-        ? { ...debate, positions: [...debate.positions, position] }
-        : debate
-    );
-    setDebates(updatedDebates);
-    if (currentDebate?.id === debateId) {
-      setCurrentDebate({ ...currentDebate, positions: [...currentDebate.positions, position] });
+  /**
+   * Refresh current debate from backend
+   */
+  const refreshCurrentDebate = async () => {
+    if (!currentDebate) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const updated = await api.getDebate(currentDebate.id);
+      console.log('[DebateContext] ✓ Debate refreshed:', updated.id);
+      setCurrentDebate(updated);
+      
+      // Also update in debates list
+      setDebates(prev => 
+        prev.map(d => d.id === updated.id ? updated : d)
+      );
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Aktualisieren der Debatte';
+      console.error('[DebateContext] ✗ Error refreshing debate:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updatePosition = (debateId: string, positionId: string, updates: Partial<Position>) => {
-    const updatedDebates = debates.map(debate => 
-      debate.id === debateId 
-        ? { 
-            ...debate, 
-            positions: debate.positions.map(pos => 
-              pos.id === positionId ? { ...pos, ...updates } : pos
-            )
-          }
-        : debate
-    );
-    setDebates(updatedDebates);
-    if (currentDebate?.id === debateId) {
-      setCurrentDebate({
-        ...currentDebate,
-        positions: currentDebate.positions.map(pos => 
-          pos.id === positionId ? { ...pos, ...updates } : pos
-        )
-      });
+  /**
+   * Add new debate
+   */
+  const addDebate = async (debate: Debate) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => [debate, ...prev]);
+      
+      // API call
+      const created = await api.createDebate(debate);
+      console.log('[DebateContext] ✓ Debate created:', created.id);
+      
+      // Update with server response
+      setDebates(prev => prev.map(d => d.id === debate.id ? created : d));
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Erstellen der Debatte';
+      console.error('[DebateContext] ✗ Error creating debate:', errorMsg);
+      setError(errorMsg);
+      
+      // Rollback optimistic update
+      setDebates(prev => prev.filter(d => d.id !== debate.id));
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const removePosition = (debateId: string, positionId: string) => {
-    const updatedDebates = debates.map(debate => 
-      debate.id === debateId 
-        ? { ...debate, positions: debate.positions.filter(pos => pos.id !== positionId) }
-        : debate
-    );
-    setDebates(updatedDebates);
-    if (currentDebate?.id === debateId) {
-      setCurrentDebate({
-        ...currentDebate,
-        positions: currentDebate.positions.filter(pos => pos.id !== positionId)
-      });
+  /**
+   * Update debate
+   */
+  const updateDebate = async (debateId: string, updates: Partial<Debate>) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => prev.map(d => 
+        d.id === debateId ? { ...d, ...updates } : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({ ...currentDebate, ...updates });
+      }
+      
+      // API call
+      const updated = await api.updateDebate(debateId, updates);
+      console.log('[DebateContext] ✓ Debate updated:', updated.id);
+      
+      // Update with server response
+      setDebates(prev => prev.map(d => d.id === updated.id ? updated : d));
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updated);
+      }
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Aktualisieren der Debatte';
+      console.error('[DebateContext] ✗ Error updating debate:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const addSlotToPosition = (debateId: string, positionId: string, slot: Slot) => {
-    const updatedDebates = debates.map(debate => 
-      debate.id === debateId 
-        ? { 
-            ...debate, 
-            positions: debate.positions.map(pos => 
-              pos.id === positionId 
-                ? { ...pos, slots: [...pos.slots, slot] }
-                : pos
-            )
-          }
-        : debate
-    );
-    setDebates(updatedDebates);
-    if (currentDebate?.id === debateId) {
-      setCurrentDebate({
-        ...currentDebate,
-        positions: currentDebate.positions.map(pos => 
-          pos.id === positionId 
-            ? { ...pos, slots: [...pos.slots, slot] }
-            : pos
-        )
-      });
+  /**
+   * Delete debate
+   */
+  const deleteDebate = async (debateId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      const updatedDebates = debates.filter(d => d.id !== debateId);
+      setDebates(updatedDebates);
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updatedDebates.length > 0 ? updatedDebates[0] : null);
+      }
+      
+      // API call
+      await api.deleteDebate(debateId);
+      console.log('[DebateContext] ✓ Debate deleted:', debateId);
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Löschen der Debatte';
+      console.error('[DebateContext] ✗ Error deleting debate:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateSlot = (debateId: string, positionId: string, slotId: string, updates: Partial<Slot>) => {
-    const updatedDebates = debates.map(debate => 
-      debate.id === debateId 
-        ? { 
-            ...debate, 
-            positions: debate.positions.map(pos => 
-              pos.id === positionId 
-                ? { 
-                    ...pos, 
-                    slots: pos.slots.map(slot => 
-                      slot.id === slotId ? { ...slot, ...updates } : slot
-                    )
-                  }
-                : pos
-            )
-          }
-        : debate
-    );
-    setDebates(updatedDebates);
-    if (currentDebate?.id === debateId) {
-      setCurrentDebate({
-        ...currentDebate,
-        positions: currentDebate.positions.map(pos => 
-          pos.id === positionId 
-            ? { 
-                ...pos, 
-                slots: pos.slots.map(slot => 
-                  slot.id === slotId ? { ...slot, ...updates } : slot
-                )
-              }
-            : pos
-        )
-      });
+  /**
+   * Add position to debate
+   */
+  const addPosition = async (debateId: string, position: Position) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, positions: [...d.positions, position] }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: [...currentDebate.positions, position]
+        });
+      }
+      
+      // API call
+      const created = await api.addPosition(debateId, position);
+      console.log('[DebateContext] ✓ Position added:', created.id);
+      
+      // Update with server response
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => p.id === position.id ? created : p)
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => p.id === position.id ? created : p)
+        });
+      }
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Hinzufügen der Position';
+      console.error('[DebateContext] ✗ Error adding position:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const removeSlot = (debateId: string, positionId: string, slotId: string) => {
-    const updatedDebates = debates.map(debate => 
-      debate.id === debateId 
-        ? { 
-            ...debate, 
-            positions: debate.positions.map(pos => 
-              pos.id === positionId 
-                ? { ...pos, slots: pos.slots.filter(slot => slot.id !== slotId) }
-                : pos
-            )
-          }
-        : debate
-    );
-    setDebates(updatedDebates);
-    if (currentDebate?.id === debateId) {
-      setCurrentDebate({
-        ...currentDebate,
-        positions: currentDebate.positions.map(pos => 
-          pos.id === positionId 
-            ? { ...pos, slots: pos.slots.filter(slot => slot.id !== slotId) }
-            : pos
-        )
-      });
+  /**
+   * Update position
+   */
+  const updatePosition = async (debateId: string, positionId: string, updates: Partial<Position>) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => 
+                p.id === positionId ? { ...p, ...updates } : p
+              )
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => 
+            p.id === positionId ? { ...p, ...updates } : p
+          )
+        });
+      }
+      
+      // API call
+      const updated = await api.updatePosition(debateId, positionId, updates);
+      console.log('[DebateContext] ✓ Position updated:', updated.id);
+      
+      // Update with server response
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => p.id === updated.id ? updated : p)
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => p.id === updated.id ? updated : p)
+        });
+      }
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Aktualisieren der Position';
+      console.error('[DebateContext] ✗ Error updating position:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const addMessageToDebate = (debateId: string, message: any) => {
-    setDebates(debates.map(debate => 
-      debate.id === debateId 
-        ? { ...debate, messages: [...debate.messages, message] }
-        : debate
-    ));
+  /**
+   * Remove position from debate
+   */
+  const removePosition = async (debateId: string, positionId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, positions: d.positions.filter(p => p.id !== positionId) }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.filter(p => p.id !== positionId)
+        });
+      }
+      
+      // API call
+      await api.removePosition(debateId, positionId);
+      console.log('[DebateContext] ✓ Position removed:', positionId);
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Entfernen der Position';
+      console.error('[DebateContext] ✗ Error removing position:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Add slot to position
+   */
+  const addSlotToPosition = async (debateId: string, positionId: string, slot: Slot) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => 
+                p.id === positionId 
+                  ? { ...p, slots: [...p.slots, slot] }
+                  : p
+              )
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => 
+            p.id === positionId 
+              ? { ...p, slots: [...p.slots, slot] }
+              : p
+          )
+        });
+      }
+      
+      // API call
+      const created = await api.addSlot(debateId, positionId, slot);
+      console.log('[DebateContext] ✓ Slot added:', created.id);
+      
+      // Update with server response
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => 
+                p.id === positionId 
+                  ? { 
+                      ...p, 
+                      slots: p.slots.map(s => s.id === slot.id ? created : s)
+                    }
+                  : p
+              )
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => 
+            p.id === positionId 
+              ? { 
+                  ...p, 
+                  slots: p.slots.map(s => s.id === slot.id ? created : s)
+                }
+              : p
+          )
+        });
+      }
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Hinzufügen des Slots';
+      console.error('[DebateContext] ✗ Error adding slot:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Update slot
+   */
+  const updateSlot = async (debateId: string, positionId: string, slotId: string, updates: Partial<Slot>) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => 
+                p.id === positionId 
+                  ? { 
+                      ...p, 
+                      slots: p.slots.map(s => 
+                        s.id === slotId ? { ...s, ...updates } : s
+                      )
+                    }
+                  : p
+              )
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => 
+            p.id === positionId 
+              ? { 
+                  ...p, 
+                  slots: p.slots.map(s => 
+                    s.id === slotId ? { ...s, ...updates } : s
+                  )
+                }
+              : p
+          )
+        });
+      }
+      
+      // API call
+      const updated = await api.updateSlot(debateId, positionId, slotId, updates);
+      console.log('[DebateContext] ✓ Slot updated:', updated.id);
+      
+      // Update with server response
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => 
+                p.id === positionId 
+                  ? { 
+                      ...p, 
+                      slots: p.slots.map(s => s.id === updated.id ? updated : s)
+                    }
+                  : p
+              )
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => 
+            p.id === positionId 
+              ? { 
+                  ...p, 
+                  slots: p.slots.map(s => s.id === updated.id ? updated : s)
+                }
+              : p
+          )
+        });
+      }
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Aktualisieren des Slots';
+      console.error('[DebateContext] ✗ Error updating slot:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Remove slot from position
+   */
+  const removeSlot = async (debateId: string, positionId: string, slotId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Optimistic update
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => 
+                p.id === positionId 
+                  ? { ...p, slots: p.slots.filter(s => s.id !== slotId) }
+                  : p
+              )
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          positions: currentDebate.positions.map(p => 
+            p.id === positionId 
+              ? { ...p, slots: p.slots.filter(s => s.id !== slotId) }
+              : p
+          )
+        });
+      }
+      
+      // API call
+      await api.removeSlot(debateId, positionId, slotId);
+      console.log('[DebateContext] ✓ Slot removed:', slotId);
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Entfernen des Slots';
+      console.error('[DebateContext] ✗ Error removing slot:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Add message to debate (with real-time sync)
+   */
+  const addMessageToDebate = async (debateId: string, message: DebateMessage) => {
+    try {
+      setError(null);
+      
+      // Optimistic update - add immediately to UI
+      const optimisticMessage = {
+        ...message,
+        id: message.id || `temp-${Date.now()}`,
+        timestamp: message.timestamp || new Date(),
+      };
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, messages: [...d.messages, optimisticMessage] }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          messages: [...currentDebate.messages, optimisticMessage]
+        });
+      }
+      
+      // Send via WebSocket for real-time delivery to other users
+      if (websocket.isConnected()) {
+        websocket.sendMessage(debateId, optimisticMessage);
+      }
+      
+      // API call to persist message
+      const saved = await api.sendMessage(debateId, message);
+      console.log('[DebateContext] ✓ Message sent:', saved.id);
+      
+      // Update with server response (replace temp ID with real ID)
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              messages: d.messages.map(m => 
+                m.id === optimisticMessage.id ? saved : m
+              )
+            }
+          : d
+      ));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          messages: currentDebate.messages.map(m => 
+            m.id === optimisticMessage.id ? saved : m
+          )
+        });
+      }
+      
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Senden der Nachricht';
+      console.error('[DebateContext] ✗ Error sending message:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
   };
 
   return (
@@ -328,9 +689,12 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         debates,
         currentDebate,
         currentUser,
+        isLoading,
+        error,
         setCurrentDebate,
         addDebate,
         updateDebate,
+        deleteDebate,
         addPosition,
         updatePosition,
         removePosition,
@@ -338,6 +702,8 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         updateSlot,
         removeSlot,
         addMessageToDebate,
+        refreshDebates,
+        refreshCurrentDebate,
       }}
     >
       {children}

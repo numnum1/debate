@@ -70,7 +70,7 @@ Password: your-app-password
 
 Öffnen Sie direkt die Registrierungsseite:
 ```
-http://localhost:8180/realms/debate/protocol/openid-connect/registrations?client_id=debate-server&response_type=code&scope=openid%20profile%20email&redirect_uri=http://localhost:8081
+http://localhost:8180/realms/debate/protocol/openid-connect/registrations?client_id=debate-client&response_type=code&scope=openid%20profile%20email&redirect_uri=http://localhost:8082
 ```
 
 ## 🔒 Sicherheitseinstellungen (Optional)
@@ -121,8 +121,8 @@ Falls Sie zusätzliche Felder bei der Registrierung benötigen:
 **Lösung:**
 - Überprüfen Sie die **Valid Redirect URIs** im Client:
   ```
-  exp://localhost:8081/*
-  http://localhost:8081/*
+  exp://localhost:8082/*
+  http://localhost:8082/*
   ```
 - Stellen Sie sicher, dass der Client **Public** ist (Client authentication: OFF)
 

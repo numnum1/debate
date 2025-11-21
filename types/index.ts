@@ -29,7 +29,7 @@ export interface Debate {
   description: string;
   createdBy: User;
   positions: Position[];
-  createdAt: Date;
+  createdAt: Date | string; // Can be string when coming from API/WebSocket
   status: 'active' | 'completed' | 'pending';
   messages: DebateMessage[];
 }
@@ -39,7 +39,7 @@ export interface DebateMessage {
   userId: string;
   userName: string;
   text: string;
-  timestamp: Date;
+  timestamp: Date | string; // Can be string when coming from API/WebSocket
   positionId?: string;
   slotId?: string;
 }

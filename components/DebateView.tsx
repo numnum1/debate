@@ -89,8 +89,16 @@ export function DebateView() {
     setMessageText('');
   };
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const formatTimestamp = (date: Date | string) => {
+    // Konvertiere String zu Date, falls nötig
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Prüfe ob das Date-Objekt gültig ist
+    if (isNaN(dateObj.getTime())) {
+      return '--:--';
+    }
+    
+    return dateObj.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   };
 
   const handleSaveSettings = () => {

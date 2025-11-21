@@ -38,8 +38,8 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
         input:-webkit-autofill:hover,
         input:-webkit-autofill:focus,
         input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 30px ${colorScheme === 'dark' ? '#1a1d2e' : '#f8f9fa'} inset !important;
-          -webkit-text-fill-color: ${colorScheme === 'dark' ? '#ffffff' : '#000000'} !important;
+          -webkit-box-shadow: 0 0 0 30px ${colors.surface} inset !important;
+          -webkit-text-fill-color: ${colors.text} !important;
         }
       `;
       document.head.appendChild(style);
@@ -47,7 +47,7 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
         document.head.removeChild(style);
       };
     }
-  }, [colorScheme]);
+  }, [colorScheme, colors]);
 
   const handleLogin = async () => {
     if (!email.trim()) {

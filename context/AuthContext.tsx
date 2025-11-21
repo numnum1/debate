@@ -46,6 +46,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  refreshAccessToken: () => Promise<string | null>;
   accessToken: string | null;
   refreshToken: string | null;
 }
@@ -92,6 +93,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const endpoints = getKeycloakEndpoints();
 
   /**
+   * Prüft ob ein JWT Token abgelaufen ist
+   */
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const exp = payload.exp * 1000; // Convert to milliseconds
+      const now = Date.now();
+      // Token als abgelaufen betrachten wenn es in weniger als 60 Sekunden abläuft
+      return exp < (now + 60000);
+    } catch (error) {
+      console.error('[AUTH] Fehler beim Dekodieren des Tokens:', error);
+      return true; // Im Zweifelsfall als abgelaufen betrachten
+    }
+  };
+
+  /**
    * Initialisierung: Gespeicherte Tokens laden
    */
   useEffect(() => {
@@ -110,14 +127,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (storedAccessToken && storedUserInfo) {
         console.log('[AUTH] Gespeicherte Session gefunden');
-        setAccessToken(storedAccessToken);
-        setRefreshToken(storedRefreshToken);
-        setUser(JSON.parse(storedUserInfo));
+        
+        // Prüfen ob Token abgelaufen ist
+        if (isTokenExpired(storedAccessToken)) {
+          console.log('[AUTH] Token abgelaufen, versuche zu erneuern...');
+          
+          // Refresh Token setzen damit refreshAccessToken es verwenden kann
+          setRefreshToken(storedRefreshToken);
+          
+          if (storedRefreshToken) {
+            // Token erneuern
+            const tokenResponse = await fetch(endpoints.token, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                grant_type: 'refresh_token',
+                client_id: keycloakConfig.clientId,
+                refresh_token: storedRefreshToken,
+              }).toString(),
+            });
+
+            if (tokenResponse.ok) {
+              const tokens: KeycloakTokenResponse = await tokenResponse.json();
+              console.log('[AUTH] ✓ Token erfolgreich erneuert');
+
+              // Neue Tokens speichern
+              await storeTokens(
+                tokens.access_token,
+                tokens.refresh_token,
+                tokens.id_token
+              );
+
+              setAccessToken(tokens.access_token);
+              setRefreshToken(tokens.refresh_token);
+              setUser(JSON.parse(storedUserInfo));
+            } else {
+              console.log('[AUTH] Token-Refresh fehlgeschlagen, Logout erforderlich');
+              await logout();
+            }
+          } else {
+            console.log('[AUTH] Kein Refresh Token vorhanden, Logout erforderlich');
+            await logout();
+          }
+        } else {
+          // Token noch gültig
+          setAccessToken(storedAccessToken);
+          setRefreshToken(storedRefreshToken);
+          setUser(JSON.parse(storedUserInfo));
+        }
       } else {
         console.log('[AUTH] Keine gespeicherte Session');
       }
     } catch (error) {
       console.error('[AUTH] Fehler beim Laden der gespeicherten Authentifizierung:', error);
+      // Bei Fehler Logout durchführen
+      await logout();
     } finally {
       setIsLoading(false);
     }
@@ -238,6 +304,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
+   * Token mit Refresh Token erneuern
+   */
+  const refreshAccessToken = async (): Promise<string | null> => {
+    try {
+      if (!refreshToken) {
+        console.log('[AUTH] Kein Refresh Token verfügbar');
+        return null;
+      }
+
+      console.log('[AUTH] Token-Refresh gestartet');
+
+      const tokenResponse = await fetch(endpoints.token, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: keycloakConfig.clientId,
+          refresh_token: refreshToken,
+        }).toString(),
+      });
+
+      if (!tokenResponse.ok) {
+        console.error('[AUTH] Token-Refresh fehlgeschlagen');
+        // Bei Fehler Logout durchführen
+        await logout();
+        return null;
+      }
+
+      const tokens: KeycloakTokenResponse = await tokenResponse.json();
+      console.log('[AUTH] ✓ Token erfolgreich erneuert');
+
+      // Neue Tokens speichern
+      await storeTokens(
+        tokens.access_token,
+        tokens.refresh_token,
+        tokens.id_token
+      );
+
+      setAccessToken(tokens.access_token);
+      setRefreshToken(tokens.refresh_token);
+
+      return tokens.access_token;
+    } catch (error) {
+      console.error('[AUTH] ✗ Token-Refresh-Fehler:', error);
+      await logout();
+      return null;
+    }
+  };
+
+  /**
    * Registrierung über Keycloak Admin API
    * Hinweis: In Produktion sollte dies über ein Backend erfolgen!
    * Für Entwicklung: Nutzen Sie die Keycloak Admin Console zur Benutzeranlage
@@ -351,6 +469,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         logout,
         resetPassword,
+        refreshAccessToken,
         accessToken,
         refreshToken,
       }}

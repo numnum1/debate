@@ -5,7 +5,7 @@
 ### Schritt 1: Keycloak Client konfigurieren ⚙️
 
 1. Öffnen Sie: `http://localhost:8180/admin`
-2. Gehen Sie zu **Clients** → **debate-server**
+2. Gehen Sie zu **Clients** → **debate-client**
 3. **Aktivieren Sie:** ✅ **Direct access grants**
 4. Klicken Sie auf **Save**
 

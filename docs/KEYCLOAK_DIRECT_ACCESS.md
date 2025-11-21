@@ -13,8 +13,8 @@ Die Debate-App nutzt jetzt **Direct Access Grants** (Resource Owner Password Cre
    http://localhost:8180/admin
    ```
 
-2. **Gehen Sie zu Ihrem Client** (`debate-server`):
-   - **Clients** → **debate-server**
+2. **Gehen Sie zu Ihrem Client** (`debate-client`):
+   - **Clients** → **debate-client**
 
 3. **Aktivieren Sie Direct Access Grants:**
    - Gehen Sie zum Tab **"Settings"** oder **"Capability config"**
@@ -25,7 +25,7 @@ Die Debate-App nutzt jetzt **Direct Access Grants** (Resource Owner Password Cre
 
 ```
 ┌─────────────────────────────────────────────┐
-│ Client ID: debate-server                    │
+│ Client ID: debate-client                    │
 │                                              │
 │ Client authentication:     [OFF]             │
 │ Authorization:             [OFF]             │
@@ -176,7 +176,7 @@ In Keycloak:
 **Lösung:**
 - In Keycloak Client Settings:
   - **Web Origins:** `*` (für Entwicklung)
-  - Oder: Spezifische Origin `http://localhost:8081`
+  - Oder: Spezifische Origin `http://localhost:8082`
 
 ## 📱 App-Konfiguration
 
@@ -185,7 +185,7 @@ In Keycloak:
 ```env
 EXPO_PUBLIC_KEYCLOAK_URL=http://localhost:8180
 EXPO_PUBLIC_KEYCLOAK_REALM=debate
-EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=debate-server
+EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=debate-client
 ```
 
 ### Für Android Emulator:

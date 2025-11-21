@@ -4,10 +4,12 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:port": "expo start --port 10000",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "web": "expo start --clear --web --port 10000",
+    "web:custom": "expo start --web --port 10000",
     "lint": "expo lint"
   },
   "dependencies": {
