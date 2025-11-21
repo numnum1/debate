@@ -153,6 +153,17 @@ export function DebateView() {
     });
   };
 
+  // Check if all positions have at least one slot
+  const allPositionsHaveSlots = () => {
+    return currentDebate.positions.every(position => 
+      position.slots && position.slots.length > 0
+    );
+  };
+
+  const canStartDebate = () => {
+    return currentDebate.positions.length >= 2 && allPositionsHaveSlots();
+  };
+
   const handleDeleteDebate = () => {
     if (currentDebate && currentDebate.createdBy.id === currentUser.id) {
       deleteDebate(currentDebate.id);
@@ -533,16 +544,24 @@ export function DebateView() {
                 </Text>
               </View>
             )}
+            {currentDebate.positions.length >= 2 && !allPositionsHaveSlots() && (
+              <View style={[styles.warningBox, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}>
+                <Ionicons name="warning-outline" size={18} color={colors.warning} />
+                <Text style={[styles.warningText, { color: colors.warning }]}>
+                  Jede Position muss mindestens einen Slot haben, um die Debatte zu starten
+                </Text>
+              </View>
+            )}
             <TouchableOpacity
               style={[
                 styles.startButton, 
                 { 
-                  backgroundColor: currentDebate.positions.length >= 2 ? colors.success : colors.textSecondary,
-                  opacity: currentDebate.positions.length >= 2 ? 1 : 0.5,
+                  backgroundColor: canStartDebate() ? colors.success : colors.textSecondary,
+                  opacity: canStartDebate() ? 1 : 0.5,
                 }
               ]}
               onPress={handleStartDebate}
-              disabled={currentDebate.positions.length < 2}
+              disabled={!canStartDebate()}
             >
               <Ionicons name="play" size={20} color="#fff" />
               <Text style={styles.startButtonText}>Debatte jetzt starten</Text>
