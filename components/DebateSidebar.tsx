@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -7,19 +7,29 @@ import {
     TouchableOpacity,
     useColorScheme,
     View,
+    Modal,
 } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 import { useDebate } from '../context/DebateContext';
 import { Debate } from '../types';
+import { PublicDebatesBrowser } from './PublicDebatesBrowser';
 
 export function DebateSidebar() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { debates, currentDebate, setCurrentDebate, currentUser, addDebate, deleteDebate } = useDebate();
   const { logout } = useAuth();
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [showPublicDebates, setShowPublicDebates] = useState(false);
+
+  const handlePlusButtonPress = () => {
+    setShowActionMenu(true);
+  };
 
   const handleCreateNew = async () => {
+    setShowActionMenu(false);
+    
     // Find and delete all existing pending debates created by current user
     const pendingDebates = debates.filter(d => 
       d.status === 'pending' && d.createdBy?.id === currentUser.id
@@ -49,6 +59,11 @@ export function DebateSidebar() {
     } catch (error) {
       console.error('Error creating new debate:', error);
     }
+  };
+
+  const handleBrowsePublicDebates = () => {
+    setShowActionMenu(false);
+    setShowPublicDebates(true);
   };
 
   const formatDate = (date: Date | string) => {
@@ -173,11 +188,83 @@ export function DebateSidebar() {
         <Text style={[styles.headerTitle, { color: colors.text }]}>Debatten</Text>
         <TouchableOpacity 
           style={[styles.createButton, { backgroundColor: colors.primary }]}
-          onPress={handleCreateNew}
+          onPress={handlePlusButtonPress}
         >
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Action Menu Modal */}
+      <Modal
+        visible={showActionMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowActionMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowActionMenu(false)}
+        >
+          <View style={[styles.actionMenu, { backgroundColor: colors.surface, shadowColor: colors.text }]}>
+            <Text style={[styles.actionMenuTitle, { color: colors.text }]}>Was möchten Sie tun?</Text>
+            
+            <TouchableOpacity
+              style={[styles.actionMenuItem, { borderBottomColor: colors.border }]}
+              onPress={handleCreateNew}
+            >
+              <View style={[styles.actionMenuIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="create-outline" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.actionMenuTextContainer}>
+                <Text style={[styles.actionMenuItemTitle, { color: colors.text }]}>
+                  Neue Debatte erstellen
+                </Text>
+                <Text style={[styles.actionMenuItemDescription, { color: colors.textSecondary }]}>
+                  Erstellen Sie eine eigene Debatte
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={handleBrowsePublicDebates}
+            >
+              <View style={[styles.actionMenuIconContainer, { backgroundColor: colors.success + '15' }]}>
+                <Ionicons name="search-outline" size={24} color={colors.success} />
+              </View>
+              <View style={styles.actionMenuTextContainer}>
+                <Text style={[styles.actionMenuItemTitle, { color: colors.text }]}>
+                  Öffentliche Debatten durchsuchen
+                </Text>
+                <Text style={[styles.actionMenuItemDescription, { color: colors.textSecondary }]}>
+                  Nehmen Sie an bestehenden Debatten teil
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: colors.background }]}
+              onPress={() => setShowActionMenu(false)}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Abbrechen</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Public Debates Browser Modal */}
+      <PublicDebatesBrowser
+        visible={showPublicDebates}
+        onClose={() => setShowPublicDebates(false)}
+        currentDebates={debates}
+        onSelectDebate={(debate) => {
+          setShowPublicDebates(false);
+          setCurrentDebate(debate);
+        }}
+      />
 
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
         {/* Noch nicht gestartete Debatten - ohne Gruppenüberschrift ganz oben */}
@@ -471,6 +558,65 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     fontSize: 13,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  actionMenu: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 20,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  actionMenuTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  actionMenuIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionMenuTextContainer: {
+    flex: 1,
+  },
+  actionMenuItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  actionMenuItemDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  cancelButton: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 
