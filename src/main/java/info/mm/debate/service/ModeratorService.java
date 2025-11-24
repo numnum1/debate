@@ -24,13 +24,19 @@ public class ModeratorService {
      * Add a moderator to a debate
      * @throws IllegalArgumentException if user is already a participant in a position
      * @throws IllegalArgumentException if user is an AI
+     * @throws IllegalArgumentException if current user is not the owner
      */
     @Transactional
-    public Optional<Debate> addModerator(String debateId, User moderator) {
-        log.info("Adding moderator {} to debate {}", moderator.getId(), debateId);
+    public Optional<Debate> addModerator(String debateId, User moderator, User currentUser) {
+        log.info("Adding moderator {} to debate {} by user {}", moderator.getId(), debateId, currentUser.getId());
         
         return debateRepository.findById(debateId)
                 .map(debate -> {
+                    // Validate that current user is the owner
+                    if (!isOwner(debate, currentUser.getId())) {
+                        throw new IllegalArgumentException("Only the owner can add moderators");
+                    }
+                    
                     // Validate that moderator is not an AI
                     if (isAiUser(moderator)) {
                         throw new IllegalArgumentException("AI users cannot be moderators");
@@ -64,13 +70,19 @@ public class ModeratorService {
     
     /**
      * Remove a moderator from a debate
+     * @throws IllegalArgumentException if current user is not the owner
      */
     @Transactional
-    public Optional<Debate> removeModerator(String debateId, String userId) {
-        log.info("Removing moderator {} from debate {}", userId, debateId);
+    public Optional<Debate> removeModerator(String debateId, String userId, User currentUser) {
+        log.info("Removing moderator {} from debate {} by user {}", userId, debateId, currentUser.getId());
         
         return debateRepository.findById(debateId)
                 .map(debate -> {
+                    // Validate that current user is the owner
+                    if (!isOwner(debate, currentUser.getId())) {
+                        throw new IllegalArgumentException("Only the owner can remove moderators");
+                    }
+                    
                     if (debate.getModerators() == null) {
                         throw new IllegalArgumentException("No moderators found");
                     }
@@ -119,6 +131,12 @@ public class ModeratorService {
     }
     
     // Helper methods
+    
+    private boolean isOwner(Debate debate, String userId) {
+        return debate.getCreatedBy() != null && 
+               debate.getCreatedBy().getId() != null && 
+               debate.getCreatedBy().getId().equals(userId);
+    }
     
     private boolean isAiUser(User user) {
         // AI users are identified by having an ID that starts with "ai-" or by having null email

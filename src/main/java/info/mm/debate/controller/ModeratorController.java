@@ -4,12 +4,15 @@ import info.mm.debate.dto.ApiResponse;
 import info.mm.debate.model.Debate;
 import info.mm.debate.model.User;
 import info.mm.debate.service.ModeratorService;
+import info.mm.debate.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +24,7 @@ import java.util.List;
 public class ModeratorController {
     
     private final ModeratorService moderatorService;
+    private final UserService userService;
     
     /**
      * Get all moderators for a debate
@@ -43,11 +47,15 @@ public class ModeratorController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Debate>> addModerator(
             @PathVariable String debateId,
-            @Valid @RequestBody User moderator) {
-        log.info("POST /debates/{}/moderators - Adding moderator {}", debateId, moderator.getId());
+            @Valid @RequestBody User moderator,
+            @AuthenticationPrincipal Jwt jwt) {
+        log.info("POST /debates/{}/moderators - Adding moderator {} by user {}", debateId, moderator.getId(), jwt.getSubject());
         
         try {
-            return moderatorService.addModerator(debateId, moderator)
+            // Extract current user from JWT
+            User currentUser = userService.getUserFromJwt(jwt);
+            
+            return moderatorService.addModerator(debateId, moderator, currentUser)
                     .map(debate -> ResponseEntity.status(HttpStatus.CREATED)
                             .body(ApiResponse.success(debate, "Moderator added successfully")))
                     .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -66,11 +74,15 @@ public class ModeratorController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Debate>> removeModerator(
             @PathVariable String debateId,
-            @PathVariable String userId) {
-        log.info("DELETE /debates/{}/moderators/{} - Removing moderator", debateId, userId);
+            @PathVariable String userId,
+            @AuthenticationPrincipal Jwt jwt) {
+        log.info("DELETE /debates/{}/moderators/{} - Removing moderator by user {}", debateId, userId, jwt.getSubject());
         
         try {
-            return moderatorService.removeModerator(debateId, userId)
+            // Extract current user from JWT
+            User currentUser = userService.getUserFromJwt(jwt);
+            
+            return moderatorService.removeModerator(debateId, userId, currentUser)
                     .map(debate -> ResponseEntity.ok(ApiResponse.success(debate, "Moderator removed successfully")))
                     .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                             .body(ApiResponse.error("Debate not found")));
