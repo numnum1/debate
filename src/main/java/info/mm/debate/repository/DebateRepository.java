@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-- 
+
 @Repository
 public interface DebateRepository extends MongoRepository<Debate, String> {
     
@@ -28,5 +28,17 @@ public interface DebateRepository extends MongoRepository<Debate, String> {
     
     // Finde öffentliche Debatten nach Status
     List<Debate> findByIsPublicAndStatusOrderByCreatedAtDesc(Boolean isPublic, Debate.DebateStatus status);
+    
+    // Finde Debatten nach Tag
+    @Query("{ 'tags': { $in: [?0] } }")
+    List<Debate> findByTag(String tag);
+    
+    // Finde Debatten die alle angegebenen Tags enthalten
+    @Query("{ 'tags': { $all: ?0 } }")
+    List<Debate> findByAllTags(List<String> tags);
+    
+    // Finde Debatten die mindestens einen der angegebenen Tags enthalten
+    @Query("{ 'tags': { $in: ?0 } }")
+    List<Debate> findByAnyTags(List<String> tags);
 }
 

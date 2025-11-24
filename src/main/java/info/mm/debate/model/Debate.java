@@ -38,6 +38,8 @@ public class Debate {
     
     private List<DebateMessage> messages;
     
+    private List<String> tags;
+    
     public enum DebateStatus {
         pending,   // Frontend expects lowercase
         active,

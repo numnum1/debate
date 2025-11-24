@@ -84,6 +84,10 @@ public class DebateService {
             debate.setMessages(new ArrayList<>());
         }
         
+        if (debate.getTags() == null) {
+            debate.setTags(new ArrayList<>());
+        }
+        
         return debateRepository.save(debate);
     }
     
