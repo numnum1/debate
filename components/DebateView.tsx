@@ -41,6 +41,8 @@ export function DebateView() {
   // Settings state for pending debates
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState('');
   const [newPositionName, setNewPositionName] = useState('');
   const [newPositionColor, setNewPositionColor] = useState('#3b82f6');
   const [showSlotMenu, setShowSlotMenu] = useState<string | null>(null); // positionId
@@ -58,6 +60,7 @@ export function DebateView() {
     if (currentDebate) {
       setEditTitle(currentDebate.title);
       setEditDescription(currentDebate.description || '');
+      setEditTags(currentDebate.tags || []);
     }
   }, [currentDebate?.id]);
 
@@ -161,7 +164,24 @@ export function DebateView() {
     updateDebate(currentDebate.id, {
       title: editTitle.trim(),
       description: editDescription.trim(),
+      tags: editTags,
     });
+  };
+
+  const handleAddTag = () => {
+    const trimmedTag = newTag.trim().toLowerCase();
+    if (trimmedTag && !editTags.includes(trimmedTag)) {
+      const updatedTags = [...editTags, trimmedTag];
+      setEditTags(updatedTags);
+      setNewTag('');
+      updateDebate(currentDebate.id, { tags: updatedTags });
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const updatedTags = editTags.filter(tag => tag !== tagToRemove);
+    setEditTags(updatedTags);
+    updateDebate(currentDebate.id, { tags: updatedTags });
   };
 
   const handleStartDebate = () => {
@@ -393,6 +413,64 @@ export function DebateView() {
                 thumbColor="#ffffff"
               />
             </View>
+          </View>
+
+          {/* Tags Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="pricetag-outline" size={20} color={colors.primary} />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Tags</Text>
+            </View>
+            <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+              Fügen Sie Tags hinzu, um Ihre Debatte leichter auffindbar zu machen.
+            </Text>
+            
+            {/* Tag Input */}
+            <View style={styles.tagInputContainer}>
+              <TextInput
+                style={[
+                  styles.tagInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                placeholder="Tag hinzufügen (z.B. politik)"
+                placeholderTextColor={colors.textSecondary}
+                value={newTag}
+                onChangeText={setNewTag}
+                onSubmitEditing={handleAddTag}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.addTagButton,
+                  { backgroundColor: colors.primary },
+                  !newTag.trim() && { opacity: 0.5 },
+                ]}
+                onPress={handleAddTag}
+                disabled={!newTag.trim()}
+              >
+                <Ionicons name="add" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Existing Tags */}
+            {editTags.length > 0 && (
+              <View style={styles.tagsContainer}>
+                {editTags.map((tag) => (
+                  <View 
+                    key={tag} 
+                    style={[styles.tagChip, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+                  >
+                    <Text style={[styles.tagChipText, { color: colors.primary }]}>#{tag}</Text>
+                    <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
+                      <Ionicons name="close-circle" size={18} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Positions Section */}
@@ -811,6 +889,20 @@ export function DebateView() {
             {currentDebate.description}
           </Text>
           
+          {/* Tags */}
+          {currentDebate.tags && currentDebate.tags.length > 0 && (
+            <View style={[styles.tagsContainer, { marginBottom: 8 }]}>
+              {currentDebate.tags.map((tag) => (
+                <View 
+                  key={tag} 
+                  style={[styles.tagChipSmall, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+                >
+                  <Text style={[styles.tagChipTextSmall, { color: colors.primary }]}>#{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          
           {/* Positions */}
           <View style={styles.participants}>
             <Ionicons name="flag" size={16} color={colors.textSecondary} />
@@ -1213,6 +1305,57 @@ const styles = StyleSheet.create({
   visibilityDescription: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  // Tag Styles
+  tagInputContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  tagInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+  },
+  addTagButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  tagChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  tagChipSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  tagChipTextSmall: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   addButton: {
     width: 32,

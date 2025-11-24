@@ -387,20 +387,67 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // No optimistic update - wait for WebSocket broadcast
-      // This prevents race conditions between optimistic update and WebSocket message
+      // Optimistic update - add position immediately to UI
+      const optimisticPosition = { ...position };
+      
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: [...prev.positions, optimisticPosition],
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, positions: [...d.positions, optimisticPosition] }
+          : d
+      ));
       
       // API call
       const created = await api.addPosition(debateId, position);
       console.log('[DebateContext] ✓ Position added:', created.id);
       
-      // The WebSocket broadcast will update the state automatically
-      // via the onDebateUpdate listener
+      // Update with server response (replace optimistic position with actual position)
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(p => p.id === position.id ? created : p),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, positions: d.positions.map(p => p.id === position.id ? created : p) }
+          : d
+      ));
+      
+      // The WebSocket broadcast will also update the state for other clients
       
     } catch (err: any) {
       const errorMsg = (err as ApiError).message || 'Fehler beim Hinzufügen der Position';
       console.error('[DebateContext] ✗ Error adding position:', errorMsg);
       setError(errorMsg);
+      
+      // Rollback optimistic update on error
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.filter(p => p.id !== position.id),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, positions: d.positions.filter(p => p.id !== position.id) }
+          : d
+      ));
+      
       throw err;
     } finally {
       setIsLoading(false);
@@ -415,13 +462,50 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // No optimistic update - wait for WebSocket broadcast
+      // Optimistic update - apply changes immediately to UI
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(p => 
+            p.id === positionId ? { ...p, ...updates } : p
+          ),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { 
+              ...d, 
+              positions: d.positions.map(p => 
+                p.id === positionId ? { ...p, ...updates } : p
+              )
+            }
+          : d
+      ));
       
       // API call
       const updated = await api.updatePosition(debateId, positionId, updates);
       console.log('[DebateContext] ✓ Position updated:', updated.id);
       
-      // The WebSocket broadcast will update the state automatically
+      // Update with server response
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(p => p.id === positionId ? updated : p),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, positions: d.positions.map(p => p.id === positionId ? updated : p) }
+          : d
+      ));
+      
+      // The WebSocket broadcast will also update the state for other clients
       
     } catch (err: any) {
       const errorMsg = (err as ApiError).message || 'Fehler beim Aktualisieren der Position';
@@ -441,18 +525,59 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // No optimistic update - wait for WebSocket broadcast
+      // Store removed position for rollback
+      let removedPosition: Position | null = null;
+      
+      // Optimistic update - remove position immediately from UI
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        const positionToRemove = prev.positions.find(p => p.id === positionId);
+        if (positionToRemove) {
+          removedPosition = positionToRemove; // Store for rollback
+        }
+        
+        return {
+          ...prev,
+          positions: prev.positions.filter(p => p.id !== positionId),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? { ...d, positions: d.positions.filter(p => p.id !== positionId) }
+          : d
+      ));
       
       // API call
       await api.removePosition(debateId, positionId);
       console.log('[DebateContext] ✓ Position removed:', positionId);
       
-      // The WebSocket broadcast will update the state automatically
+      // The WebSocket broadcast will also update the state for other clients
       
     } catch (err: any) {
       const errorMsg = (err as ApiError).message || 'Fehler beim Entfernen der Position';
       console.error('[DebateContext] ✗ Error removing position:', errorMsg);
       setError(errorMsg);
+      
+      // Rollback optimistic update on error
+      if (removedPosition) {
+        setCurrentDebate(prev => {
+          if (!prev || prev.id !== debateId) return prev;
+          
+          return {
+            ...prev,
+            positions: [...prev.positions, removedPosition],
+          };
+        });
+        
+        setDebates(prev => prev.map(d => 
+          d.id === debateId 
+            ? { ...d, positions: [...d.positions, removedPosition] }
+            : d
+        ));
+      }
+      
       throw err;
     } finally {
       setIsLoading(false);
@@ -467,18 +592,106 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // No optimistic update - wait for WebSocket broadcast
+      // Optimistic update - add slot immediately to UI
+      const optimisticSlot = { ...slot };
+      
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(pos => 
+            pos.id === positionId 
+              ? { ...pos, slots: [...pos.slots, optimisticSlot] }
+              : pos
+          ),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? {
+              ...d,
+              positions: d.positions.map(pos => 
+                pos.id === positionId 
+                  ? { ...pos, slots: [...pos.slots, optimisticSlot] }
+                  : pos
+              ),
+            }
+          : d
+      ));
       
       // API call
       const created = await api.addSlot(debateId, positionId, slot);
       console.log('[DebateContext] ✓ Slot added:', created.id);
       
-      // The WebSocket broadcast will update the state automatically
+      // Update with server response (replace optimistic slot with actual slot)
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(pos => 
+            pos.id === positionId 
+              ? { 
+                  ...pos, 
+                  slots: pos.slots.map(s => s.id === slot.id ? created : s)
+                }
+              : pos
+          ),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? {
+              ...d,
+              positions: d.positions.map(pos => 
+                pos.id === positionId 
+                  ? { 
+                      ...pos, 
+                      slots: pos.slots.map(s => s.id === slot.id ? created : s)
+                    }
+                  : pos
+              ),
+            }
+          : d
+      ));
+      
+      // The WebSocket broadcast will also update the state for other clients
       
     } catch (err: any) {
       const errorMsg = (err as ApiError).message || 'Fehler beim Hinzufügen des Slots';
       console.error('[DebateContext] ✗ Error adding slot:', errorMsg);
       setError(errorMsg);
+      
+      // Rollback optimistic update on error
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(pos => 
+            pos.id === positionId 
+              ? { ...pos, slots: pos.slots.filter(s => s.id !== slot.id) }
+              : pos
+          ),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? {
+              ...d,
+              positions: d.positions.map(pos => 
+                pos.id === positionId 
+                  ? { ...pos, slots: pos.slots.filter(s => s.id !== slot.id) }
+                  : pos
+              ),
+            }
+          : d
+      ));
+      
       throw err;
     } finally {
       setIsLoading(false);
@@ -493,13 +706,91 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // No optimistic update - wait for WebSocket broadcast
+      // Store original slot for rollback
+      let originalSlot: Slot | null = null;
+      
+      // Optimistic update - apply changes immediately to UI
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(pos => {
+            if (pos.id === positionId) {
+              return {
+                ...pos,
+                slots: pos.slots.map(s => {
+                  if (s.id === slotId) {
+                    originalSlot = s; // Store for rollback
+                    return { ...s, ...updates };
+                  }
+                  return s;
+                }),
+              };
+            }
+            return pos;
+          }),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => {
+        if (d.id === debateId) {
+          return {
+            ...d,
+            positions: d.positions.map(pos => {
+              if (pos.id === positionId) {
+                return {
+                  ...pos,
+                  slots: pos.slots.map(s => 
+                    s.id === slotId ? { ...s, ...updates } : s
+                  ),
+                };
+              }
+              return pos;
+            }),
+          };
+        }
+        return d;
+      }));
       
       // API call
       const updated = await api.updateSlot(debateId, positionId, slotId, updates);
       console.log('[DebateContext] ✓ Slot updated:', updated.id);
       
-      // The WebSocket broadcast will update the state automatically
+      // Update with server response
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(pos => 
+            pos.id === positionId 
+              ? { 
+                  ...pos, 
+                  slots: pos.slots.map(s => s.id === slotId ? updated : s)
+                }
+              : pos
+          ),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => 
+        d.id === debateId 
+          ? {
+              ...d,
+              positions: d.positions.map(pos => 
+                pos.id === positionId 
+                  ? { 
+                      ...pos, 
+                      slots: pos.slots.map(s => s.id === slotId ? updated : s)
+                    }
+                  : pos
+              ),
+            }
+          : d
+      ));
+      
+      // The WebSocket broadcast will also update the state for other clients
       
     } catch (err: any) {
       const errorMsg = (err as ApiError).message || 'Fehler beim Aktualisieren des Slots';
@@ -519,18 +810,85 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // No optimistic update - wait for WebSocket broadcast
+      // Store removed slot for rollback
+      let removedSlot: Slot | null = null;
+      
+      // Optimistic update - remove slot immediately from UI
+      setCurrentDebate(prev => {
+        if (!prev || prev.id !== debateId) return prev;
+        
+        return {
+          ...prev,
+          positions: prev.positions.map(pos => {
+            if (pos.id === positionId) {
+              const slotToRemove = pos.slots.find(s => s.id === slotId);
+              if (slotToRemove) {
+                removedSlot = slotToRemove; // Store for rollback
+              }
+              return {
+                ...pos,
+                slots: pos.slots.filter(s => s.id !== slotId),
+              };
+            }
+            return pos;
+          }),
+        };
+      });
+      
+      setDebates(prev => prev.map(d => {
+        if (d.id === debateId) {
+          return {
+            ...d,
+            positions: d.positions.map(pos => 
+              pos.id === positionId 
+                ? { ...pos, slots: pos.slots.filter(s => s.id !== slotId) }
+                : pos
+            ),
+          };
+        }
+        return d;
+      }));
       
       // API call
       await api.removeSlot(debateId, positionId, slotId);
       console.log('[DebateContext] ✓ Slot removed:', slotId);
       
-      // The WebSocket broadcast will update the state automatically
+      // The WebSocket broadcast will also update the state for other clients
       
     } catch (err: any) {
       const errorMsg = (err as ApiError).message || 'Fehler beim Entfernen des Slots';
       console.error('[DebateContext] ✗ Error removing slot:', errorMsg);
       setError(errorMsg);
+      
+      // Rollback optimistic update on error
+      if (removedSlot) {
+        setCurrentDebate(prev => {
+          if (!prev || prev.id !== debateId) return prev;
+          
+          return {
+            ...prev,
+            positions: prev.positions.map(pos => 
+              pos.id === positionId 
+                ? { ...pos, slots: [...pos.slots, removedSlot] }
+                : pos
+            ),
+          };
+        });
+        
+        setDebates(prev => prev.map(d => 
+          d.id === debateId 
+            ? {
+                ...d,
+                positions: d.positions.map(pos => 
+                  pos.id === positionId 
+                    ? { ...pos, slots: [...pos.slots, removedSlot] }
+                    : pos
+                ),
+              }
+            : d
+        ));
+      }
+      
       throw err;
     } finally {
       setIsLoading(false);

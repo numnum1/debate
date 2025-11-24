@@ -33,6 +33,7 @@ export interface Debate {
   status: 'active' | 'completed' | 'pending' | 'archived';
   isPublic: boolean; // true = public, false = private
   messages: DebateMessage[];
+  tags?: string[];
 }
 
 export interface DebateMessage {

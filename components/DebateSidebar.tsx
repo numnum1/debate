@@ -51,6 +51,7 @@ export function DebateSidebar() {
         status: 'pending',
         isPublic: true,
         messages: [],
+        tags: [],
       };
 
       // addDebate returns the created debate with the real MongoDB ID

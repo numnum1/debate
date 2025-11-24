@@ -45,14 +45,17 @@ export function PublicDebatesBrowser({ visible, onClose, onSelectDebate, current
 
   useEffect(() => {
     // Filter debates based on search query
+    // Nur öffentliche Debatten durchsuchen
     if (searchQuery.trim() === '') {
       setFilteredDebates(publicDebates);
     } else {
       const query = searchQuery.toLowerCase();
       const filtered = publicDebates.filter(debate =>
-        debate.title.toLowerCase().includes(query) ||
-        debate.description.toLowerCase().includes(query) ||
-        debate.createdBy.name.toLowerCase().includes(query)
+        debate.isPublic === true && (
+          debate.title.toLowerCase().includes(query) ||
+          debate.description.toLowerCase().includes(query) ||
+          debate.createdBy.name.toLowerCase().includes(query)
+        )
       );
       setFilteredDebates(filtered);
     }
@@ -63,8 +66,12 @@ export function PublicDebatesBrowser({ visible, onClose, onSelectDebate, current
     setError(null);
     try {
       const debates = await api.getPublicDebates();
-      setPublicDebates(debates);
-      setFilteredDebates(debates);
+      // Extra Filterung: Nur öffentliche, nicht-archivierte Debatten anzeigen
+      const publicOnly = debates.filter(debate => 
+        debate.isPublic === true && debate.status !== 'archived'
+      );
+      setPublicDebates(publicOnly);
+      setFilteredDebates(publicOnly);
     } catch (err: any) {
       console.error('Error loading public debates:', err);
       setError(err.message || 'Fehler beim Laden der öffentlichen Debatten');
