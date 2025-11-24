@@ -19,6 +19,7 @@ import java.util.UUID;
 public class PositionService {
     
     private final DebateRepository debateRepository;
+    private final ModeratorService moderatorService;
     
     /**
      * Add a position to a debate
@@ -111,6 +112,11 @@ public class PositionService {
     public Optional<Slot> addSlot(String debateId, String positionId, Slot slot) {
         log.info("Adding slot to position {} in debate {}", positionId, debateId);
         
+        // Validate that participant (if set) is not a moderator
+        if (slot.getParticipant() != null) {
+            moderatorService.validateUserCanBeParticipant(debateId, slot.getParticipant().getId());
+        }
+        
         return debateRepository.findById(debateId)
                 .flatMap(debate -> {
                     if (debate.getPositions() == null) {
@@ -143,6 +149,11 @@ public class PositionService {
     @Transactional
     public Optional<Slot> updateSlot(String debateId, String positionId, String slotId, Slot updatedSlot) {
         log.info("Updating slot {} in position {} in debate {}", slotId, positionId, debateId);
+        
+        // Validate that participant (if being updated) is not a moderator
+        if (updatedSlot.getParticipant() != null) {
+            moderatorService.validateUserCanBeParticipant(debateId, updatedSlot.getParticipant().getId());
+        }
         
         return debateRepository.findById(debateId)
                 .flatMap(debate -> {

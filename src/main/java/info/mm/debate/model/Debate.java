@@ -40,6 +40,8 @@ public class Debate {
     
     private List<String> tags;
     
+    private List<User> moderators; // Moderatoren der Debatte (dürfen keine Position vertreten)
+    
     public enum DebateStatus {
         pending,   // Frontend expects lowercase
         active,

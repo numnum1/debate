@@ -20,6 +20,7 @@ import java.util.UUID;
 public class MessageService {
     
     private final DebateRepository debateRepository;
+    private final ModeratorService moderatorService;
     
     /**
      * Get all messages for a debate
@@ -47,6 +48,17 @@ public class MessageService {
                         message.setTimestamp(LocalDateTime.now());
                     }
                     
+                    // Check if user is a moderator and set flag
+                    boolean isModerator = moderatorService.isModerator(debateId, message.getUserId());
+                    message.setIsModerator(isModerator);
+                    
+                    // If user is a moderator, clear position and slot IDs
+                    if (isModerator) {
+                        message.setPositionId(null);
+                        message.setSlotId(null);
+                        log.debug("Message is from moderator, clearing position/slot IDs");
+                    }
+                    
                     // Add message to debate
                     List<DebateMessage> messages = debate.getMessages();
                     if (messages == null) {
@@ -58,7 +70,7 @@ public class MessageService {
                     debate.setUpdatedAt(LocalDateTime.now());
                     debateRepository.save(debate);
                     
-                    log.debug("Message added successfully: {}", message.getId());
+                    log.debug("Message added successfully: {} (moderator: {})", message.getId(), isModerator);
                     return message;
                 });
     }

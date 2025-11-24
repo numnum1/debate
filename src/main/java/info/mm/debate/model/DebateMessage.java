@@ -17,7 +17,8 @@ public class DebateMessage {
     private String userName;
     private String text;
     private LocalDateTime timestamp;
-    private String positionId;
-    private String slotId;
+    private String positionId;  // Null if message is from moderator
+    private String slotId;      // Null if message is from moderator
+    private Boolean isModerator; // True if message is from moderator
 }
 
