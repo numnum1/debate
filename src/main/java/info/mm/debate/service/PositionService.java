@@ -1,5 +1,7 @@
 package info.mm.debate.service;
 
+import info.mm.debate.exception.DuplicateColorException;
+import info.mm.debate.model.Debate;
 import info.mm.debate.model.Position;
 import info.mm.debate.model.Slot;
 import info.mm.debate.repository.DebateRepository;
@@ -22,6 +24,23 @@ public class PositionService {
     private final ModeratorService moderatorService;
     
     /**
+     * Validate that the color is not already used by another position
+     */
+    private void validateColorUniqueness(Debate debate, String color, String excludePositionId) {
+        if (color == null || debate.getPositions() == null) {
+            return;
+        }
+        
+        boolean colorExists = debate.getPositions().stream()
+                .filter(p -> excludePositionId == null || !p.getId().equals(excludePositionId))
+                .anyMatch(p -> color.equalsIgnoreCase(p.getColor()));
+        
+        if (colorExists) {
+            throw new DuplicateColorException("Die Farbe wird bereits von einer anderen Position verwendet");
+        }
+    }
+    
+    /**
      * Add a position to a debate
      */
     @Transactional
@@ -30,6 +49,9 @@ public class PositionService {
         
         return debateRepository.findById(debateId)
                 .map(debate -> {
+                    // Validate that the color is not already used
+                    validateColorUniqueness(debate, position.getColor(), null);
+                    
                     if (position.getId() == null || position.getId().isEmpty()) {
                         position.setId(UUID.randomUUID().toString());
                     }
@@ -56,6 +78,11 @@ public class PositionService {
                 .flatMap(debate -> {
                     if (debate.getPositions() == null) {
                         return Optional.empty();
+                    }
+                    
+                    // Validate color uniqueness if color is being updated
+                    if (updatedPosition.getColor() != null) {
+                        validateColorUniqueness(debate, updatedPosition.getColor(), positionId);
                     }
                     
                     return debate.getPositions().stream()
