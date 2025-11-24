@@ -17,7 +17,7 @@ interface DebateContextType {
   error: string | null;
   typingUsers: TypingUser[];
   setCurrentDebate: (debate: Debate | null) => void;
-  addDebate: (debate: Debate) => Promise<void>;
+  addDebate: (debate: Debate) => Promise<Debate>;
   updateDebate: (debateId: string, updates: Partial<Debate>) => Promise<void>;
   deleteDebate: (debateId: string) => Promise<void>;
   closeDebate: (debateId: string) => Promise<void>;
@@ -255,20 +255,34 @@ export function DebateProvider({ children }: { children: ReactNode }) {
   /**
    * Add new debate
    */
-  const addDebate = async (debate: Debate) => {
+  const addDebate = async (debate: Debate): Promise<Debate> => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // Store the temporary ID to update currentDebate later
+      const tempId = debate.id;
       
       // Optimistic update
       setDebates(prev => [debate, ...prev]);
       
       // API call
       const created = await api.createDebate(debate);
-      console.log('[DebateContext] ✓ Debate created:', created.id);
+      console.log('[DebateContext] ✓ Debate created with ID:', created.id, '(was:', tempId, ')');
       
       // Update with server response
-      setDebates(prev => prev.map(d => d.id === debate.id ? created : d));
+      setDebates(prev => prev.map(d => d.id === tempId ? created : d));
+      
+      // If this was the current debate, update it with the new data (including new ID)
+      setCurrentDebate(prev => {
+        if (prev && prev.id === tempId) {
+          console.log('[DebateContext] ✓ Updating currentDebate with new ID:', created.id);
+          return created;
+        }
+        return prev;
+      });
+      
+      return created;
       
     } catch (err: any) {
       const errorMsg = (err as ApiError).message || 'Fehler beim Erstellen der Debatte';

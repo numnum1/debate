@@ -42,8 +42,9 @@ export function DebateSidebar() {
         messages: [],
       };
 
-      await addDebate(newDebate);
-      setCurrentDebate(newDebate);
+      // addDebate returns the created debate with the real MongoDB ID
+      const createdDebate = await addDebate(newDebate);
+      setCurrentDebate(createdDebate);
     } catch (error) {
       console.error('Error creating new debate:', error);
     }
