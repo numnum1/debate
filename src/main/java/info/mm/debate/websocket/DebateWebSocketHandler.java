@@ -41,7 +41,8 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
     public void init() {
         // Setze den Broadcast-Callback für den AiDebateService
         aiDebateService.setBroadcastCallback(this::broadcastAiMessage);
-        log.info("AI Debate Service broadcast callback configured");
+        aiDebateService.setTypingCallback(this::broadcastAiTyping);
+        log.info("AI Debate Service callbacks configured");
     }
 
     @Override
@@ -383,6 +384,31 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         broadcastToDebateRoom(debateId, broadcastMessage);
         
         log.info("✓ AI message broadcasted to debate room: {}", debateId);
+    }
+    
+    /**
+     * Broadcast eines KI-Typing-Indikators an alle Teilnehmer
+     * Wird vom AiDebateService aufgerufen
+     * 
+     * @param debateId Die ID der Debatte
+     * @param userId Die User-ID der KI
+     * @param userName Der Name der KI
+     * @param isTyping Ob die KI gerade tippt/denkt
+     */
+    public void broadcastAiTyping(String debateId, String userId, String userName, boolean isTyping) {
+        log.debug("Broadcasting AI typing status: {} - {} is {}", debateId, userName, isTyping ? "typing" : "stopped");
+        
+        WebSocketMessage typingMessage = WebSocketMessage.builder()
+                .type("debate:typing:update")
+                .payload(Map.of(
+                        "userId", userId,
+                        "userName", userName,
+                        "isTyping", isTyping
+                ))
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, typingMessage);
     }
 }
 

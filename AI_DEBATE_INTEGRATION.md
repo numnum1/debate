@@ -117,17 +117,27 @@ Beispiel:
    Finde alle AI-Slots in anderen Positionen
    ```
 
-3. **Chat-Verlauf wird aufgebaut**
+3. **"AI denkt..." Indikator**
+   ```
+   WebSocket: debate:typing:update (isTyping: true)
+   ```
+
+4. **Chat-Verlauf wird aufgebaut**
    ```
    System-Prompt + alle bisherigen Nachrichten
    ```
 
-4. **EECC API-Aufruf**
+5. **EECC API-Aufruf**
    ```
-   POST /chat/completions mit Chat-Verlauf
+   POST /chat/completions mit Chat-Verlauf (1-3 Sekunden)
    ```
 
-5. **Antwort speichern & broadcasen**
+6. **"AI fertig" Indikator**
+   ```
+   WebSocket: debate:typing:update (isTyping: false)
+   ```
+
+7. **Antwort speichern & broadcasen**
    ```
    Nachricht wird in DB gespeichert
    WebSocket broadcast an alle Teilnehmer
@@ -194,6 +204,36 @@ In zukünftigen Versionen könnten diese Parameter in der `AiConfig` konfigurier
 6. → Nur Qwen3 (Neutral) antwortet, da Claude 4.5 in der gleichen Position wie die vorherige Nachricht ist
 
 ## WebSocket-Nachrichten
+
+### KI-Typing-Indikator ("AI denkt...")
+
+**Wenn die KI anfängt zu denken:**
+```json
+{
+  "type": "debate:typing:update",
+  "payload": {
+    "userId": "ai-slot-1",
+    "userName": "Claude 4.5 (Pro)",
+    "isTyping": true
+  },
+  "timestamp": "2024-01-15T10:29:58"
+}
+```
+
+**Wenn die KI fertig ist:**
+```json
+{
+  "type": "debate:typing:update",
+  "payload": {
+    "userId": "ai-slot-1",
+    "userName": "Claude 4.5 (Pro)",
+    "isTyping": false
+  },
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+Siehe [AI Typing Indicator Dokumentation](AI_TYPING_INDICATOR.md) für Details.
 
 ### KI-Antwort wird empfangen
 

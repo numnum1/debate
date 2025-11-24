@@ -25,12 +25,20 @@ public class AiDebateService {
     
     // Callback-Interface für Broadcasting
     private BroadcastCallback broadcastCallback;
+    private TypingCallback typingCallback;
     
     /**
      * Setzt den Callback für das Broadcasting von KI-Nachrichten
      */
     public void setBroadcastCallback(BroadcastCallback callback) {
         this.broadcastCallback = callback;
+    }
+    
+    /**
+     * Setzt den Callback für Typing-Indikatoren
+     */
+    public void setTypingCallback(TypingCallback callback) {
+        this.typingCallback = callback;
     }
     
     /**
@@ -102,22 +110,32 @@ public class AiDebateService {
         log.info("Generating AI response for slot {} in position {}", 
                 aiSlot.getSlot().getId(), aiSlot.getPosition().getName());
         
-        // Bereite Chat-Verlauf vor
-        List<EeccChatRequest.ChatMessage> chatMessages = buildChatHistory(
-                debate, 
-                aiSlot.getPosition(), 
-                aiSlot.getSlot()
-        );
-        
-        // Erstelle EECC API Request
-        EeccChatRequest request = EeccChatRequest.builder()
-                .model(aiSlot.getSlot().getAiConfig().getModel())
-                .messages(chatMessages)
-                .temperature(0.7)
-                .maxTokens(1500)
-                .build();
+        // Sende "AI denkt..." Status
+        if (typingCallback != null) {
+            typingCallback.broadcastTyping(
+                debate.getId(), 
+                "ai-" + aiSlot.getSlot().getId(),
+                getAiName(aiSlot),
+                true
+            );
+        }
         
         try {
+            // Bereite Chat-Verlauf vor
+            List<EeccChatRequest.ChatMessage> chatMessages = buildChatHistory(
+                    debate, 
+                    aiSlot.getPosition(), 
+                    aiSlot.getSlot()
+            );
+        
+            // Erstelle EECC API Request
+            EeccChatRequest request = EeccChatRequest.builder()
+                    .model(aiSlot.getSlot().getAiConfig().getModel())
+                    .messages(chatMessages)
+                    .temperature(0.7)
+                    .maxTokens(1500)
+                    .build();
+            
             // Rufe EECC API auf
             EeccChatResponse response = eeccApiService.createChatCompletion(request);
             
@@ -135,6 +153,16 @@ public class AiDebateService {
                         .slotId(aiSlot.getSlot().getId())
                         .build();
                 
+                // Stoppe "AI denkt..." Status
+                if (typingCallback != null) {
+                    typingCallback.broadcastTyping(
+                        debate.getId(),
+                        "ai-" + aiSlot.getSlot().getId(),
+                        getAiName(aiSlot),
+                        false
+                    );
+                }
+                
                 // Speichere die Nachricht
                 messageService.addMessageToDebate(debate.getId(), aiMessage).ifPresent(savedMessage -> {
                     log.info("✓ AI response generated and saved for slot {} in position {}", 
@@ -148,11 +176,29 @@ public class AiDebateService {
                 
             } else {
                 log.warn("No response from EECC API for slot {}", aiSlot.getSlot().getId());
+                // Stoppe "AI denkt..." Status auch bei Fehler
+                if (typingCallback != null) {
+                    typingCallback.broadcastTyping(
+                        debate.getId(),
+                        "ai-" + aiSlot.getSlot().getId(),
+                        getAiName(aiSlot),
+                        false
+                    );
+                }
             }
             
         } catch (Exception e) {
             log.error("Error calling EECC API for slot {}: {}", 
                     aiSlot.getSlot().getId(), e.getMessage(), e);
+            // Stoppe "AI denkt..." Status bei Exception
+            if (typingCallback != null) {
+                typingCallback.broadcastTyping(
+                    debate.getId(),
+                    "ai-" + aiSlot.getSlot().getId(),
+                    getAiName(aiSlot),
+                    false
+                );
+            }
         }
     }
     
@@ -292,6 +338,14 @@ public class AiDebateService {
     @FunctionalInterface
     public interface BroadcastCallback {
         void broadcast(String debateId, DebateMessage message);
+    }
+    
+    /**
+     * Callback-Interface für Typing-Indikatoren
+     */
+    @FunctionalInterface
+    public interface TypingCallback {
+        void broadcastTyping(String debateId, String userId, String userName, boolean isTyping);
     }
 }
 
