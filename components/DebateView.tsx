@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   useColorScheme,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDebate } from '../context/DebateContext';
@@ -364,6 +365,34 @@ export function DebateView() {
               numberOfLines={4}
               textAlignVertical="top"
             />
+          </View>
+
+          {/* Visibility Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="eye-outline" size={20} color={colors.primary} />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Sichtbarkeit</Text>
+            </View>
+            <View style={styles.visibilityToggleContainer}>
+              <View style={styles.visibilityInfo}>
+                <Text style={[styles.visibilityLabel, { color: colors.text }]}>
+                  {currentDebate.isPublic ? 'Öffentlich' : 'Privat'}
+                </Text>
+                <Text style={[styles.visibilityDescription, { color: colors.textSecondary }]}>
+                  {currentDebate.isPublic 
+                    ? 'Diese Debatte ist für alle sichtbar'
+                    : 'Nur eingeladene Teilnehmer können diese Debatte sehen'}
+                </Text>
+              </View>
+              <Switch
+                value={currentDebate.isPublic}
+                onValueChange={(value) => {
+                  updateDebate(currentDebate.id, { isPublic: value });
+                }}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#ffffff"
+              />
+            </View>
           </View>
 
           {/* Positions Section */}
@@ -1166,6 +1195,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 12,
+  },
+  visibilityToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  visibilityInfo: {
+    flex: 1,
+  },
+  visibilityLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  visibilityDescription: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   addButton: {
     width: 32,

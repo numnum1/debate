@@ -39,6 +39,7 @@ export function DebateSidebar() {
         positions: [],
         createdAt: new Date(),
         status: 'pending',
+        isPublic: true,
         messages: [],
       };
 

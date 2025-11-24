@@ -31,6 +31,7 @@ export interface Debate {
   positions: Position[];
   createdAt: Date | string; // Can be string when coming from API/WebSocket
   status: 'active' | 'completed' | 'pending' | 'archived';
+  isPublic: boolean; // true = public, false = private
   messages: DebateMessage[];
 }
 

@@ -186,6 +186,16 @@ class ApiService {
   }
 
   /**
+   * Get all public debates
+   */
+  async getPublicDebates(): Promise<Debate[]> {
+    const response = await this.get<ApiResponse<Debate[]>>(
+      `${apiConfig.endpoints.debates}/public`
+    );
+    return response.data;
+  }
+
+  /**
    * Get single debate by ID with messages
    */
   async getDebate(id: string): Promise<Debate> {
