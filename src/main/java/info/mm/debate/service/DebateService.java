@@ -26,6 +26,16 @@ public class DebateService {
         return debateRepository.findAll();
     }
     
+    public List<Debate> getPublicDebates() {
+        log.debug("Fetching all public debates");
+        return debateRepository.findByIsPublicOrderByCreatedAtDesc(true);
+    }
+    
+    public List<Debate> getPublicDebatesByStatus(Debate.DebateStatus status) {
+        log.debug("Fetching public debates with status: {}", status);
+        return debateRepository.findByIsPublicAndStatusOrderByCreatedAtDesc(true, status);
+    }
+    
     public Optional<Debate> getDebateById(String id) {
         log.debug("Fetching debate with id: {}", id);
         return debateRepository.findById(id);
@@ -59,6 +69,11 @@ public class DebateService {
         
         if (debate.getStatus() == null) {
             debate.setStatus(Debate.DebateStatus.pending);
+        }
+        
+        // Default to public if not specified
+        if (debate.getIsPublic() == null) {
+            debate.setIsPublic(true);
         }
         
         if (debate.getPositions() == null) {
@@ -101,6 +116,9 @@ public class DebateService {
                             }
                         }
                         existingDebate.setStatus(updatedDebate.getStatus());
+                    }
+                    if (updatedDebate.getIsPublic() != null) {
+                        existingDebate.setIsPublic(updatedDebate.getIsPublic());
                     }
                     // Nur Positionen überschreiben, wenn explizit mitgesendet
                     // WICHTIG: Leere Arrays werden NICHT ignoriert - wenn bewusst gelöscht werden soll

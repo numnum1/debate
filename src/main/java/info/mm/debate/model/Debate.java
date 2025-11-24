@@ -32,6 +32,8 @@ public class Debate {
     
     private DebateStatus status;
     
+    private Boolean isPublic; // true = public, false = private
+    
     private List<Position> positions;
     
     private List<DebateMessage> messages;

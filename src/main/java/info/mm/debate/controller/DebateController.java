@@ -107,6 +107,28 @@ public class DebateController {
         return ResponseEntity.ok(ApiResponse.success(debates));
     }
     
+    @Operation(
+            summary = "Öffentliche Debatten abrufen",
+            description = "Ruft eine Liste aller öffentlichen Debatten ab."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Erfolgreich - Liste der öffentlichen Debatten zurückgegeben"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Nicht authentifiziert"
+            )
+    })
+    @GetMapping("/public")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<Debate>>> getPublicDebates() {
+        log.info("GET /debates/public - Fetching all public debates");
+        List<Debate> debates = debateService.getPublicDebates();
+        return ResponseEntity.ok(ApiResponse.success(debates));
+    }
+    
     @GetMapping("/search")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<Debate>>> searchDebates(@RequestParam String title) {

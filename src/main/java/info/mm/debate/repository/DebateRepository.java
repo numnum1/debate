@@ -22,5 +22,11 @@ public interface DebateRepository extends MongoRepository<Debate, String> {
     
     // Zähle Debatten nach Status
     long countByStatus(Debate.DebateStatus status);
+    
+    // Finde alle öffentlichen Debatten
+    List<Debate> findByIsPublicOrderByCreatedAtDesc(Boolean isPublic);
+    
+    // Finde öffentliche Debatten nach Status
+    List<Debate> findByIsPublicAndStatusOrderByCreatedAtDesc(Boolean isPublic, Debate.DebateStatus status);
 }
 
