@@ -1,6 +1,5 @@
 package info.mm.debate.service;
 
-import info.mm.debate.model.Debate;
 import info.mm.debate.model.Position;
 import info.mm.debate.model.Slot;
 import info.mm.debate.repository.DebateRepository;
