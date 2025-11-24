@@ -398,6 +398,49 @@ class ApiService {
     );
     return response.data;
   }
+
+  // ==================== Moderator Endpoints ====================
+
+  /**
+   * Get moderators for a debate
+   */
+  async getModerators(debateId: string): Promise<User[]> {
+    const response = await this.get<ApiResponse<User[]>>(
+      `/api/debates/${debateId}/moderators`
+    );
+    return response.data;
+  }
+
+  /**
+   * Add moderator to debate
+   */
+  async addModerator(debateId: string, moderator: User): Promise<Debate> {
+    const response = await this.post<ApiResponse<Debate>>(
+      `/api/debates/${debateId}/moderators`,
+      moderator
+    );
+    return response.data;
+  }
+
+  /**
+   * Remove moderator from debate
+   */
+  async removeModerator(debateId: string, userId: string): Promise<Debate> {
+    const response = await this.delete<ApiResponse<Debate>>(
+      `/api/debates/${debateId}/moderators/${userId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Check if user is moderator
+   */
+  async isModerator(debateId: string, userId: string): Promise<boolean> {
+    const response = await this.get<ApiResponse<boolean>>(
+      `/api/debates/${debateId}/moderators/check/${userId}`
+    );
+    return response.data;
+  }
 }
 
 // Export singleton instance

@@ -34,6 +34,7 @@ export interface Debate {
   isPublic: boolean; // true = public, false = private
   messages: DebateMessage[];
   tags?: string[];
+  moderators?: User[]; // Moderatoren der Debatte (dürfen keine Position vertreten)
 }
 
 export interface DebateMessage {
@@ -42,8 +43,9 @@ export interface DebateMessage {
   userName: string;
   text: string;
   timestamp: Date | string; // Can be string when coming from API/WebSocket
-  positionId?: string;
-  slotId?: string;
+  positionId?: string; // Null if message is from moderator
+  slotId?: string;     // Null if message is from moderator
+  isModerator?: boolean; // True if message is from moderator
 }
 
 export interface AiModelInfo {

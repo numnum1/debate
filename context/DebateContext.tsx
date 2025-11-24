@@ -31,6 +31,9 @@ interface DebateContextType {
   sendTypingIndicator: (isTyping: boolean) => void;
   refreshDebates: () => Promise<void>;
   refreshCurrentDebate: () => Promise<void>;
+  addModerator: (debateId: string, moderator: User) => Promise<void>;
+  removeModerator: (debateId: string, userId: string) => Promise<void>;
+  isModerator: (debateId: string, userId: string) => Promise<boolean>;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -928,6 +931,64 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Add moderator to debate
+   */
+  const addModerator = async (debateId: string, moderator: User) => {
+    try {
+      setError(null);
+      const updatedDebate = await api.addModerator(debateId, moderator);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => d.id === debateId ? updatedDebate : d));
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updatedDebate);
+      }
+      
+      console.log('[DebateContext] ✓ Moderator added:', moderator.id);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Hinzufügen des Moderators';
+      console.error('[DebateContext] ✗ Error adding moderator:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Remove moderator from debate
+   */
+  const removeModerator = async (debateId: string, userId: string) => {
+    try {
+      setError(null);
+      const updatedDebate = await api.removeModerator(debateId, userId);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => d.id === debateId ? updatedDebate : d));
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updatedDebate);
+      }
+      
+      console.log('[DebateContext] ✓ Moderator removed:', userId);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Entfernen des Moderators';
+      console.error('[DebateContext] ✗ Error removing moderator:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Check if user is moderator
+   */
+  const isModerator = async (debateId: string, userId: string): Promise<boolean> => {
+    try {
+      return await api.isModerator(debateId, userId);
+    } catch (err: any) {
+      console.error('[DebateContext] ✗ Error checking moderator:', err);
+      return false;
+    }
+  };
+
   return (
     <DebateContext.Provider
       value={{
@@ -952,6 +1013,9 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         sendTypingIndicator,
         refreshDebates,
         refreshCurrentDebate,
+        addModerator,
+        removeModerator,
+        isModerator,
       }}
     >
       {children}

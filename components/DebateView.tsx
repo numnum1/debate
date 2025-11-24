@@ -15,6 +15,7 @@ import { Colors } from '../constants/Colors';
 import { DebateMessage, User } from '../types';
 import { InviteParticipantModal } from './InviteParticipantModal';
 import { AiModelSelector } from './AiModelSelector';
+import { ModeratorManager } from './ModeratorManager';
 
 export function DebateView() {
   const colorScheme = useColorScheme();
@@ -33,7 +34,9 @@ export function DebateView() {
     addSlotToPosition,
     updateSlot,
     removeSlot,
-    sendTypingIndicator
+    sendTypingIndicator,
+    addModerator,
+    removeModerator
   } = useDebate();
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -54,6 +57,9 @@ export function DebateView() {
   // AI Model selector state
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [editingSlot, setEditingSlot] = useState<{ positionId: string; slotId: string; currentModel: string } | null>(null);
+  
+  // Moderator manager state
+  const [showModeratorManager, setShowModeratorManager] = useState(false);
 
   // Initialize edit fields when debate changes
   React.useEffect(() => {
@@ -313,6 +319,31 @@ export function DebateView() {
   const handleCloseModelSelector = () => {
     setShowModelSelector(false);
     setEditingSlot(null);
+  };
+
+  // Moderator management handlers
+  const handleOpenModeratorManager = () => {
+    setShowModeratorManager(true);
+  };
+
+  const handleAddModeratorUser = async (user: User) => {
+    try {
+      await addModerator(currentDebate.id, user);
+      console.log('[DebateView] ✓ Moderator added:', user.name);
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error adding moderator:', err);
+      alert(err.message || 'Fehler beim Hinzufügen des Moderators');
+    }
+  };
+
+  const handleRemoveModeratorUser = async (userId: string) => {
+    try {
+      await removeModerator(currentDebate.id, userId);
+      console.log('[DebateView] ✓ Moderator removed:', userId);
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error removing moderator:', err);
+      alert(err.message || 'Fehler beim Entfernen des Moderators');
+    }
   };
 
   const predefinedColors = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -867,6 +898,15 @@ export function DebateView() {
           <View style={styles.headerTop}>
             <Text style={[styles.title, { color: colors.text }]}>{currentDebate.title}</Text>
             <View style={styles.headerActions}>
+              {/* Moderator Manager Button - Only for owner */}
+              {currentDebate.createdBy.id === currentUser.id && (
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={handleOpenModeratorManager}
+                >
+                  <Ionicons name="shield-outline" size={20} color="#ff6347" />
+                </TouchableOpacity>
+              )}
               {/* Close Debate Button - Only for owner on active/completed debates */}
               {currentDebate.createdBy.id === currentUser.id && 
                (currentDebate.status === 'active' || currentDebate.status === 'completed') && (
@@ -928,7 +968,10 @@ export function DebateView() {
         ) : (
           currentDebate.messages.map((message) => {
             const isOwn = message.userId === currentUser.id;
-            const position = currentDebate.positions.find(p => p.id === message.positionId);
+            const isModerator = message.isModerator === true;
+            const position = !isModerator ? currentDebate.positions.find(p => p.id === message.positionId) : null;
+            const moderatorColor = '#ff6347'; // rot-orangig (tomato red)
+            
             return (
               <View
                 key={message.id}
@@ -941,19 +984,40 @@ export function DebateView() {
                   style={[
                     styles.messageBubble,
                     { backgroundColor: colors.surface },
-                    isOwn && { backgroundColor: colors.primary },
+                    isOwn && !isModerator && { backgroundColor: colors.primary },
+                    isModerator && { 
+                      backgroundColor: isOwn ? moderatorColor : colors.surface,
+                      borderWidth: 2,
+                      borderColor: moderatorColor,
+                    },
                   ]}
                 >
                   <View style={styles.messageHeader}>
                     <Text
                       style={[
                         styles.messageSender,
-                        { color: isOwn ? '#fff' : colors.text },
+                        { color: isOwn && !isModerator ? '#fff' : isModerator && isOwn ? '#fff' : colors.text },
                       ]}
                     >
                       {message.userName}
                     </Text>
-                    {position && (
+                    {isModerator ? (
+                      <View
+                        style={[
+                          styles.stanceBadge,
+                          { backgroundColor: moderatorColor + '30' },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.stanceText,
+                            { color: isOwn ? '#fff' : moderatorColor },
+                          ]}
+                        >
+                          MODERATOR
+                        </Text>
+                      </View>
+                    ) : position && (
                       <View
                         style={[
                           styles.stanceBadge,
@@ -974,7 +1038,7 @@ export function DebateView() {
                   <Text
                     style={[
                       styles.messageText,
-                      { color: isOwn ? '#fff' : colors.text },
+                      { color: isOwn || (isModerator && isOwn) ? '#fff' : colors.text },
                     ]}
                   >
                     {message.text}
@@ -1052,6 +1116,16 @@ export function DebateView() {
         currentModel={editingSlot?.currentModel || 'gpt-4'}
         onSelect={handleSelectModel}
         onClose={handleCloseModelSelector}
+      />
+
+      {/* Moderator Manager Modal */}
+      <ModeratorManager
+        visible={showModeratorManager}
+        moderators={currentDebate.moderators || []}
+        currentUserId={currentUser.id}
+        onClose={() => setShowModeratorManager(false)}
+        onAddModerator={handleAddModeratorUser}
+        onRemoveModerator={handleRemoveModeratorUser}
       />
     </View>
   );
