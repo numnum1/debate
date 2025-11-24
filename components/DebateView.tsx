@@ -219,8 +219,18 @@ export function DebateView() {
     }
   };
 
-  const handleAddPosition = () => {
+  const handleAddPosition = async () => {
     if (!newPositionName.trim()) return;
+
+    // Prüfe, ob die Farbe bereits von einer anderen Position verwendet wird
+    const colorExists = currentDebate.positions.some(
+      position => position.color.toLowerCase() === newPositionColor.toLowerCase()
+    );
+
+    if (colorExists) {
+      alert('Diese Farbe wird bereits von einer anderen Position verwendet. Bitte wählen Sie eine andere Farbe.');
+      return;
+    }
 
     const newPosition = {
       id: Date.now().toString(),
@@ -230,9 +240,16 @@ export function DebateView() {
       slots: [],
     };
 
-    addPosition(currentDebate.id, newPosition);
-    setNewPositionName('');
-    setNewPositionColor('#3b82f6');
+    try {
+      await addPosition(currentDebate.id, newPosition);
+      setNewPositionName('');
+      setNewPositionColor('#3b82f6');
+    } catch (error: any) {
+      // Error is already handled by context, but we can show a user-friendly message
+      if (error?.message?.includes('Farbe')) {
+        alert(error.message);
+      }
+    }
   };
 
   const handleAddSlot = (positionId: string, type: 'open' | 'invited' | 'ai') => {
@@ -535,21 +552,29 @@ export function DebateView() {
                 showsHorizontalScrollIndicator={false}
                 style={styles.colorPickerContainer}
               >
-                {predefinedColors.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.colorOption,
-                      { backgroundColor: color },
-                      newPositionColor === color && styles.colorOptionSelected,
-                    ]}
-                    onPress={() => setNewPositionColor(color)}
-                  >
-                    {newPositionColor === color && (
-                      <Ionicons name="checkmark" size={16} color="#fff" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                {predefinedColors.map((color) => {
+                  const isUsed = currentDebate.positions.some(p => p.color === color);
+                  return (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.colorOption,
+                        { backgroundColor: color },
+                        newPositionColor === color && styles.colorOptionSelected,
+                        isUsed && styles.colorOptionDisabled,
+                      ]}
+                      onPress={() => !isUsed && setNewPositionColor(color)}
+                      disabled={isUsed}
+                    >
+                      {newPositionColor === color && !isUsed && (
+                        <Ionicons name="checkmark" size={16} color="#fff" />
+                      )}
+                      {isUsed && (
+                        <View style={styles.colorStrikethrough} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
               <TouchableOpacity
                 style={[
@@ -904,7 +929,7 @@ export function DebateView() {
                   style={styles.iconButton}
                   onPress={handleOpenModeratorManager}
                 >
-                  <Ionicons name="shield-outline" size={20} color="#ff6347" />
+                  <Ionicons name="people-outline" size={20} color="#ff6347" />
                 </TouchableOpacity>
               )}
               {/* Close Debate Button - Only for owner on active/completed debates */}
@@ -972,6 +997,9 @@ export function DebateView() {
             const position = !isModerator ? currentDebate.positions.find(p => p.id === message.positionId) : null;
             const moderatorColor = '#ff6347'; // rot-orangig (tomato red)
             
+            // Bestimme die Farbe der Nachricht basierend auf der Position
+            const messageColor = isModerator ? moderatorColor : (position?.color || colors.primary);
+            
             return (
               <View
                 key={message.id}
@@ -983,10 +1011,8 @@ export function DebateView() {
                 <View
                   style={[
                     styles.messageBubble,
-                    { backgroundColor: colors.surface },
-                    isOwn && !isModerator && { backgroundColor: colors.primary },
+                    { backgroundColor: messageColor },
                     isModerator && { 
-                      backgroundColor: isOwn ? moderatorColor : colors.surface,
                       borderWidth: 2,
                       borderColor: moderatorColor,
                     },
@@ -996,7 +1022,7 @@ export function DebateView() {
                     <Text
                       style={[
                         styles.messageSender,
-                        { color: isOwn && !isModerator ? '#fff' : isModerator && isOwn ? '#fff' : colors.text },
+                        { color: '#fff' },
                       ]}
                     >
                       {message.userName}
@@ -1005,13 +1031,13 @@ export function DebateView() {
                       <View
                         style={[
                           styles.stanceBadge,
-                          { backgroundColor: moderatorColor + '30' },
+                          { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
                         ]}
                       >
                         <Text
                           style={[
                             styles.stanceText,
-                            { color: isOwn ? '#fff' : moderatorColor },
+                            { color: '#fff' },
                           ]}
                         >
                           MODERATOR
@@ -1021,13 +1047,13 @@ export function DebateView() {
                       <View
                         style={[
                           styles.stanceBadge,
-                          { backgroundColor: position.color + '30' },
+                          { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
                         ]}
                       >
                         <Text
                           style={[
                             styles.stanceText,
-                            { color: isOwn ? '#fff' : position.color },
+                            { color: '#fff' },
                           ]}
                         >
                           {position.name}
@@ -1038,7 +1064,7 @@ export function DebateView() {
                   <Text
                     style={[
                       styles.messageText,
-                      { color: isOwn || (isModerator && isOwn) ? '#fff' : colors.text },
+                      { color: '#fff' },
                     ]}
                   >
                     {message.text}
@@ -1046,7 +1072,7 @@ export function DebateView() {
                   <Text
                     style={[
                       styles.messageTime,
-                      { color: isOwn ? 'rgba(255, 255, 255, 0.7)' : colors.textSecondary },
+                      { color: 'rgba(255, 255, 255, 0.7)' },
                     ]}
                   >
                     {formatTimestamp(message.timestamp)}
@@ -1558,6 +1584,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+  },
+  colorOptionDisabled: {
+    opacity: 0.4,
+  },
+  colorStrikethrough: {
+    position: 'absolute',
+    width: 40,
+    height: 2,
+    backgroundColor: '#fff',
+    transform: [{ rotate: '-45deg' }],
   },
   addPositionButton: {
     flexDirection: 'row',
