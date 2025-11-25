@@ -113,10 +113,24 @@ export function DebateSidebar() {
       return 'Wartet auf Antwort';
     }
     
+    // Check if debate is ready to start (pending + all slots filled/accepted)
+    if (status === 'pending') {
+      const hasAtLeast2Positions = debate.positions && debate.positions.length >= 2;
+      const allPositionsHaveSlots = debate.positions?.every(pos => pos.slots && pos.slots.length > 0);
+      const allInvitedAccepted = debate.positions
+        ?.flatMap(pos => pos.slots)
+        .filter(slot => slot.type === 'invited')
+        .every(slot => slot.invitationAccepted === true);
+      
+      if (hasAtLeast2Positions && allPositionsHaveSlots && allInvitedAccepted) {
+        return 'Bereit zum Starten';
+      }
+      return 'Noch nicht gestartet';
+    }
+    
     switch (status) {
       case 'active': return 'Aktiv';
       case 'completed': return 'Beendet';
-      case 'pending': return 'Noch nicht gestartet';
       case 'awaiting_acceptance': return 'Warte auf Teilnehmer';
       case 'archived': return 'Archiviert';
       default: return status;

@@ -410,6 +410,9 @@ export function DebateView() {
 
   // Render Settings View for pending debates
   if (currentDebate.status === 'pending') {
+    // Check if current user is the owner
+    const isOwner = currentDebate.createdBy?.id === currentUser.id;
+    
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
@@ -423,6 +426,11 @@ export function DebateView() {
                 </Text>
               </View>
             </View>
+            {!isOwner && (
+              <Text style={[styles.ownerWarning, { color: colors.textSecondary }]}>
+                Nur der Ersteller kann diese Debatte bearbeiten
+              </Text>
+            )}
           </View>
         </View>
 
@@ -442,12 +450,14 @@ export function DebateView() {
                   color: colors.text,
                   borderColor: colors.border,
                 },
+                !isOwner && { opacity: 0.5 },
               ]}
               placeholder="Debattentitel"
               placeholderTextColor={colors.textSecondary}
               value={editTitle}
               onChangeText={setEditTitle}
               onBlur={handleSaveSettings}
+              editable={isOwner}
             />
           </View>
 
@@ -466,6 +476,7 @@ export function DebateView() {
                   color: colors.text,
                   borderColor: colors.border,
                 },
+                !isOwner && { opacity: 0.5 },
               ]}
               placeholder="Worum geht es in dieser Debatte?"
               placeholderTextColor={colors.textSecondary}
@@ -475,6 +486,7 @@ export function DebateView() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
+              editable={isOwner}
             />
           </View>
 
@@ -498,10 +510,11 @@ export function DebateView() {
               <Switch
                 value={currentDebate.isPublic}
                 onValueChange={(value) => {
-                  updateDebate(currentDebate.id, { isPublic: value });
+                  if (isOwner) updateDebate(currentDebate.id, { isPublic: value });
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor="#ffffff"
+                disabled={!isOwner}
               />
             </View>
           </View>
@@ -526,21 +539,23 @@ export function DebateView() {
                     color: colors.text,
                     borderColor: colors.border,
                   },
+                  !isOwner && { opacity: 0.5 },
                 ]}
                 placeholder="Tag hinzufügen (z.B. politik)"
                 placeholderTextColor={colors.textSecondary}
                 value={newTag}
                 onChangeText={setNewTag}
                 onSubmitEditing={handleAddTag}
+                editable={isOwner}
               />
               <TouchableOpacity
                 style={[
                   styles.addTagButton,
                   { backgroundColor: colors.primary },
-                  !newTag.trim() && { opacity: 0.5 },
+                  (!newTag.trim() || !isOwner) && { opacity: 0.5 },
                 ]}
                 onPress={handleAddTag}
-                disabled={!newTag.trim()}
+                disabled={!newTag.trim() || !isOwner}
               >
                 <Ionicons name="add" size={20} color="#fff" />
               </TouchableOpacity>
@@ -555,9 +570,11 @@ export function DebateView() {
                     style={[styles.tagChip, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
                   >
                     <Text style={[styles.tagChipText, { color: colors.primary }]}>#{tag}</Text>
-                    <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                      <Ionicons name="close-circle" size={18} color={colors.primary} />
-                    </TouchableOpacity>
+                    {isOwner && (
+                      <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
+                        <Ionicons name="close-circle" size={18} color={colors.primary} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 ))}
               </View>
@@ -584,11 +601,13 @@ export function DebateView() {
                     color: colors.text,
                     borderColor: colors.border,
                   },
+                  !isOwner && { opacity: 0.5 },
                 ]}
                 placeholder="Positionsname (z.B. Pro)"
                 placeholderTextColor={colors.textSecondary}
                 value={newPositionName}
                 onChangeText={setNewPositionName}
+                editable={isOwner}
               />
               <ScrollView 
                 horizontal 
@@ -606,8 +625,8 @@ export function DebateView() {
                         newPositionColor === color && styles.colorOptionSelected,
                         isUsed && styles.colorOptionDisabled,
                       ]}
-                      onPress={() => !isUsed && setNewPositionColor(color)}
-                      disabled={isUsed}
+                      onPress={() => !isUsed && isOwner && setNewPositionColor(color)}
+                      disabled={isUsed || !isOwner}
                     >
                       {newPositionColor === color && !isUsed && (
                         <Ionicons name="checkmark" size={16} color="#fff" />
@@ -623,10 +642,10 @@ export function DebateView() {
                 style={[
                   styles.addPositionButton,
                   { backgroundColor: colors.primary },
-                  !newPositionName.trim() && { opacity: 0.5 },
+                  (!newPositionName.trim() || !isOwner) && { opacity: 0.5 },
                 ]}
                 onPress={handleAddPosition}
-                disabled={!newPositionName.trim()}
+                disabled={!newPositionName.trim() || !isOwner}
               >
                 <Ionicons name="add" size={20} color="#fff" />
                 <Text style={styles.addPositionButtonText}>Position hinzufügen</Text>
@@ -650,12 +669,14 @@ export function DebateView() {
                         {position.name}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => removePosition(currentDebate.id, position.id)}
-                    >
-                      <Ionicons name="trash-outline" size={20} color={colors.error} />
-                    </TouchableOpacity>
+                    {isOwner && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => removePosition(currentDebate.id, position.id)}
+                      >
+                        <Ionicons name="trash-outline" size={20} color={colors.error} />
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   {/* Position Description */}
@@ -667,16 +688,18 @@ export function DebateView() {
                         color: colors.text,
                         borderColor: colors.border,
                       },
+                      !isOwner && { opacity: 0.5 },
                     ]}
                     placeholder="Beschreibung dieser Position (optional)"
                     placeholderTextColor={colors.textSecondary}
                     value={position.description}
                     onChangeText={(text) => 
-                      updatePosition(currentDebate.id, position.id, { description: text })
+                      isOwner && updatePosition(currentDebate.id, position.id, { description: text })
                     }
                     multiline
                     numberOfLines={2}
                     textAlignVertical="top"
+                    editable={isOwner}
                   />
 
                   {/* Slots in this position */}
@@ -764,27 +787,31 @@ export function DebateView() {
                                     {slot.aiConfig?.model || 'KI-Assistent'}
                                   </Text>
                                 </View>
-                                <TouchableOpacity
-                                  style={[styles.editModelButton, { backgroundColor: colors.primary + '20' }]}
-                                  onPress={() => handleOpenModelSelector(position.id, slot.id, slot.aiConfig?.model || 'gpt-4')}
-                                >
-                                  <Ionicons name="settings-outline" size={16} color={colors.primary} />
-                                </TouchableOpacity>
+                                {isOwner && (
+                                  <TouchableOpacity
+                                    style={[styles.editModelButton, { backgroundColor: colors.primary + '20' }]}
+                                    onPress={() => handleOpenModelSelector(position.id, slot.id, slot.aiConfig?.model || 'gpt-4')}
+                                  >
+                                    <Ionicons name="settings-outline" size={16} color={colors.primary} />
+                                  </TouchableOpacity>
+                                )}
                               </>
                             )}
                           </View>
-                          <TouchableOpacity
-                            style={styles.removeSlotButton}
-                            onPress={() => removeSlot(currentDebate.id, position.id, slot.id)}
-                          >
-                            <Ionicons name="close-circle" size={20} color={colors.error} />
-                          </TouchableOpacity>
+                          {isOwner && (
+                            <TouchableOpacity
+                              style={styles.removeSlotButton}
+                              onPress={() => removeSlot(currentDebate.id, position.id, slot.id)}
+                            >
+                              <Ionicons name="close-circle" size={20} color={colors.error} />
+                            </TouchableOpacity>
+                          )}
                         </View>
                       ))
                     )}
                     
                     {/* Add Slot Menu */}
-                    {showSlotMenu === position.id ? (
+                    {isOwner && showSlotMenu === position.id ? (
                       <View style={[styles.slotMenu, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                         <TouchableOpacity
                           style={[styles.slotMenuOption, { borderBottomColor: colors.border }]}
@@ -823,7 +850,7 @@ export function DebateView() {
                           </View>
                         </TouchableOpacity>
                       </View>
-                    ) : (
+                    ) : isOwner ? (
                       <TouchableOpacity
                         style={[styles.addSlotButton, { borderColor: position.color }]}
                         onPress={() => setShowSlotMenu(position.id)}
@@ -833,7 +860,7 @@ export function DebateView() {
                           Slot hinzufügen
                         </Text>
                       </TouchableOpacity>
-                    )}
+                    ) : null}
                   </View>
                 </View>
               ))}
@@ -887,12 +914,12 @@ export function DebateView() {
               style={[
                 styles.startButton, 
                 { 
-                  backgroundColor: canStartDebate() ? colors.success : colors.textSecondary,
-                  opacity: canStartDebate() ? 1 : 0.5,
+                  backgroundColor: (canStartDebate() && isOwner) ? colors.success : colors.textSecondary,
+                  opacity: (canStartDebate() && isOwner) ? 1 : 0.5,
                 }
               ]}
               onPress={handleStartDebate}
-              disabled={!canStartDebate()}
+              disabled={!canStartDebate() || !isOwner}
             >
               {(() => {
                 // Prüfe ob es eingeladene Teilnehmer gibt, die noch nicht akzeptiert haben
@@ -937,7 +964,7 @@ export function DebateView() {
           </View>
 
           {/* Delete Debate Section - Only for creator */}
-          {currentDebate.createdBy.id === currentUser.id && (
+          {isOwner && (
             <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.settingsSectionHeader}>
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
@@ -1317,6 +1344,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 12,
+  },
+  ownerWarning: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   participants: {
     flexDirection: 'row',
