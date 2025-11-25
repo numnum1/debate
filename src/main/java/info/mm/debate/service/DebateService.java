@@ -92,10 +92,16 @@ public class DebateService {
     }
     
     @Transactional
-    public Optional<Debate> updateDebate(String id, Debate updatedDebate) {
-        log.info("Updating debate with id: {}", id);
+    public Optional<Debate> updateDebate(String id, Debate updatedDebate, String userId) {
+        log.info("User {} attempting to update debate with id: {}", userId, id);
         return debateRepository.findById(id)
                 .map(existingDebate -> {
+                    // Check if user is the owner (nur Owner darf Debatte ändern)
+                    if (existingDebate.getCreatedBy() == null || !existingDebate.getCreatedBy().getId().equals(userId)) {
+                        log.warn("User {} attempted to update debate {} but is not the owner", userId, id);
+                        throw new UnauthorizedException("Nur der Ersteller der Debatte kann diese bearbeiten");
+                    }
+                    
                     if (updatedDebate.getTitle() != null) {
                         existingDebate.setTitle(updatedDebate.getTitle());
                     }
@@ -161,13 +167,21 @@ public class DebateService {
     }
     
     @Transactional
-    public boolean deleteDebate(String id) {
-        log.info("Deleting debate with id: {}", id);
-        if (debateRepository.existsById(id)) {
-            debateRepository.deleteById(id);
-            return true;
+    public boolean deleteDebate(String id, String userId) {
+        log.info("User {} attempting to delete debate with id: {}", userId, id);
+        
+        Debate debate = debateRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Debate not found with id: " + id));
+        
+        // Check if user is the owner (nur Owner darf Debatte löschen)
+        if (debate.getCreatedBy() == null || !debate.getCreatedBy().getId().equals(userId)) {
+            log.warn("User {} attempted to delete debate {} but is not the owner", userId, id);
+            throw new UnauthorizedException("Nur der Ersteller der Debatte kann diese löschen");
         }
-        return false;
+        
+        debateRepository.deleteById(id);
+        log.info("Debate {} successfully deleted by owner {}", id, userId);
+        return true;
     }
     
     public long countDebatesByStatus(Debate.DebateStatus status) {

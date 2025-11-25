@@ -180,6 +180,39 @@ public class PositionService {
     }
     
     /**
+     * Check if all invited slots have been accepted and update debate status accordingly
+     */
+    private void checkAndUpdateDebateStatusAfterInvitations(Debate debate) {
+        // Only check if debate is in awaiting_acceptance status
+        if (debate.getStatus() != Debate.DebateStatus.awaiting_acceptance) {
+            return;
+        }
+        
+        // Check if there are any invited slots
+        boolean hasInvitedSlots = debate.getPositions().stream()
+                .flatMap(position -> position.getSlots().stream())
+                .anyMatch(slot -> slot.getType() == Slot.SlotType.invited);
+        
+        if (!hasInvitedSlots) {
+            // No invited slots anymore, go back to pending
+            log.info("No invited slots left, changing debate {} status from awaiting_acceptance to pending", debate.getId());
+            debate.setStatus(Debate.DebateStatus.pending);
+            return;
+        }
+        
+        // Check if all invited slots have been accepted
+        boolean allInvitedAccepted = debate.getPositions().stream()
+                .flatMap(position -> position.getSlots().stream())
+                .filter(slot -> slot.getType() == Slot.SlotType.invited)
+                .allMatch(slot -> Boolean.TRUE.equals(slot.getInvitationAccepted()));
+        
+        if (allInvitedAccepted) {
+            log.info("All invited participants have accepted, changing debate {} status from awaiting_acceptance to pending", debate.getId());
+            debate.setStatus(Debate.DebateStatus.pending);
+        }
+    }
+    
+    /**
      * Update a slot in a position
      */
     @Transactional
@@ -230,6 +263,9 @@ public class PositionService {
                                                 slot.setInvitationAccepted(updatedSlot.getInvitationAccepted());
                                             }
                                             
+                                            // Check if all invitations are now accepted and update status accordingly
+                                            checkAndUpdateDebateStatusAfterInvitations(debate);
+                                            
                                             debate.setUpdatedAt(LocalDateTime.now());
                                             debateRepository.save(debate);
                                             return slot;
@@ -261,6 +297,9 @@ public class PositionService {
                                 
                                 boolean removed = position.getSlots().removeIf(s -> s.getId().equals(slotId));
                                 if (removed) {
+                                    // Check if all invitations are now accepted after removing this slot
+                                    checkAndUpdateDebateStatusAfterInvitations(debate);
+                                    
                                     debate.setUpdatedAt(LocalDateTime.now());
                                     debateRepository.save(debate);
                                 }

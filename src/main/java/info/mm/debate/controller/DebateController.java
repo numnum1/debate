@@ -179,16 +179,22 @@ public class DebateController {
             @AuthenticationPrincipal Jwt jwt) {
         log.info("PUT /debates/{} - Updating debate by user: {}", id, jwt.getSubject());
         
-        return debateService.updateDebate(id, debate)
-                .map(updated -> {
-                    // Broadcast debate update via WebSocket
-                    webSocketHandler.broadcastDebateUpdate(id, updated);
-                    
-                    return ResponseEntity.ok(
-                            ApiResponse.success(updated, "Debate updated successfully"));
-                })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Debate not found")));
+        try {
+            return debateService.updateDebate(id, debate, jwt.getSubject())
+                    .map(updated -> {
+                        // Broadcast debate update via WebSocket
+                        webSocketHandler.broadcastDebateUpdate(id, updated);
+                        
+                        return ResponseEntity.ok(
+                                ApiResponse.success(updated, "Debate updated successfully"));
+                    })
+                    .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(ApiResponse.error("Debate not found")));
+        } catch (UnauthorizedException e) {
+            log.warn("Unauthorized attempt to update debate {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
     }
     
     @Operation(
@@ -221,22 +227,18 @@ public class DebateController {
             @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt) {
         log.info("DELETE /debates/{} - Deleting debate by user: {}", id, jwt.getSubject());
         
-        // Check if user is creator or admin
-        boolean isOwner = debateService.getDebateById(id)
-                .map(d -> d.getCreatedBy() != null && d.getCreatedBy().getId().equals(jwt.getSubject()))
-                .orElse(false);
-        
-        if (!isOwner) {
+        try {
+            boolean deleted = debateService.deleteDebate(id, jwt.getSubject());
+            if (deleted) {
+                return ResponseEntity.ok(ApiResponse.success(null, "Debate deleted successfully"));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Debate not found"));
+        } catch (UnauthorizedException e) {
+            log.warn("Unauthorized attempt to delete debate {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error("You are not allowed to delete this debate"));
+                    .body(ApiResponse.error(e.getMessage()));
         }
-        
-        boolean deleted = debateService.deleteDebate(id);
-        if (deleted) {
-            return ResponseEntity.ok(ApiResponse.success(null, "Debate deleted successfully"));
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error("Debate not found"));
     }
     
     @GetMapping("/stats/count")
