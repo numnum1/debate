@@ -34,6 +34,9 @@ interface DebateContextType {
   addModerator: (debateId: string, moderator: User) => Promise<void>;
   removeModerator: (debateId: string, userId: string) => Promise<void>;
   isModerator: (debateId: string, userId: string) => Promise<boolean>;
+  acceptInvitation: (debateId: string, positionId: string, slotId: string) => Promise<void>;
+  declineInvitation: (debateId: string, positionId: string, slotId: string) => Promise<void>;
+  hasUserPendingInvitation: (debate: Debate, userId: string) => boolean;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -989,6 +992,53 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Check if user has pending invitation for a debate
+   */
+  const hasUserPendingInvitation = (debate: Debate, userId: string): boolean => {
+    if (debate.status !== 'awaiting_acceptance') {
+      return false;
+    }
+    
+    // Check if user is invited and hasn't accepted yet
+    return debate.positions.some(position =>
+      position.slots.some(slot =>
+        slot.type === 'invited' &&
+        slot.participant?.id === userId &&
+        slot.invitationAccepted === false
+      )
+    );
+  };
+
+  /**
+   * Accept invitation for a debate
+   */
+  const acceptInvitation = async (debateId: string, positionId: string, slotId: string) => {
+    try {
+      await updateSlot(debateId, positionId, slotId, { invitationAccepted: true });
+      console.log('[DebateContext] ✓ Invitation accepted');
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Akzeptieren der Einladung';
+      console.error('[DebateContext] ✗ Error accepting invitation:', errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Decline invitation for a debate
+   */
+  const declineInvitation = async (debateId: string, positionId: string, slotId: string) => {
+    try {
+      // Remove the slot when declining
+      await removeSlot(debateId, positionId, slotId);
+      console.log('[DebateContext] ✓ Invitation declined');
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Ablehnen der Einladung';
+      console.error('[DebateContext] ✗ Error declining invitation:', errorMsg);
+      throw err;
+    }
+  };
+
   return (
     <DebateContext.Provider
       value={{
@@ -1016,6 +1066,9 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         addModerator,
         removeModerator,
         isModerator,
+        acceptInvitation,
+        declineInvitation,
+        hasUserPendingInvitation,
       }}
     >
       {children}

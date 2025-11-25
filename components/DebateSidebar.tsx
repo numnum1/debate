@@ -18,7 +18,17 @@ import { PublicDebatesBrowser } from './PublicDebatesBrowser';
 export function DebateSidebar() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { debates, currentDebate, setCurrentDebate, currentUser, addDebate, deleteDebate } = useDebate();
+  const { 
+    debates, 
+    currentDebate, 
+    setCurrentDebate, 
+    currentUser, 
+    addDebate, 
+    deleteDebate,
+    acceptInvitation,
+    declineInvitation,
+    hasUserPendingInvitation,
+  } = useDebate();
   const { logout } = useAuth();
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showPublicDebates, setShowPublicDebates] = useState(false);
@@ -97,7 +107,12 @@ export function DebateSidebar() {
     }
   };
 
-  const getStatusLabel = (status: Debate['status']) => {
+  const getStatusLabel = (status: Debate['status'], debate: Debate) => {
+    // Check if the current user has a pending invitation
+    if (status === 'awaiting_acceptance' && hasUserPendingInvitation(debate, currentUser.id)) {
+      return 'Wartet auf Antwort';
+    }
+    
     switch (status) {
       case 'active': return 'Aktiv';
       case 'completed': return 'Beendet';
@@ -138,52 +153,118 @@ export function DebateSidebar() {
     d.status === 'archived'
   );
 
+  // Handler für Accept/Decline buttons
+  const handleAcceptInvitation = async (debate: Debate, e: any) => {
+    e.stopPropagation(); // Prevent debate selection
+    
+    // Find the slot for current user
+    for (const position of debate.positions) {
+      const slot = position.slots.find(
+        s => s.type === 'invited' && 
+             s.participant?.id === currentUser.id && 
+             s.invitationAccepted === false
+      );
+      if (slot) {
+        try {
+          await acceptInvitation(debate.id, position.id, slot.id);
+        } catch (err) {
+          console.error('Error accepting invitation:', err);
+        }
+        return;
+      }
+    }
+  };
+
+  const handleDeclineInvitation = async (debate: Debate, e: any) => {
+    e.stopPropagation(); // Prevent debate selection
+    
+    // Find the slot for current user
+    for (const position of debate.positions) {
+      const slot = position.slots.find(
+        s => s.type === 'invited' && 
+             s.participant?.id === currentUser.id && 
+             s.invitationAccepted === false
+      );
+      if (slot) {
+        try {
+          await declineInvitation(debate.id, position.id, slot.id);
+        } catch (err) {
+          console.error('Error declining invitation:', err);
+        }
+        return;
+      }
+    }
+  };
+
   // Render-Funktion für eine einzelne Debatte
-  const renderDebate = (debate: Debate) => (
-    <TouchableOpacity
-      key={debate.id}
-      style={[
-        styles.debateItem,
-        currentDebate?.id === debate.id && { backgroundColor: colors.primary + '15' },
-        { borderBottomColor: colors.border }
-      ]}
-      onPress={() => setCurrentDebate(debate)}
-    >
-      <View style={styles.debateHeader}>
-        <Text 
-          style={[
-            styles.debateTitle, 
-            { color: colors.text },
-            currentDebate?.id === debate.id && { color: colors.primary, fontWeight: '700' }
-          ]} 
-          numberOfLines={1}
-        >
-          {debate.title}
+  const renderDebate = (debate: Debate) => {
+    const hasPendingInvite = hasUserPendingInvitation(debate, currentUser.id);
+    
+    return (
+      <TouchableOpacity
+        key={debate.id}
+        style={[
+          styles.debateItem,
+          currentDebate?.id === debate.id && { backgroundColor: colors.primary + '15' },
+          { borderBottomColor: colors.border }
+        ]}
+        onPress={() => setCurrentDebate(debate)}
+      >
+        <View style={styles.debateHeader}>
+          <Text 
+            style={[
+              styles.debateTitle, 
+              { color: colors.text },
+              currentDebate?.id === debate.id && { color: colors.primary, fontWeight: '700' }
+            ]} 
+            numberOfLines={1}
+          >
+            {debate.title}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(debate.status) + '20' }]}>
+            <Text style={[styles.statusText, { color: getStatusColor(debate.status) }]}>
+              {getStatusLabel(debate.status, debate)}
+            </Text>
+          </View>
+        </View>
+        
+        <Text style={[styles.debateDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+          {debate.description}
         </Text>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(debate.status) + '20' }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(debate.status) }]}>
-            {getStatusLabel(debate.status)}
+        
+        {hasPendingInvite && (
+          <View style={styles.invitationActions}>
+            <TouchableOpacity
+              style={[styles.acceptButton, { backgroundColor: colors.success }]}
+              onPress={(e) => handleAcceptInvitation(debate, e)}
+            >
+              <Ionicons name="checkmark" size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Annehmen</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.declineButton, { backgroundColor: colors.error }]}
+              onPress={(e) => handleDeclineInvitation(debate, e)}
+            >
+              <Ionicons name="close" size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Ablehnen</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        <View style={styles.debateFooter}>
+          <View style={styles.participants}>
+            <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.participantCount, { color: colors.textSecondary }]}>
+              {debate.positions.reduce((sum, pos) => sum + pos.slots.filter(s => s.participant).length, 0)} Teilnehmer
+            </Text>
+          </View>
+          <Text style={[styles.debateDate, { color: colors.textSecondary }]}>
+            {formatDate(debate.createdAt)}
           </Text>
         </View>
-      </View>
-      
-      <Text style={[styles.debateDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-        {debate.description}
-      </Text>
-      
-      <View style={styles.debateFooter}>
-        <View style={styles.participants}>
-          <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-          <Text style={[styles.participantCount, { color: colors.textSecondary }]}>
-            {debate.positions.reduce((sum, pos) => sum + pos.slots.filter(s => s.participant).length, 0)} Teilnehmer
-          </Text>
-        </View>
-        <Text style={[styles.debateDate, { color: colors.textSecondary }]}>
-          {formatDate(debate.createdAt)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderRightColor: colors.border }]}>
@@ -499,6 +580,36 @@ const styles = StyleSheet.create({
   },
   debateDate: {
     fontSize: 12,
+  },
+  invitationActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 8,
+  },
+  acceptButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    gap: 4,
+  },
+  declineButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    gap: 4,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   footer: {
     borderTopWidth: 1,

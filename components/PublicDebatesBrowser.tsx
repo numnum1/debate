@@ -14,6 +14,7 @@ import {
 import { Colors } from '../constants/Colors';
 import { Debate } from '../types';
 import { api } from '../services/api';
+import { useDebate } from '../context/DebateContext';
 
 interface PublicDebatesBrowserProps {
   visible: boolean;
@@ -25,6 +26,7 @@ interface PublicDebatesBrowserProps {
 export function PublicDebatesBrowser({ visible, onClose, onSelectDebate, currentDebates = [] }: PublicDebatesBrowserProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { hasUserPendingInvitation, currentUser } = useDebate();
   
   const [publicDebates, setPublicDebates] = useState<Debate[]>([]);
   const [filteredDebates, setFilteredDebates] = useState<Debate[]>([]);
@@ -105,7 +107,12 @@ export function PublicDebatesBrowser({ visible, onClose, onSelectDebate, current
     }
   };
 
-  const getStatusLabel = (status: Debate['status']) => {
+  const getStatusLabel = (status: Debate['status'], debate: Debate) => {
+    // Check if the current user has a pending invitation
+    if (status === 'awaiting_acceptance' && hasUserPendingInvitation(debate, currentUser.id)) {
+      return 'Wartet auf Antwort';
+    }
+    
     switch (status) {
       case 'active': return 'Aktiv';
       case 'completed': return 'Beendet';
@@ -205,7 +212,7 @@ export function PublicDebatesBrowser({ visible, onClose, onSelectDebate, current
                       )}
                       <View style={[styles.statusBadge, { backgroundColor: getStatusColor(debate.status) + '20' }]}>
                         <Text style={[styles.statusText, { color: getStatusColor(debate.status) }]}>
-                          {getStatusLabel(debate.status)}
+                          {getStatusLabel(debate.status, debate)}
                         </Text>
                       </View>
                     </View>
