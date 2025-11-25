@@ -104,7 +104,8 @@ public class DebateService {
                     }
                     if (updatedDebate.getStatus() != null) {
                         // Validate: Cannot start debate without at least 2 positions
-                        if (updatedDebate.getStatus() == Debate.DebateStatus.active) {
+                        if (updatedDebate.getStatus() == Debate.DebateStatus.active || 
+                            updatedDebate.getStatus() == Debate.DebateStatus.awaiting_acceptance) {
                             if (existingDebate.getPositions() == null || existingDebate.getPositions().size() < 2) {
                                 log.warn("Cannot start debate {}: Need at least 2 positions (found: {})", 
                                         id, existingDebate.getPositions() == null ? 0 : existingDebate.getPositions().size());
@@ -116,6 +117,27 @@ public class DebateService {
                                 if (position.getSlots() == null || position.getSlots().isEmpty()) {
                                     log.warn("Cannot start debate {}: Position '{}' has no slots", id, position.getName());
                                     throw new IllegalStateException("Jede Position muss mindestens einen Slot haben, um die Debatte zu starten");
+                                }
+                            }
+                            
+                            // Prüfe ob es eingeladene Teilnehmer gibt
+                            boolean hasInvitedSlots = existingDebate.getPositions().stream()
+                                .flatMap(position -> position.getSlots().stream())
+                                .anyMatch(slot -> slot.getType() == info.mm.debate.model.Slot.SlotType.invited);
+                            
+                            if (updatedDebate.getStatus() == Debate.DebateStatus.active) {
+                                // Wenn auf active gesetzt wird und es eingeladene Slots gibt
+                                if (hasInvitedSlots) {
+                                    // Prüfe ob alle eingeladenen akzeptiert haben
+                                    boolean allInvitedAccepted = existingDebate.getPositions().stream()
+                                        .flatMap(position -> position.getSlots().stream())
+                                        .filter(slot -> slot.getType() == info.mm.debate.model.Slot.SlotType.invited)
+                                        .allMatch(slot -> Boolean.TRUE.equals(slot.getInvitationAccepted()));
+                                    
+                                    if (!allInvitedAccepted) {
+                                        log.warn("Cannot start debate {}: Not all invited participants have accepted", id);
+                                        throw new IllegalStateException("Alle eingeladenen Teilnehmer müssen die Einladung akzeptiert haben, bevor die Debatte gestartet werden kann");
+                                    }
                                 }
                             }
                         }

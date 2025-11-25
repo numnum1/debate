@@ -14,6 +14,7 @@ public class Slot {
     private SlotType type;
     private User participant;
     private AiConfig aiConfig;
+    private Boolean invitationAccepted; // true wenn eingeladener Teilnehmer akzeptiert hat
     
     public enum SlotType {
         open,

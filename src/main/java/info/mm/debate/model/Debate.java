@@ -44,6 +44,7 @@ public class Debate {
     
     public enum DebateStatus {
         pending,   // Frontend expects lowercase
+        awaiting_acceptance,  // Waiting for invited participants to accept
         active,
         completed,
         archived   // Debate is closed and archived

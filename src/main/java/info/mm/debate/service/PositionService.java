@@ -150,6 +150,15 @@ public class PositionService {
                         return Optional.empty();
                     }
                     
+                    // Owner selbst gilt automatisch als akzeptiert
+                    if (slot.getType() == Slot.SlotType.invited && 
+                        slot.getParticipant() != null && 
+                        debate.getCreatedBy() != null &&
+                        slot.getParticipant().getId().equals(debate.getCreatedBy().getId())) {
+                        log.info("Owner invited themselves, automatically accepting");
+                        slot.setInvitationAccepted(true);
+                    }
+                    
                     return debate.getPositions().stream()
                             .filter(p -> p.getId().equals(positionId))
                             .findFirst()
@@ -205,9 +214,20 @@ public class PositionService {
                                             }
                                             if (updatedSlot.getParticipant() != null) {
                                                 slot.setParticipant(updatedSlot.getParticipant());
+                                                
+                                                // Owner selbst gilt automatisch als akzeptiert
+                                                if (slot.getType() == Slot.SlotType.invited && 
+                                                    debate.getCreatedBy() != null &&
+                                                    updatedSlot.getParticipant().getId().equals(debate.getCreatedBy().getId())) {
+                                                    log.info("Participant changed to owner, automatically accepting");
+                                                    slot.setInvitationAccepted(true);
+                                                }
                                             }
                                             if (updatedSlot.getAiConfig() != null) {
                                                 slot.setAiConfig(updatedSlot.getAiConfig());
+                                            }
+                                            if (updatedSlot.getInvitationAccepted() != null) {
+                                                slot.setInvitationAccepted(updatedSlot.getInvitationAccepted());
                                             }
                                             
                                             debate.setUpdatedAt(LocalDateTime.now());
