@@ -158,6 +158,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     const unsubscribe = websocket.onDebateUpdate((updatedDebate: Debate) => {
       console.log('='.repeat(60));
       console.log('[DebateContext] ✓ Debate updated via WebSocket:', updatedDebate.id);
+      console.log('[DebateContext] Updated debate status:', updatedDebate.status);
       console.log('[DebateContext] Updated debate has', updatedDebate.positions?.length || 0, 'positions');
       console.log('[DebateContext] Current debate ID:', currentDebate?.id);
       console.log('='.repeat(60));
@@ -171,6 +172,32 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setCurrentDebate(prev => {
         if (prev && prev.id === updatedDebate.id) {
           console.log('[DebateContext] ✓ Updating current debate with new data');
+          console.log('[DebateContext] Previous status:', prev.status, '→ New status:', updatedDebate.status);
+          
+          // If status changed from pending/awaiting_acceptance to active, ensure full refresh
+          if ((prev.status === 'pending' || prev.status === 'awaiting_acceptance') && 
+              updatedDebate.status === 'active') {
+            console.log('[DebateContext] Status changed to active - ensuring full sync and rejoining room');
+            // Trigger a full refresh to ensure we have all data including messages
+            setTimeout(() => {
+              api.getDebate(updatedDebate.id).then(freshDebate => {
+                console.log('[DebateContext] ✓ Fresh debate data loaded after status change');
+                console.log('[DebateContext] Messages count:', freshDebate.messages?.length || 0);
+                setCurrentDebate(freshDebate);
+                setDebates(prev => prev.map(d => d.id === freshDebate.id ? freshDebate : d));
+                
+                // Rejoin the debate room to ensure WebSocket connection is fresh
+                websocket.leaveDebate(freshDebate.id);
+                setTimeout(() => {
+                  websocket.joinDebate(freshDebate.id);
+                  console.log('[DebateContext] ✓ Rejoined debate room after status change');
+                }, 100);
+              }).catch(err => {
+                console.error('[DebateContext] Error refreshing debate:', err);
+              });
+            }, 500); // Small delay to ensure backend is fully updated
+          }
+          
           return updatedDebate;
         }
         return prev;
@@ -180,7 +207,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [currentDebate?.id, currentDebate?.status]);
 
   // Join/leave debate room when current debate changes
   useEffect(() => {
