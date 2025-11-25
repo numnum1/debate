@@ -99,6 +99,7 @@ export function PublicDebatesBrowser({ visible, onClose, onSelectDebate, current
       case 'active': return colors.success;
       case 'completed': return colors.primary;
       case 'pending': return colors.warning;
+      case 'awaiting_acceptance': return colors.info;
       case 'archived': return colors.textSecondary;
       default: return colors.textSecondary;
     }
@@ -109,6 +110,7 @@ export function PublicDebatesBrowser({ visible, onClose, onSelectDebate, current
       case 'active': return 'Aktiv';
       case 'completed': return 'Beendet';
       case 'pending': return 'Noch nicht gestartet';
+      case 'awaiting_acceptance': return 'Warte auf Teilnehmer';
       case 'archived': return 'Archiviert';
       default: return status;
     }

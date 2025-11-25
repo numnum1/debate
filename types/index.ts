@@ -9,6 +9,7 @@ export interface Slot {
   id: string;
   type: 'open' | 'invited' | 'ai';
   participant?: User; // Set when type is 'invited' and user has joined, or for 'ai'
+  invitationAccepted?: boolean; // true wenn eingeladener Teilnehmer akzeptiert hat
   aiConfig?: {
     model: string;
     personality?: string;
@@ -30,7 +31,7 @@ export interface Debate {
   createdBy: User;
   positions: Position[];
   createdAt: Date | string; // Can be string when coming from API/WebSocket
-  status: 'active' | 'completed' | 'pending' | 'archived';
+  status: 'active' | 'completed' | 'pending' | 'awaiting_acceptance' | 'archived';
   isPublic: boolean; // true = public, false = private
   messages: DebateMessage[];
   tags?: string[];

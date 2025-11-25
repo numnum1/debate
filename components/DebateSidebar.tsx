@@ -91,6 +91,7 @@ export function DebateSidebar() {
       case 'active': return colors.success;
       case 'completed': return colors.primary;
       case 'pending': return colors.warning;
+      case 'awaiting_acceptance': return colors.info;
       case 'archived': return colors.textSecondary;
       default: return colors.textSecondary;
     }
@@ -101,6 +102,7 @@ export function DebateSidebar() {
       case 'active': return 'Aktiv';
       case 'completed': return 'Beendet';
       case 'pending': return 'Noch nicht gestartet';
+      case 'awaiting_acceptance': return 'Warte auf Teilnehmer';
       case 'archived': return 'Archiviert';
       default: return status;
     }
@@ -117,7 +119,7 @@ export function DebateSidebar() {
 
   // Gruppiere Debatten
   const pendingDebates = debates.filter(d => 
-    d.status === 'pending'
+    d.status === 'pending' || d.status === 'awaiting_acceptance'
   );
   
   const activeDebates = debates.filter(d => 

@@ -191,9 +191,35 @@ export function DebateView() {
   };
 
   const handleStartDebate = () => {
-    updateDebate(currentDebate.id, {
-      status: 'active',
-    });
+    // Prüfe ob alle Slots entweder offen, der Owner selbst, oder KI sind
+    const hasInvitedSlots = currentDebate.positions.some(position =>
+      position.slots.some(slot => slot.type === 'invited')
+    );
+
+    if (!hasInvitedSlots) {
+      // Keine eingeladenen Teilnehmer -> direkt starten
+      updateDebate(currentDebate.id, {
+        status: 'active',
+      });
+    } else {
+      // Es gibt eingeladene Teilnehmer
+      const allInvitedAccepted = currentDebate.positions
+        .flatMap(position => position.slots)
+        .filter(slot => slot.type === 'invited')
+        .every(slot => slot.invitationAccepted === true);
+
+      if (allInvitedAccepted) {
+        // Alle haben akzeptiert -> starten
+        updateDebate(currentDebate.id, {
+          status: 'active',
+        });
+      } else {
+        // Nicht alle haben akzeptiert -> in Wartestatus setzen
+        updateDebate(currentDebate.id, {
+          status: 'awaiting_acceptance',
+        });
+      }
+    }
   };
 
   // Check if all positions have at least one slot
@@ -204,7 +230,21 @@ export function DebateView() {
   };
 
   const canStartDebate = () => {
-    return currentDebate.positions.length >= 2 && allPositionsHaveSlots();
+    if (currentDebate.positions.length < 2 || !allPositionsHaveSlots()) {
+      return false;
+    }
+
+    // Wenn Status bereits awaiting_acceptance ist, kann nur gestartet werden,
+    // wenn alle eingeladenen akzeptiert haben
+    if (currentDebate.status === 'awaiting_acceptance') {
+      const allInvitedAccepted = currentDebate.positions
+        .flatMap(position => position.slots)
+        .filter(slot => slot.type === 'invited')
+        .every(slot => slot.invitationAccepted === true);
+      return allInvitedAccepted;
+    }
+
+    return true;
   };
 
   const handleDeleteDebate = () => {
@@ -292,13 +332,16 @@ export function DebateView() {
     }
 
     // Create invited slot with selected user
+    // Owner selbst gilt automatisch als akzeptiert
+    const isOwner = user.id === currentDebate.createdBy.id;
     const newSlot = {
       id: Date.now().toString(),
       type: 'invited' as const,
       participant: user,
+      invitationAccepted: isOwner, // Owner akzeptiert automatisch
     };
 
-    console.log('[DebateView] Creating invited slot:', newSlot);
+    console.log('[DebateView] Creating invited slot:', newSlot, 'isOwner:', isOwner);
     addSlotToPosition(currentDebate.id, invitePositionId, newSlot);
     
     // Reset state
@@ -677,9 +720,22 @@ export function DebateView() {
                                 <View style={styles.slotInfo}>
                                   {slot.participant ? (
                                     <>
-                                      <Text style={[styles.slotType, { color: colors.text }]}>
-                                        {slot.participant.name}
-                                      </Text>
+                                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={[styles.slotType, { color: colors.text }]}>
+                                          {slot.participant.name}
+                                        </Text>
+                                        {slot.invitationAccepted ? (
+                                          <View style={[styles.acceptedBadge, { backgroundColor: colors.success + '20' }]}>
+                                            <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                                            <Text style={[styles.acceptedBadgeText, { color: colors.success }]}>Akzeptiert</Text>
+                                          </View>
+                                        ) : (
+                                          <View style={[styles.pendingBadge, { backgroundColor: colors.warning + '20' }]}>
+                                            <Ionicons name="time-outline" size={14} color={colors.warning} />
+                                            <Text style={[styles.pendingBadgeText, { color: colors.warning }]}>Ausstehend</Text>
+                                          </View>
+                                        )}
+                                      </View>
                                       <Text style={[styles.slotDescription, { color: colors.textSecondary }]}>
                                         {slot.participant.email}
                                       </Text>
@@ -791,7 +847,10 @@ export function DebateView() {
               <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Debatte starten</Text>
             </View>
             <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
-              Sobald Sie die Debatte starten, können Teilnehmer Beiträge verfassen und die Diskussion beginnt.
+              {currentDebate.status === 'awaiting_acceptance' 
+                ? 'Die Debatte wartet darauf, dass alle eingeladenen Teilnehmer die Einladung akzeptieren.'
+                : 'Sobald Sie die Debatte starten, können Teilnehmer Beiträge verfassen und die Diskussion beginnt.'
+              }
             </Text>
             {currentDebate.positions.length < 2 && (
               <View style={[styles.warningBox, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}>
@@ -809,6 +868,21 @@ export function DebateView() {
                 </Text>
               </View>
             )}
+            {currentDebate.status === 'awaiting_acceptance' && (() => {
+              const invitedSlots = currentDebate.positions
+                .flatMap(position => position.slots)
+                .filter(slot => slot.type === 'invited');
+              const pendingInvites = invitedSlots.filter(slot => !slot.invitationAccepted);
+              
+              return pendingInvites.length > 0 && (
+                <View style={[styles.warningBox, { backgroundColor: colors.info + '20', borderColor: colors.info }]}>
+                  <Ionicons name="time-outline" size={18} color={colors.info} />
+                  <Text style={[styles.warningText, { color: colors.info }]}>
+                    Warten auf {pendingInvites.length} Teilnehmer: {pendingInvites.map(slot => slot.participant?.name || 'Unbekannt').join(', ')}
+                  </Text>
+                </View>
+              );
+            })()}
             <TouchableOpacity
               style={[
                 styles.startButton, 
@@ -820,8 +894,45 @@ export function DebateView() {
               onPress={handleStartDebate}
               disabled={!canStartDebate()}
             >
-              <Ionicons name="play" size={20} color="#fff" />
-              <Text style={styles.startButtonText}>Debatte jetzt starten</Text>
+              {(() => {
+                // Prüfe ob es eingeladene Teilnehmer gibt, die noch nicht akzeptiert haben
+                const invitedSlots = currentDebate.positions
+                  .flatMap(position => position.slots)
+                  .filter(slot => slot.type === 'invited');
+                const pendingInvites = invitedSlots.filter(slot => !slot.invitationAccepted);
+                
+                // Icon basierend auf Zustand
+                if (currentDebate.status === 'awaiting_acceptance' && !canStartDebate()) {
+                  return <Ionicons name="time-outline" size={20} color="#fff" />;
+                } else if (pendingInvites.length > 0) {
+                  return <Ionicons name="send" size={20} color="#fff" />;
+                } else {
+                  return <Ionicons name="play" size={20} color="#fff" />;
+                }
+              })()}
+              <Text style={styles.startButtonText}>
+                {(() => {
+                  // Prüfe ob es eingeladene Teilnehmer gibt, die noch nicht akzeptiert haben
+                  const invitedSlots = currentDebate.positions
+                    .flatMap(position => position.slots)
+                    .filter(slot => slot.type === 'invited');
+                  const pendingInvites = invitedSlots.filter(slot => !slot.invitationAccepted);
+                  
+                  // Status awaiting_acceptance: Warten auf Akzeptanz
+                  if (currentDebate.status === 'awaiting_acceptance') {
+                    return canStartDebate() 
+                      ? 'Debatte jetzt starten' 
+                      : 'Warte auf Teilnehmer...';
+                  }
+                  
+                  // Status pending: Noch nicht gestartet
+                  if (pendingInvites.length > 0) {
+                    return 'Abschließen und Teilnehmer einladen';
+                  }
+                  
+                  return 'Debatte jetzt starten';
+                })()}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -1684,6 +1795,30 @@ const styles = StyleSheet.create({
   },
   slotDescription: {
     fontSize: 12,
+  },
+  acceptedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  acceptedBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  pendingBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   removeSlotButton: {
     padding: 4,
