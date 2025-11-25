@@ -1135,8 +1135,27 @@ export function DebateView() {
             const position = !isModerator ? currentDebate.positions.find(p => p.id === message.positionId) : null;
             const moderatorColor = '#ff6347'; // rot-orangig (tomato red)
             
+            // Utility-Funktion um Farben tonaler zu machen
+            const makeTonal = (hexColor: string) => {
+              // Konvertiere hex zu RGB
+              const hex = hexColor.replace('#', '');
+              const r = parseInt(hex.substring(0, 2), 16);
+              const g = parseInt(hex.substring(2, 4), 16);
+              const b = parseInt(hex.substring(4, 6), 16);
+              
+              // Mische mit Weiß für sanftere Farbe (70% Weiß, 30% Originalfarbe)
+              const mixRatio = 0.3;
+              const newR = Math.round(r * mixRatio + 255 * (1 - mixRatio));
+              const newG = Math.round(g * mixRatio + 255 * (1 - mixRatio));
+              const newB = Math.round(b * mixRatio + 255 * (1 - mixRatio));
+              
+              return `rgb(${newR}, ${newG}, ${newB})`;
+            };
+            
             // Bestimme die Farbe der Nachricht basierend auf der Position
-            const messageColor = isModerator ? moderatorColor : (position?.color || colors.primary);
+            const baseColor = isModerator ? moderatorColor : (position?.color || colors.primary);
+            const messageBackgroundColor = makeTonal(baseColor);
+            const messageBorderColor = baseColor;
             
             return (
               <View
@@ -1149,10 +1168,10 @@ export function DebateView() {
                 <View
                   style={[
                     styles.messageBubble,
-                    { backgroundColor: messageColor },
-                    isModerator && { 
-                      borderWidth: 2,
-                      borderColor: moderatorColor,
+                    { 
+                      backgroundColor: colorScheme === 'dark' ? `${baseColor}22` : messageBackgroundColor,
+                      borderWidth: 1.5,
+                      borderColor: colorScheme === 'dark' ? `${baseColor}66` : messageBorderColor,
                     },
                   ]}
                 >
@@ -1160,7 +1179,7 @@ export function DebateView() {
                     <Text
                       style={[
                         styles.messageSender,
-                        { color: '#fff' },
+                        { color: colorScheme === 'dark' ? colors.text : baseColor },
                       ]}
                     >
                       {message.userName}
@@ -1169,13 +1188,15 @@ export function DebateView() {
                       <View
                         style={[
                           styles.stanceBadge,
-                          { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
+                          { 
+                            backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor,
+                          },
                         ]}
                       >
                         <Text
                           style={[
                             styles.stanceText,
-                            { color: '#fff' },
+                            { color: colorScheme === 'dark' ? baseColor : '#fff' },
                           ]}
                         >
                           MODERATOR
@@ -1185,13 +1206,15 @@ export function DebateView() {
                       <View
                         style={[
                           styles.stanceBadge,
-                          { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
+                          { 
+                            backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor,
+                          },
                         ]}
                       >
                         <Text
                           style={[
                             styles.stanceText,
-                            { color: '#fff' },
+                            { color: colorScheme === 'dark' ? baseColor : '#fff' },
                           ]}
                         >
                           {position.name}
@@ -1202,7 +1225,7 @@ export function DebateView() {
                   <Text
                     style={[
                       styles.messageText,
-                      { color: '#fff' },
+                      { color: colorScheme === 'dark' ? colors.text : colors.text },
                     ]}
                   >
                     {message.text}
@@ -1210,7 +1233,7 @@ export function DebateView() {
                   <Text
                     style={[
                       styles.messageTime,
-                      { color: 'rgba(255, 255, 255, 0.7)' },
+                      { color: colors.textSecondary },
                     ]}
                   >
                     {formatTimestamp(message.timestamp)}

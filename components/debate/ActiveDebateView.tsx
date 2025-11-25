@@ -206,7 +206,28 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
             const isModerator = message.isModerator === true;
             const position = !isModerator ? debate.positions.find(p => p.id === message.positionId) : null;
             const moderatorColor = '#ff6347';
-            const messageColor = isModerator ? moderatorColor : (position?.color || colors.primary);
+            
+            // Utility-Funktion um Farben tonaler zu machen
+            const makeTonal = (hexColor: string) => {
+              // Konvertiere hex zu RGB
+              const hex = hexColor.replace('#', '');
+              const r = parseInt(hex.substring(0, 2), 16);
+              const g = parseInt(hex.substring(2, 4), 16);
+              const b = parseInt(hex.substring(4, 6), 16);
+              
+              // Mische mit Weiß für sanftere Farbe (70% Weiß, 30% Originalfarbe)
+              const mixRatio = 0.3;
+              const newR = Math.round(r * mixRatio + 255 * (1 - mixRatio));
+              const newG = Math.round(g * mixRatio + 255 * (1 - mixRatio));
+              const newB = Math.round(b * mixRatio + 255 * (1 - mixRatio));
+              
+              return `rgb(${newR}, ${newG}, ${newB})`;
+            };
+            
+            // Bestimme die Farbe der Nachricht basierend auf der Position
+            const baseColor = isModerator ? moderatorColor : (position?.color || colors.primary);
+            const messageBackgroundColor = makeTonal(baseColor);
+            const messageBorderColor = baseColor;
             
             return (
               <View
@@ -219,29 +240,54 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
                 <View
                   style={[
                     styles.messageBubble,
-                    { backgroundColor: messageColor },
-                    isModerator && { 
-                      borderWidth: 2,
-                      borderColor: moderatorColor,
+                    { 
+                      backgroundColor: colorScheme === 'dark' ? `${baseColor}22` : messageBackgroundColor,
+                      borderWidth: 1.5,
+                      borderColor: colorScheme === 'dark' ? `${baseColor}66` : messageBorderColor,
                     },
                   ]}
                 >
                   <View style={styles.messageHeader}>
-                    <Text style={styles.messageSender}>
+                    <Text style={[
+                      styles.messageSender,
+                      { color: colorScheme === 'dark' ? colors.text : baseColor }
+                    ]}>
                       {message.userName}
                     </Text>
                     {isModerator ? (
-                      <View style={styles.stanceBadge}>
-                        <Text style={styles.stanceText}>MODERATOR</Text>
+                      <View style={[
+                        styles.stanceBadge,
+                        { backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor }
+                      ]}>
+                        <Text style={[
+                          styles.stanceText,
+                          { color: colorScheme === 'dark' ? baseColor : '#fff' }
+                        ]}>MODERATOR</Text>
                       </View>
                     ) : position && (
-                      <View style={styles.stanceBadge}>
-                        <Text style={styles.stanceText}>{position.name}</Text>
+                      <View style={[
+                        styles.stanceBadge,
+                        { backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor }
+                      ]}>
+                        <Text style={[
+                          styles.stanceText,
+                          { color: colorScheme === 'dark' ? baseColor : '#fff' }
+                        ]}>
+                          {position.name}
+                        </Text>
                       </View>
                     )}
                   </View>
-                  <Text style={styles.messageText}>{message.text}</Text>
-                  <Text style={styles.messageTime}>
+                  <Text style={[
+                    styles.messageText,
+                    { color: colorScheme === 'dark' ? colors.text : colors.text }
+                  ]}>
+                    {message.text}
+                  </Text>
+                  <Text style={[
+                    styles.messageTime,
+                    { color: colors.textSecondary }
+                  ]}>
                     {formatTimestamp(message.timestamp)}
                   </Text>
                 </View>
@@ -418,29 +464,24 @@ const styles = StyleSheet.create({
   messageSender: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
   },
   stanceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   stanceText: {
     fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
-    color: '#fff',
   },
   messageText: {
     fontSize: 15,
     lineHeight: 20,
     marginBottom: 4,
-    color: '#fff',
   },
   messageTime: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
   },
   typingIndicator: {
     paddingHorizontal: 20,
