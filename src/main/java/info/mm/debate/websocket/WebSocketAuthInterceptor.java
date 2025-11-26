@@ -55,11 +55,11 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
                 }
             }
             
-            log.warn("✗ WebSocket connection rejected: No valid token provided. Query: {}", query);
+            log.trace("✗ WebSocket connection rejected: No valid token provided. Query: {}", query);
             return false;
             
         } catch (Exception e) {
-            log.error("✗ WebSocket authentication failed: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
+            log.trace("✗ WebSocket authentication failed: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return false;
         }
     }
