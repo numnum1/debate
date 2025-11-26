@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Represents an evaluation/rating given by a judge for arguments in a debate
@@ -24,7 +25,9 @@ public class Evaluation {
     
     private String judgeName;
     
-    private String messageId; // Optional: reference to a specific message being evaluated
+    private String messageId; // Optional: reference to a specific message being evaluated (deprecated, use referencedMessageIds)
+    
+    private List<String> referencedMessageIds; // Optional: references to multiple messages/threads being evaluated
     
     private String title; // Short title for the evaluation
     

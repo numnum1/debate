@@ -126,6 +126,7 @@ public class EvaluationService {
                     existingEval.setComment(updatedEvaluation.getComment());
                     existingEval.setPositionId(updatedEvaluation.getPositionId());
                     existingEval.setMessageId(updatedEvaluation.getMessageId());
+                    existingEval.setReferencedMessageIds(updatedEvaluation.getReferencedMessageIds());
                     
                     debate.setUpdatedAt(LocalDateTime.now());
                     debateRepository.save(debate);
