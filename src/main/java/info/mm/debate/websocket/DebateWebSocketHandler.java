@@ -444,5 +444,65 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         
         broadcastToDebateRoom(debateId, typingMessage);
     }
+    
+    /**
+     * Broadcast einer neuen Bewertung an alle Teilnehmer
+     * 
+     * @param debateId Die ID der Debatte
+     * @param evaluation Die neue Bewertung
+     */
+    public void broadcastEvaluationAdded(String debateId, Object evaluation) {
+        log.info("Broadcasting new evaluation to debate room: {}", debateId);
+        
+        WebSocketMessage evaluationMessage = WebSocketMessage.builder()
+                .type("debate:evaluation:added")
+                .payload(evaluation)
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, evaluationMessage);
+        
+        log.info("✓ Evaluation broadcast completed for room: {}", debateId);
+    }
+    
+    /**
+     * Broadcast einer aktualisierten Bewertung an alle Teilnehmer
+     * 
+     * @param debateId Die ID der Debatte
+     * @param evaluation Die aktualisierte Bewertung
+     */
+    public void broadcastEvaluationUpdated(String debateId, Object evaluation) {
+        log.info("Broadcasting updated evaluation to debate room: {}", debateId);
+        
+        WebSocketMessage evaluationMessage = WebSocketMessage.builder()
+                .type("debate:evaluation:updated")
+                .payload(evaluation)
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, evaluationMessage);
+        
+        log.info("✓ Evaluation update broadcast completed for room: {}", debateId);
+    }
+    
+    /**
+     * Broadcast einer gelöschten Bewertung an alle Teilnehmer
+     * 
+     * @param debateId Die ID der Debatte
+     * @param evaluationId Die ID der gelöschten Bewertung
+     */
+    public void broadcastEvaluationDeleted(String debateId, String evaluationId) {
+        log.info("Broadcasting deleted evaluation to debate room: {}", debateId);
+        
+        WebSocketMessage evaluationMessage = WebSocketMessage.builder()
+                .type("debate:evaluation:deleted")
+                .payload(Map.of("evaluationId", evaluationId))
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, evaluationMessage);
+        
+        log.info("✓ Evaluation deletion broadcast completed for room: {}", debateId);
+    }
 }
 

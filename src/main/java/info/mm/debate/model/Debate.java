@@ -44,6 +44,8 @@ public class Debate {
     
     private List<User> judges; // Juroren der Debatte (bewerten Argumente)
     
+    private List<Evaluation> evaluations; // Bewertungen der Juroren
+    
     public enum DebateStatus {
         pending,   // Frontend expects lowercase
         awaiting_acceptance,  // Waiting for invited participants to accept
