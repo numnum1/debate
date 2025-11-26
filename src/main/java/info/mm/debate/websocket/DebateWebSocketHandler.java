@@ -75,6 +75,9 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
                 case "debate:message":
                     handleDebateMessage(session, wsMessage);
                     break;
+                case "debate:thread:start":
+                    handleThreadStart(session, wsMessage);
+                    break;
                 case "debate:typing":
                     handleDebateTyping(session, wsMessage);
                     break;
@@ -224,6 +227,37 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             log.error("✗ Error handling debate:message: {}", e.getMessage(), e);
             sendError(session, "Error processing message: " + e.getMessage());
+        }
+    }
+
+    private void handleThreadStart(WebSocketSession session, WebSocketMessage message) {
+        try {
+            Map<String, Object> payload = (Map<String, Object>) message.getPayload();
+            String debateId = (String) payload.get("debateId");
+            String threadStarterMessageId = (String) payload.get("threadStarterMessageId");
+            
+            if (debateId == null || threadStarterMessageId == null) {
+                sendError(session, "debateId and threadStarterMessageId are required");
+                return;
+            }
+            
+            log.info("Thread started for message {} in debate {}", threadStarterMessageId, debateId);
+            
+            // Broadcast thread start to all users in the room
+            WebSocketMessage threadStartMessage = WebSocketMessage.builder()
+                    .type("debate:thread:started")
+                    .payload(Map.of(
+                            "debateId", debateId,
+                            "threadStarterMessageId", threadStarterMessageId
+                    ))
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            
+            broadcastToDebateRoom(debateId, threadStartMessage);
+            
+        } catch (Exception e) {
+            log.error("✗ Error handling debate:thread:start: {}", e.getMessage(), e);
+            sendError(session, "Error starting thread: " + e.getMessage());
         }
     }
 

@@ -20,5 +20,7 @@ public class DebateMessage {
     private String positionId;  // Null if message is from moderator
     private String slotId;      // Null if message is from moderator
     private Boolean isModerator; // True if message is from moderator
+    private String threadId;    // ID of the thread this message belongs to (null if not in a thread)
+    private String threadStarterMessageId; // ID of the original message that started this thread
 }
 
