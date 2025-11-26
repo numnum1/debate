@@ -47,6 +47,8 @@ export interface DebateMessage {
   positionId?: string; // Null if message is from moderator
   slotId?: string;     // Null if message is from moderator
   isModerator?: boolean; // True if message is from moderator
+  threadId?: string;    // ID of the thread this message belongs to (null if not in a thread)
+  threadStarterMessageId?: string; // ID of the original message that started this thread
 }
 
 export interface AiModelInfo {

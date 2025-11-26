@@ -16,6 +16,7 @@ interface DebateContextType {
   isLoading: boolean;
   error: string | null;
   typingUsers: TypingUser[];
+  activeThreadId: string | null;
   setCurrentDebate: (debate: Debate | null) => void;
   addDebate: (debate: Debate) => Promise<Debate>;
   updateDebate: (debateId: string, updates: Partial<Debate>) => Promise<void>;
@@ -37,6 +38,8 @@ interface DebateContextType {
   acceptInvitation: (debateId: string, positionId: string, slotId: string) => Promise<void>;
   declineInvitation: (debateId: string, positionId: string, slotId: string) => Promise<void>;
   hasUserPendingInvitation: (debate: Debate, userId: string) => boolean;
+  startThread: (messageId: string) => void;
+  closeThread: () => void;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -49,6 +52,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   
   // Initialize API and WebSocket with access token
   useEffect(() => {
@@ -1066,6 +1070,48 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Start a thread on a specific message
+   */
+  const startThread = (messageId: string) => {
+    if (!currentDebate) return;
+    
+    console.log('[DebateContext] Starting thread on message:', messageId);
+    setActiveThreadId(messageId);
+    
+    // Send thread start notification via WebSocket
+    websocket.send({
+      type: 'debate:thread:start',
+      payload: {
+        debateId: currentDebate.id,
+        threadStarterMessageId: messageId,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  };
+
+  /**
+   * Close the active thread
+   */
+  const closeThread = () => {
+    console.log('[DebateContext] Closing thread');
+    setActiveThreadId(null);
+  };
+
+  // Listen for thread start events
+  useEffect(() => {
+    const handleThreadStart = (data: any) => {
+      console.log('[DebateContext] Thread started:', data);
+      setActiveThreadId(data.threadStarterMessageId);
+    };
+
+    const unsubscribe = websocket.on('debate:thread:started', handleThreadStart);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   return (
     <DebateContext.Provider
       value={{
@@ -1075,6 +1121,7 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         typingUsers,
+        activeThreadId,
         setCurrentDebate,
         addDebate,
         updateDebate,
@@ -1096,6 +1143,8 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         acceptInvitation,
         declineInvitation,
         hasUserPendingInvitation,
+        startThread,
+        closeThread,
       }}
     >
       {children}

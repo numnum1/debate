@@ -10,6 +10,7 @@ type DebateUpdateCallback = (debate: Debate) => void;
 type ErrorCallback = (error: Error) => void;
 type ConnectionCallback = () => void;
 type TypingCallback = (data: { userId: string; userName: string; isTyping: boolean }) => void;
+type GenericCallback = (data: any) => void;
 
 /**
  * WebSocket Service Class
@@ -30,6 +31,7 @@ class WebSocketService {
   private connectCallbacks: ConnectionCallback[] = [];
   private disconnectCallbacks: ConnectionCallback[] = [];
   private typingCallbacks: TypingCallback[] = [];
+  private genericCallbacks: Map<string, GenericCallback[]> = new Map();
 
   /**
    * Set access token for authentication
@@ -100,6 +102,11 @@ class WebSocketService {
 
             default:
               console.log('[WebSocket] Unknown event type:', data.type);
+              // Check generic callbacks
+              const callbacks = this.genericCallbacks.get(data.type);
+              if (callbacks) {
+                callbacks.forEach(cb => cb(data.payload));
+              }
           }
         } catch (error) {
           console.error('[WebSocket] Error parsing message:', error);
@@ -169,7 +176,7 @@ class WebSocketService {
   /**
    * Send message through WebSocket
    */
-  private send(event: string, payload: any) {
+  private sendInternal(event: string, payload: any) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.error('[WebSocket] Not connected');
       return;
@@ -185,12 +192,24 @@ class WebSocketService {
   }
 
   /**
+   * Public send method for custom messages
+   */
+  send(message: { type: string; payload: any; timestamp: string }) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('[WebSocket] Not connected');
+      return;
+    }
+
+    this.ws.send(JSON.stringify(message));
+  }
+
+  /**
    * Join a debate room
    */
   joinDebate(debateId: string) {
     console.log(`[WebSocket] Joining debate: ${debateId}`);
     this.currentDebateId = debateId;
-    this.send(apiConfig.wsEvents.joinDebate, { debateId });
+    this.sendInternal(apiConfig.wsEvents.joinDebate, { debateId });
   }
 
   /**
@@ -198,7 +217,7 @@ class WebSocketService {
    */
   leaveDebate(debateId: string) {
     console.log(`[WebSocket] Leaving debate: ${debateId}`);
-    this.send(apiConfig.wsEvents.leaveDebate, { debateId });
+    this.sendInternal(apiConfig.wsEvents.leaveDebate, { debateId });
     
     if (this.currentDebateId === debateId) {
       this.currentDebateId = null;
@@ -209,7 +228,7 @@ class WebSocketService {
    * Send a message (optimistic, actual save is via API)
    */
   sendMessage(debateId: string, message: DebateMessage) {
-    this.send(apiConfig.wsEvents.newMessage, {
+    this.sendInternal(apiConfig.wsEvents.newMessage, {
       debateId,
       message,
     });
@@ -219,7 +238,7 @@ class WebSocketService {
    * Send typing indicator
    */
   sendTyping(debateId: string, isTyping: boolean) {
-    this.send('debate:typing', {
+    this.sendInternal('debate:typing', {
       debateId,
       isTyping,
     });
@@ -284,6 +303,26 @@ class WebSocketService {
     this.debateUpdateCallbacks.push(callback);
     return () => {
       this.debateUpdateCallbacks = this.debateUpdateCallbacks.filter(cb => cb !== callback);
+    };
+  }
+
+  /**
+   * Register callback for generic events
+   */
+  on(eventType: string, callback: GenericCallback) {
+    if (!this.genericCallbacks.has(eventType)) {
+      this.genericCallbacks.set(eventType, []);
+    }
+    this.genericCallbacks.get(eventType)!.push(callback);
+    
+    return () => {
+      const callbacks = this.genericCallbacks.get(eventType);
+      if (callbacks) {
+        this.genericCallbacks.set(
+          eventType, 
+          callbacks.filter(cb => cb !== callback)
+        );
+      }
     };
   }
 

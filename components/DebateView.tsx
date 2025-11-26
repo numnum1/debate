@@ -36,10 +36,14 @@ export function DebateView() {
     removeSlot,
     sendTypingIndicator,
     addModerator,
-    removeModerator
+    removeModerator,
+    activeThreadId,
+    startThread,
+    closeThread,
   } = useDebate();
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   
   // Settings state for pending debates
   const [editTitle, setEditTitle] = useState('');
@@ -142,6 +146,10 @@ export function DebateView() {
       timestamp: new Date(),
       positionId,
       slotId,
+      ...(activeThreadId && {
+        threadId: activeThreadId,
+        threadStarterMessageId: activeThreadId,
+      }),
     };
 
     addMessageToDebate(currentDebate.id, newMessage);
@@ -153,6 +161,9 @@ export function DebateView() {
       sendTypingIndicator(false);
     }
   };
+
+  // Check if current user is a moderator
+  const isCurrentUserModerator = currentDebate.moderators?.some(m => m.id === currentUser.id) || false;
 
   const formatTimestamp = (date: Date | string) => {
     // Konvertiere String zu Date, falls nötig
@@ -1129,119 +1140,158 @@ export function DebateView() {
             </Text>
           </View>
         ) : (
-          currentDebate.messages.map((message) => {
-            const isOwn = message.userId === currentUser.id;
-            const isModerator = message.isModerator === true;
-            const position = !isModerator ? currentDebate.positions.find(p => p.id === message.positionId) : null;
-            const moderatorColor = '#ff6347'; // rot-orangig (tomato red)
-            
+          (() => {
             // Utility-Funktion um Farben tonaler zu machen
             const makeTonal = (hexColor: string) => {
-              // Konvertiere hex zu RGB
               const hex = hexColor.replace('#', '');
               const r = parseInt(hex.substring(0, 2), 16);
               const g = parseInt(hex.substring(2, 4), 16);
               const b = parseInt(hex.substring(4, 6), 16);
-              
-              // Mische mit Weiß für sanftere Farbe (70% Weiß, 30% Originalfarbe)
               const mixRatio = 0.3;
               const newR = Math.round(r * mixRatio + 255 * (1 - mixRatio));
               const newG = Math.round(g * mixRatio + 255 * (1 - mixRatio));
               const newB = Math.round(b * mixRatio + 255 * (1 - mixRatio));
-              
               return `rgb(${newR}, ${newG}, ${newB})`;
             };
+
+            const moderatorColor = '#ff6347';
+
+            // Filtere Top-Level-Nachrichten (ohne threadId oder die ein Thread starten)
+            const topLevelMessages = currentDebate.messages.filter(m => !m.threadId);
             
-            // Bestimme die Farbe der Nachricht basierend auf der Position
-            const baseColor = isModerator ? moderatorColor : (position?.color || colors.primary);
-            const messageBackgroundColor = makeTonal(baseColor);
-            const messageBorderColor = baseColor;
-            
-            return (
-              <View
-                key={message.id}
-                style={[
-                  styles.message,
-                  isOwn && styles.ownMessage,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.messageBubble,
-                    { 
-                      backgroundColor: colorScheme === 'dark' ? `${baseColor}22` : messageBackgroundColor,
-                      borderWidth: 1.5,
-                      borderColor: colorScheme === 'dark' ? `${baseColor}66` : messageBorderColor,
-                    },
-                  ]}
-                >
-                  <View style={styles.messageHeader}>
-                    <Text
+            // Gruppiere Nachrichten nach Thread
+            const threadMessages = currentDebate.messages.filter(m => m.threadId);
+            const threadsByStarterId = new Map<string, DebateMessage[]>();
+            threadMessages.forEach(msg => {
+              if (msg.threadStarterMessageId) {
+                if (!threadsByStarterId.has(msg.threadStarterMessageId)) {
+                  threadsByStarterId.set(msg.threadStarterMessageId, []);
+                }
+                threadsByStarterId.get(msg.threadStarterMessageId)!.push(msg);
+              }
+            });
+
+            const renderMessage = (message: DebateMessage, inThread = false) => {
+              const isOwn = message.userId === currentUser.id;
+              const isModerator = message.isModerator === true;
+              const position = !isModerator ? currentDebate.positions.find(p => p.id === message.positionId) : null;
+              const baseColor = isModerator ? moderatorColor : (position?.color || colors.primary);
+              const messageBackgroundColor = makeTonal(baseColor);
+              const messageBorderColor = baseColor;
+              const isHovered = hoveredMessageId === message.id;
+              const hasThread = threadsByStarterId.has(message.id);
+              const isThreadActive = activeThreadId === message.id;
+
+              return (
+                <View key={message.id}>
+                  <View
+                    style={[
+                      styles.message,
+                      isOwn && styles.ownMessage,
+                      inThread && styles.threadMessage,
+                    ]}
+                    onMouseEnter={() => !inThread && setHoveredMessageId(message.id)}
+                    onMouseLeave={() => !inThread && setHoveredMessageId(null)}
+                  >
+                    <View
                       style={[
-                        styles.messageSender,
-                        { color: colorScheme === 'dark' ? colors.text : baseColor },
+                        styles.messageBubble,
+                        { 
+                          backgroundColor: colorScheme === 'dark' ? `${baseColor}22` : messageBackgroundColor,
+                          borderWidth: 1.5,
+                          borderColor: colorScheme === 'dark' ? `${baseColor}66` : messageBorderColor,
+                        },
                       ]}
                     >
-                      {message.userName}
-                    </Text>
-                    {isModerator ? (
-                      <View
-                        style={[
-                          styles.stanceBadge,
-                          { 
-                            backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.stanceText,
-                            { color: colorScheme === 'dark' ? baseColor : '#fff' },
-                          ]}
-                        >
-                          MODERATOR
+                      <View style={styles.messageHeader}>
+                        <Text style={[
+                          styles.messageSender,
+                          { color: colorScheme === 'dark' ? colors.text : baseColor }
+                        ]}>
+                          {message.userName}
                         </Text>
+                        {isModerator ? (
+                          <View style={[
+                            styles.stanceBadge,
+                            { backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor }
+                          ]}>
+                            <Text style={[
+                              styles.stanceText,
+                              { color: colorScheme === 'dark' ? baseColor : '#fff' }
+                            ]}>MODERATOR</Text>
+                          </View>
+                        ) : position && (
+                          <View style={[
+                            styles.stanceBadge,
+                            { backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor }
+                          ]}>
+                            <Text style={[
+                              styles.stanceText,
+                              { color: colorScheme === 'dark' ? baseColor : '#fff' }
+                            ]}>
+                              {position.name}
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                    ) : position && (
-                      <View
-                        style={[
-                          styles.stanceBadge,
-                          { 
-                            backgroundColor: colorScheme === 'dark' ? `${baseColor}44` : baseColor,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.stanceText,
-                            { color: colorScheme === 'dark' ? baseColor : '#fff' },
-                          ]}
+                      <Text style={[
+                        styles.messageText,
+                        { color: colorScheme === 'dark' ? colors.text : colors.text }
+                      ]}>
+                        {message.text}
+                      </Text>
+                      <Text style={[
+                        styles.messageTime,
+                        { color: colors.textSecondary }
+                      ]}>
+                        {formatTimestamp(message.timestamp)}
+                      </Text>
+                      {/* Thread starten Button (nur für Moderatoren, nur beim Hover, nicht in Threads) */}
+                      {!inThread && isCurrentUserModerator && isHovered && !hasThread && !isThreadActive && (
+                        <TouchableOpacity 
+                          style={[styles.threadStartButton, { backgroundColor: moderatorColor }]}
+                          onPress={() => startThread(message.id)}
                         >
-                          {position.name}
-                        </Text>
-                      </View>
-                    )}
+                          <Text style={styles.threadStartButtonText}>Thread starten</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
-                  <Text
-                    style={[
-                      styles.messageText,
-                      { color: colorScheme === 'dark' ? colors.text : colors.text },
-                    ]}
-                  >
-                    {message.text}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.messageTime,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {formatTimestamp(message.timestamp)}
-                  </Text>
+
+                  {/* Thread Card */}
+                  {(hasThread || isThreadActive) && (
+                    <View style={[
+                      styles.threadCard,
+                      { 
+                        backgroundColor: colorScheme === 'dark' ? `${moderatorColor}22` : makeTonal(moderatorColor),
+                        borderColor: moderatorColor,
+                      }
+                    ]}>
+                      <View style={styles.threadHeader}>
+                        <Ionicons name="chatbubbles" size={16} color={moderatorColor} />
+                        <Text style={[styles.threadTitle, { color: moderatorColor }]}>
+                          Thread
+                        </Text>
+                        {isThreadActive && (
+                          <TouchableOpacity onPress={closeThread} style={styles.closeThreadButton}>
+                            <Ionicons name="close" size={16} color={moderatorColor} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      {threadsByStarterId.get(message.id)?.map(threadMsg => renderMessage(threadMsg, true))}
+                      {isThreadActive && threadsByStarterId.get(message.id)?.length === 0 && (
+                        <Text style={[styles.threadEmptyText, { color: colors.textSecondary }]}>
+                          Noch keine Antworten in diesem Thread
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </View>
-              </View>
-            );
-          })
+              );
+            };
+
+            return topLevelMessages.map(message => renderMessage(message));
+          })()
         )}
       </ScrollView>
 
@@ -1939,6 +1989,50 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '500',
+  },
+  threadStartButton: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  threadStartButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  threadCard: {
+    marginTop: 8,
+    marginLeft: 20,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+  },
+  threadHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  threadTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    flex: 1,
+  },
+  closeThreadButton: {
+    padding: 4,
+  },
+  threadMessage: {
+    marginLeft: 0,
+    marginBottom: 12,
+  },
+  threadEmptyText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 8,
   },
 });
 
