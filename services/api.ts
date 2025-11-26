@@ -3,7 +3,7 @@
  */
 
 import { apiConfig } from '../config/api.config';
-import { Debate, DebateMessage, Position, Slot, User, AiModelInfo } from '../types';
+import { Debate, DebateMessage, Position, Slot, User, AiModelInfo, Evaluation } from '../types';
 
 /**
  * API Response Types
@@ -473,6 +473,59 @@ class ApiService {
       `/api/debates/${debateId}/judges/${userId}`
     );
     return response.data;
+  }
+
+  // ==================== Evaluation Endpoints ====================
+
+  /**
+   * Get all evaluations for a debate
+   */
+  async getEvaluations(debateId: string): Promise<Evaluation[]> {
+    const response = await this.get<ApiResponse<Evaluation[]>>(
+      `/api/debates/${debateId}/evaluations`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get evaluations by a specific judge
+   */
+  async getEvaluationsByJudge(debateId: string, judgeId: string): Promise<Evaluation[]> {
+    const response = await this.get<ApiResponse<Evaluation[]>>(
+      `/api/debates/${debateId}/evaluations/by-judge/${judgeId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Add a new evaluation
+   */
+  async addEvaluation(debateId: string, evaluation: Evaluation): Promise<Evaluation> {
+    const response = await this.post<ApiResponse<Evaluation>>(
+      `/api/debates/${debateId}/evaluations`,
+      evaluation
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing evaluation
+   */
+  async updateEvaluation(debateId: string, evaluationId: string, evaluation: Evaluation): Promise<Evaluation> {
+    const response = await this.put<ApiResponse<Evaluation>>(
+      `/api/debates/${debateId}/evaluations/${evaluationId}`,
+      evaluation
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete an evaluation
+   */
+  async deleteEvaluation(debateId: string, evaluationId: string): Promise<void> {
+    await this.delete<ApiResponse<void>>(
+      `/api/debates/${debateId}/evaluations/${evaluationId}`
+    );
   }
 }
 

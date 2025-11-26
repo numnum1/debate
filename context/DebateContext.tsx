@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { api, ApiError } from '../services/api';
 import { websocket } from '../services/websocket';
-import { Debate, DebateMessage, Position, Slot, User } from '../types';
+import { Debate, DebateMessage, Position, Slot, User, Evaluation } from '../types';
 import { useAuth } from './AuthContext';
 
 interface TypingUser {
@@ -42,6 +42,10 @@ interface DebateContextType {
   hasUserPendingInvitation: (debate: Debate, userId: string) => boolean;
   startThread: (messageId: string) => void;
   closeThread: () => void;
+  addEvaluation: (debateId: string, evaluation: Evaluation) => Promise<void>;
+  updateEvaluation: (debateId: string, evaluationId: string, evaluation: Evaluation) => Promise<void>;
+  deleteEvaluation: (debateId: string, evaluationId: string) => Promise<void>;
+  getEvaluationsByJudge: (debateId: string, judgeId: string) => Evaluation[];
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -1135,6 +1139,124 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     setActiveThreadId(null);
   };
 
+  /**
+   * Add an evaluation to a debate
+   */
+  const addEvaluation = async (debateId: string, evaluation: Evaluation) => {
+    try {
+      setError(null);
+      const savedEvaluation = await api.addEvaluation(debateId, evaluation);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => {
+        if (d.id === debateId) {
+          return {
+            ...d,
+            evaluations: [...(d.evaluations || []), savedEvaluation]
+          };
+        }
+        return d;
+      }));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          evaluations: [...(currentDebate.evaluations || []), savedEvaluation]
+        });
+      }
+      
+      console.log('[DebateContext] ✓ Evaluation added:', savedEvaluation.id);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Hinzufügen der Bewertung';
+      console.error('[DebateContext] ✗ Error adding evaluation:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Update an existing evaluation
+   */
+  const updateEvaluation = async (debateId: string, evaluationId: string, evaluation: Evaluation) => {
+    try {
+      setError(null);
+      const updatedEvaluation = await api.updateEvaluation(debateId, evaluationId, evaluation);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => {
+        if (d.id === debateId) {
+          return {
+            ...d,
+            evaluations: (d.evaluations || []).map(e => 
+              e.id === evaluationId ? updatedEvaluation : e
+            )
+          };
+        }
+        return d;
+      }));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          evaluations: (currentDebate.evaluations || []).map(e => 
+            e.id === evaluationId ? updatedEvaluation : e
+          )
+        });
+      }
+      
+      console.log('[DebateContext] ✓ Evaluation updated:', evaluationId);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Aktualisieren der Bewertung';
+      console.error('[DebateContext] ✗ Error updating evaluation:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Delete an evaluation
+   */
+  const deleteEvaluation = async (debateId: string, evaluationId: string) => {
+    try {
+      setError(null);
+      await api.deleteEvaluation(debateId, evaluationId);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => {
+        if (d.id === debateId) {
+          return {
+            ...d,
+            evaluations: (d.evaluations || []).filter(e => e.id !== evaluationId)
+          };
+        }
+        return d;
+      }));
+      
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          evaluations: (currentDebate.evaluations || []).filter(e => e.id !== evaluationId)
+        });
+      }
+      
+      console.log('[DebateContext] ✓ Evaluation deleted:', evaluationId);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Löschen der Bewertung';
+      console.error('[DebateContext] ✗ Error deleting evaluation:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Get evaluations by a specific judge
+   */
+  const getEvaluationsByJudge = (debateId: string, judgeId: string): Evaluation[] => {
+    const debate = debateId === currentDebate?.id ? currentDebate : debates.find(d => d.id === debateId);
+    if (!debate || !debate.evaluations) return [];
+    return debate.evaluations.filter(e => e.judgeId === judgeId);
+  };
+
   // Listen for thread start events
   useEffect(() => {
     const handleThreadStart = (data: any) => {
@@ -1148,6 +1270,87 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  // Listen for evaluation events
+  useEffect(() => {
+    const handleEvaluationAdded = (evaluation: Evaluation) => {
+      console.log('[DebateContext] Evaluation added:', evaluation);
+      
+      // Update debates list
+      setDebates(prev => prev.map(d => {
+        if (d.id === evaluation.debateId) {
+          return {
+            ...d,
+            evaluations: [...(d.evaluations || []), evaluation]
+          };
+        }
+        return d;
+      }));
+      
+      // Update current debate if it matches
+      if (currentDebate?.id === evaluation.debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          evaluations: [...(currentDebate.evaluations || []), evaluation]
+        });
+      }
+    };
+
+    const handleEvaluationUpdated = (evaluation: Evaluation) => {
+      console.log('[DebateContext] Evaluation updated:', evaluation);
+      
+      // Update debates list
+      setDebates(prev => prev.map(d => {
+        if (d.id === evaluation.debateId) {
+          return {
+            ...d,
+            evaluations: (d.evaluations || []).map(e => 
+              e.id === evaluation.id ? evaluation : e
+            )
+          };
+        }
+        return d;
+      }));
+      
+      // Update current debate if it matches
+      if (currentDebate?.id === evaluation.debateId) {
+        setCurrentDebate({
+          ...currentDebate,
+          evaluations: (currentDebate.evaluations || []).map(e => 
+            e.id === evaluation.id ? evaluation : e
+          )
+        });
+      }
+    };
+
+    const handleEvaluationDeleted = (data: { evaluationId: string }) => {
+      console.log('[DebateContext] Evaluation deleted:', data.evaluationId);
+      
+      // Update debates list - we need to find which debate the evaluation belonged to
+      setDebates(prev => prev.map(d => ({
+        ...d,
+        evaluations: (d.evaluations || []).filter(e => e.id !== data.evaluationId)
+      })));
+      
+      // Update current debate
+      if (currentDebate) {
+        setCurrentDebate({
+          ...currentDebate,
+          evaluations: (currentDebate.evaluations || []).filter(e => e.id !== data.evaluationId)
+        });
+      }
+    };
+
+    const unsubscribeAdded = websocket.on('debate:evaluation:added', handleEvaluationAdded);
+    const unsubscribeUpdated = websocket.on('debate:evaluation:updated', handleEvaluationUpdated);
+    const unsubscribeDeleted = websocket.on('debate:evaluation:deleted', handleEvaluationDeleted);
+
+    return () => {
+      if (unsubscribeAdded) unsubscribeAdded();
+      if (unsubscribeUpdated) unsubscribeUpdated();
+      if (unsubscribeDeleted) unsubscribeDeleted();
+    };
+  }, [currentDebate]);
 
   return (
     <DebateContext.Provider
@@ -1184,6 +1387,10 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         hasUserPendingInvitation,
         startThread,
         closeThread,
+        addEvaluation,
+        updateEvaluation,
+        deleteEvaluation,
+        getEvaluationsByJudge,
       }}
     >
       {children}

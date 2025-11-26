@@ -17,6 +17,8 @@ import { InviteParticipantModal } from './InviteParticipantModal';
 import { AiModelSelector } from './AiModelSelector';
 import { ModeratorManager } from './ModeratorManager';
 import { JudgeManager } from './JudgeManager';
+import { EvaluationForm } from './EvaluationForm';
+import { EvaluationSidebar } from './EvaluationSidebar';
 
 export function DebateView() {
   const colorScheme = useColorScheme();
@@ -43,6 +45,9 @@ export function DebateView() {
     activeThreadId,
     startThread,
     closeThread,
+    addEvaluation,
+    deleteEvaluation,
+    getEvaluationsByJudge,
   } = useDebate();
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -441,6 +446,27 @@ export function DebateView() {
     } catch (err: any) {
       console.error('[DebateView] ✗ Error removing judge:', err);
       alert(err.message || 'Fehler beim Entfernen des Jurors');
+    }
+  };
+
+  // Evaluation handlers
+  const handleAddEvaluation = async (evaluation: any) => {
+    try {
+      await addEvaluation(currentDebate.id, evaluation);
+      console.log('[DebateView] ✓ Evaluation added');
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error adding evaluation:', err);
+      alert(err.message || 'Fehler beim Speichern der Bewertung');
+    }
+  };
+
+  const handleDeleteEvaluation = async (evaluationId: string) => {
+    try {
+      await deleteEvaluation(currentDebate.id, evaluationId);
+      console.log('[DebateView] ✓ Evaluation deleted');
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error deleting evaluation:', err);
+      alert(err.message || 'Fehler beim Löschen der Bewertung');
     }
   };
 
@@ -1198,58 +1224,60 @@ export function DebateView() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <Text style={[styles.title, { color: colors.text }]}>{currentDebate.title}</Text>
-            <View style={styles.headerActions}>
-              {/* Close Debate Button - Only for owner on active/completed debates */}
-              {currentDebate.createdBy.id === currentUser.id && 
-               (currentDebate.status === 'active' || currentDebate.status === 'completed') && (
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={handleCloseDebate}
-                >
-                  <Ionicons name="archive-outline" size={20} color={colors.warning} />
+    <View style={[styles.container, { backgroundColor: colors.background, flexDirection: 'row' }]}>
+      {/* Main Content */}
+      <View style={{ flex: 1, flexDirection: 'column' }}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTop}>
+              <Text style={[styles.title, { color: colors.text }]}>{currentDebate.title}</Text>
+              <View style={styles.headerActions}>
+                {/* Close Debate Button - Only for owner on active/completed debates */}
+                {currentDebate.createdBy.id === currentUser.id && 
+                 (currentDebate.status === 'active' || currentDebate.status === 'completed') && (
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={handleCloseDebate}
+                  >
+                    <Ionicons name="archive-outline" size={20} color={colors.warning} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.iconButton}>
+                  <Ionicons name="person-add-outline" size={20} color={colors.text} />
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="person-add-outline" size={20} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton}>
+                  <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-          <Text style={[styles.description, { color: colors.textSecondary }]}>
-            {currentDebate.description}
-          </Text>
-          
-          {/* Tags */}
-          {currentDebate.tags && currentDebate.tags.length > 0 && (
-            <View style={[styles.tagsContainer, { marginBottom: 8 }]}>
-              {currentDebate.tags.map((tag) => (
-                <View 
-                  key={tag} 
-                  style={[styles.tagChipSmall, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
-                >
-                  <Text style={[styles.tagChipTextSmall, { color: colors.primary }]}>#{tag}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-          
-          {/* Positions */}
-          <View style={styles.participants}>
-            <Ionicons name="flag" size={16} color={colors.textSecondary} />
-            <Text style={[styles.participantsText, { color: colors.textSecondary }]}>
-              Positionen: {currentDebate.positions.map(p => p.name).join(', ') || 'Keine Positionen'}
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              {currentDebate.description}
             </Text>
+            
+            {/* Tags */}
+            {currentDebate.tags && currentDebate.tags.length > 0 && (
+              <View style={[styles.tagsContainer, { marginBottom: 8 }]}>
+                {currentDebate.tags.map((tag) => (
+                  <View 
+                    key={tag} 
+                    style={[styles.tagChipSmall, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+                  >
+                    <Text style={[styles.tagChipTextSmall, { color: colors.primary }]}>#{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            
+            {/* Positions */}
+            <View style={styles.participants}>
+              <Ionicons name="flag" size={16} color={colors.textSecondary} />
+              <Text style={[styles.participantsText, { color: colors.textSecondary }]}>
+                Positionen: {currentDebate.positions.map(p => p.name).join(', ') || 'Keine Positionen'}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
 
       {/* Messages */}
       <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
@@ -1473,20 +1501,39 @@ export function DebateView() {
         )}
       </View>
 
-      {/* Invite Participant Modal */}
-      <InviteParticipantModal
-        visible={showInviteModal}
-        onClose={handleCancelInvite}
-        onSelectUser={handleSelectUserForInvite}
-      />
+        {/* Invite Participant Modal */}
+        <InviteParticipantModal
+          visible={showInviteModal}
+          onClose={handleCancelInvite}
+          onSelectUser={handleSelectUserForInvite}
+        />
 
-      {/* AI Model Selector Modal */}
-      <AiModelSelector
-        visible={showModelSelector}
-        currentModel={editingSlot?.currentModel || 'gpt-4'}
-        onSelect={handleSelectModel}
-        onClose={handleCloseModelSelector}
-      />
+        {/* AI Model Selector Modal */}
+        <AiModelSelector
+          visible={showModelSelector}
+          currentModel={editingSlot?.currentModel || 'gpt-4'}
+          onSelect={handleSelectModel}
+          onClose={handleCloseModelSelector}
+        />
+      </View>
+
+      {/* Evaluation Column - Only for judges */}
+      {isCurrentUserJudge && (
+        <View style={[styles.evaluationColumn, { borderLeftColor: colors.border }]}>
+          <EvaluationSidebar
+            evaluations={getEvaluationsByJudge(currentDebate.id, currentUser.id)}
+            positions={currentDebate.positions}
+            onDeleteEvaluation={handleDeleteEvaluation}
+          />
+          <EvaluationForm
+            debateId={currentDebate.id}
+            judgeId={currentUser.id}
+            judgeName={currentUser.name}
+            positions={currentDebate.positions}
+            onSubmit={handleAddEvaluation}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -2208,6 +2255,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
+  },
+  evaluationColumn: {
+    width: 320,
+    borderLeftWidth: 1,
+    flexDirection: 'column',
   },
 });
 

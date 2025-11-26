@@ -38,6 +38,7 @@ export interface Debate {
   tags?: string[];
   moderators?: User[]; // Moderatoren der Debatte (dürfen keine Position vertreten)
   judges?: User[]; // Juroren der Debatte (bewerten Argumente)
+  evaluations?: Evaluation[]; // Bewertungen der Juroren
 }
 
 export interface DebateMessage {
@@ -59,5 +60,18 @@ export interface AiModelInfo {
   provider: string;
   description: string;
   available: boolean;
+}
+
+export interface Evaluation {
+  id: string;
+  debateId: string;
+  judgeId: string;
+  judgeName: string;
+  messageId?: string; // Optional: reference to a specific message being evaluated
+  title: string; // Short title for the evaluation
+  points: number; // Points awarded (e.g., 1-10)
+  comment: string; // Detailed evaluation comment
+  timestamp: Date | string;
+  positionId?: string; // Optional: which position is being evaluated
 }
 

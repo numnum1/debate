@@ -32,6 +32,7 @@ export function DebateSidebar() {
   const { logout } = useAuth();
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showPublicDebates, setShowPublicDebates] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handlePlusButtonPress = () => {
     setShowActionMenu(true);
@@ -281,15 +282,38 @@ export function DebateSidebar() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderRightColor: colors.border }]}>
+    <View style={[
+      styles.container, 
+      { 
+        backgroundColor: colors.surface, 
+        borderRightColor: colors.border,
+        width: isCollapsed ? 60 : 320,
+      }
+    ]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Debatten</Text>
-        <TouchableOpacity 
-          style={[styles.createButton, { backgroundColor: colors.primary }]}
-          onPress={handlePlusButtonPress}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        {!isCollapsed && (
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Debatten</Text>
+        )}
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          {!isCollapsed && (
+            <TouchableOpacity 
+              style={[styles.createButton, { backgroundColor: colors.primary }]}
+              onPress={handlePlusButtonPress}
+            >
+              <Ionicons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            style={[styles.toggleButton, { backgroundColor: colors.background }]}
+            onPress={() => setIsCollapsed(!isCollapsed)}
+          >
+            <Ionicons 
+              name={isCollapsed ? "chevron-forward" : "chevron-back"} 
+              size={20} 
+              color={colors.text} 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Action Menu Modal */}
@@ -364,132 +388,175 @@ export function DebateSidebar() {
         }}
       />
 
-      <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-        {/* Noch nicht gestartete Debatten - ohne Gruppenüberschrift ganz oben */}
-        {pendingDebates.length > 0 && (
-          <>
-            {pendingDebates.map(renderDebate)}
-          </>
-        )}
+{!isCollapsed ? (
+        <>
+          <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+            {/* Noch nicht gestartete Debatten - ohne Gruppenüberschrift ganz oben */}
+            {pendingDebates.length > 0 && (
+              <>
+                {pendingDebates.map(renderDebate)}
+              </>
+            )}
 
-        {/* Laufende Debatten */}
-        {activeDebates.length > 0 && (
-          <>
-            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
-              <Ionicons name="flame-outline" size={16} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Laufende Debatten
-              </Text>
-              <View style={[styles.sectionBadge, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.sectionBadgeText, { color: colors.primary }]}>
-                  {activeDebates.length}
+            {/* Laufende Debatten */}
+            {activeDebates.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="flame-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Laufende Debatten
+                  </Text>
+                  <View style={[styles.sectionBadge, { backgroundColor: colors.primary + '20' }]}>
+                    <Text style={[styles.sectionBadgeText, { color: colors.primary }]}>
+                      {activeDebates.length}
+                    </Text>
+                  </View>
+                </View>
+                {activeDebates.map(renderDebate)}
+              </>
+            )}
+
+            {/* Beobachter */}
+            {observerDebates.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="eye-outline" size={16} color={colors.textSecondary} />
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Beobachter
+                  </Text>
+                  <View style={[styles.sectionBadge, { backgroundColor: colors.textSecondary + '20' }]}>
+                    <Text style={[styles.sectionBadgeText, { color: colors.textSecondary }]}>
+                      {observerDebates.length}
+                    </Text>
+                  </View>
+                </View>
+                {observerDebates.map(renderDebate)}
+              </>
+            )}
+
+            {/* Beendete Debatten */}
+            {completedDebates.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Beendete Debatten
+                  </Text>
+                  <View style={[styles.sectionBadge, { backgroundColor: colors.primary + '20' }]}>
+                    <Text style={[styles.sectionBadgeText, { color: colors.primary }]}>
+                      {completedDebates.length}
+                    </Text>
+                  </View>
+                </View>
+                {completedDebates.map(renderDebate)}
+              </>
+            )}
+
+            {/* Archiv */}
+            {archivedDebates.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="archive-outline" size={16} color={colors.textSecondary} />
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Archiv
+                  </Text>
+                  <View style={[styles.sectionBadge, { backgroundColor: colors.textSecondary + '20' }]}>
+                    <Text style={[styles.sectionBadgeText, { color: colors.textSecondary }]}>
+                      {archivedDebates.length}
+                    </Text>
+                  </View>
+                </View>
+                {archivedDebates.map(renderDebate)}
+              </>
+            )}
+
+            {/* Keine Debatten vorhanden */}
+            {debates.length === 0 && (
+              <View style={styles.emptyState}>
+                <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} />
+                <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+                  Noch keine Debatten
+                </Text>
+                <Text style={[styles.emptyStateSubtext, { color: colors.textSecondary }]}>
+                  Erstelle eine neue Debatte, um zu beginnen
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* User Profile / Logout Section */}
+          <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+            <View style={styles.userInfo}>
+              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                <Text style={styles.avatarText}>
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.userDetails}>
+                <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+                  {currentUser.name}
+                </Text>
+                <Text style={[styles.userEmail, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {currentUser.email}
                 </Text>
               </View>
             </View>
-            {activeDebates.map(renderDebate)}
-          </>
-        )}
-
-        {/* Beobachter */}
-        {observerDebates.length > 0 && (
-          <>
-            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
-              <Ionicons name="eye-outline" size={16} color={colors.textSecondary} />
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Beobachter
-              </Text>
-              <View style={[styles.sectionBadge, { backgroundColor: colors.textSecondary + '20' }]}>
-                <Text style={[styles.sectionBadgeText, { color: colors.textSecondary }]}>
-                  {observerDebates.length}
-                </Text>
-              </View>
-            </View>
-            {observerDebates.map(renderDebate)}
-          </>
-        )}
-
-        {/* Beendete Debatten */}
-        {completedDebates.length > 0 && (
-          <>
-            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
-              <Ionicons name="checkmark-circle-outline" size={16} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Beendete Debatten
-              </Text>
-              <View style={[styles.sectionBadge, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.sectionBadgeText, { color: colors.primary }]}>
-                  {completedDebates.length}
-                </Text>
-              </View>
-            </View>
-            {completedDebates.map(renderDebate)}
-          </>
-        )}
-
-        {/* Archiv */}
-        {archivedDebates.length > 0 && (
-          <>
-            <View style={[styles.sectionHeader, { backgroundColor: colors.surface }]}>
-              <Ionicons name="archive-outline" size={16} color={colors.textSecondary} />
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Archiv
-              </Text>
-              <View style={[styles.sectionBadge, { backgroundColor: colors.textSecondary + '20' }]}>
-                <Text style={[styles.sectionBadgeText, { color: colors.textSecondary }]}>
-                  {archivedDebates.length}
-                </Text>
-              </View>
-            </View>
-            {archivedDebates.map(renderDebate)}
-          </>
-        )}
-
-        {/* Keine Debatten vorhanden */}
-        {debates.length === 0 && (
-          <View style={styles.emptyState}>
-            <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} />
-            <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-              Noch keine Debatten
-            </Text>
-            <Text style={[styles.emptyStateSubtext, { color: colors.textSecondary }]}>
-              Erstelle eine neue Debatte, um zu beginnen
-            </Text>
+            <TouchableOpacity
+              style={[styles.logoutButton, { backgroundColor: colors.error + '15' }]}
+              onPress={logout}
+            >
+              <Ionicons name="log-out-outline" size={20} color={colors.error} />
+              <Text style={[styles.logoutText, { color: colors.error }]}>Abmelden</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
-
-      {/* User Profile / Logout Section */}
-      <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-        <View style={styles.userInfo}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>
-              {currentUser.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View style={styles.userDetails}>
-            <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
-              {currentUser.name}
-            </Text>
-            <Text style={[styles.userEmail, { color: colors.textSecondary }]} numberOfLines={1}>
-              {currentUser.email}
-            </Text>
+        </>
+      ) : (
+        <View style={styles.collapsedContent}>
+          <TouchableOpacity 
+            style={[styles.collapsedButton, { backgroundColor: colors.primary }]}
+            onPress={handlePlusButtonPress}
+          >
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+          
+          {debates.length > 0 && (
+            <View style={styles.collapsedDebatesList}>
+              <View style={[styles.collapsedSectionDivider, { backgroundColor: colors.border }]} />
+              {debates.slice(0, 10).map((debate) => (
+                <TouchableOpacity
+                  key={debate.id}
+                  style={[
+                    styles.collapsedDebateItem,
+                    currentDebate?.id === debate.id && { backgroundColor: colors.primary + '20' }
+                  ]}
+                  onPress={() => setCurrentDebate(debate)}
+                >
+                  <View style={[
+                    styles.collapsedDebateDot,
+                    { backgroundColor: getStatusColor(debate.status) }
+                  ]} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          
+          <View style={{ flex: 1 }} />
+          
+          <View style={[styles.collapsedFooter, { borderTopColor: colors.border }]}>
+            <View style={[styles.avatar, { backgroundColor: colors.primary, width: 36, height: 36 }]}>
+              <Text style={[styles.avatarText, { fontSize: 16 }]}>
+                {currentUser.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
           </View>
         </View>
-        <TouchableOpacity
-          style={[styles.logoutButton, { backgroundColor: colors.error + '15' }]}
-          onPress={logout}
-        >
-          <Ionicons name="log-out-outline" size={20} color={colors.error} />
-          <Text style={[styles.logoutText, { color: colors.error }]}>Abmelden</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: 320,
     borderRightWidth: 1,
     flexDirection: 'column',
   },
@@ -515,6 +582,57 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  toggleButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  collapsedContent: {
+    flex: 1,
+    alignItems: 'center',
+    paddingTop: 20,
+  },
+  collapsedButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  collapsedDebatesList: {
+    marginTop: 20,
+    alignItems: 'center',
+    gap: 12,
+  },
+  collapsedSectionDivider: {
+    width: 30,
+    height: 1,
+    marginBottom: 8,
+  },
+  collapsedDebateItem: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  collapsedDebateDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  collapsedFooter: {
+    borderTopWidth: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   list: {
     flex: 1,
