@@ -80,5 +80,45 @@ public class UserController {
         int count = userService.syncUsersFromKeycloak();
         return ResponseEntity.ok(ApiResponse.success(count, count + " users synchronized from Keycloak"));
     }
+    
+    @Operation(
+            summary = "Vertrauens-Rang eines Benutzers setzen",
+            description = "Setzt den Vertrauens-Rang eines Benutzers auf 'unknown' oder 'trusted'"
+    )
+    @PutMapping("/{userId}/trusted-rank")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<User>> updateTrustedRank(
+            @PathVariable String userId,
+            @RequestParam String trustedRank,
+            @AuthenticationPrincipal Jwt jwt) {
+        
+        log.info("PUT /users/{}/trusted-rank?trustedRank={} - User: {}", 
+                userId, trustedRank, jwt.getSubject());
+        
+        try {
+            User updatedUser = userService.updateTrustedRank(userId, trustedRank);
+            return ResponseEntity.ok(ApiResponse.success(updatedUser, 
+                    "Vertrauens-Rang auf '" + trustedRank + "' aktualisiert"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error(e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    @Operation(
+            summary = "Benutzer nach Vertrauens-Rang filtern",
+            description = "Gibt alle Benutzer mit einem bestimmten Vertrauens-Rang zurück"
+    )
+    @GetMapping("/by-rank/{trustedRank}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<User>>> getUsersByTrustedRank(
+            @PathVariable String trustedRank) {
+        
+        log.info("GET /users/by-rank/{}", trustedRank);
+        List<User> users = userService.getUsersByTrustedRank(trustedRank);
+        return ResponseEntity.ok(ApiResponse.success(users));
+    }
 }
 

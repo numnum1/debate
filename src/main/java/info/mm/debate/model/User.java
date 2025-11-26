@@ -18,5 +18,9 @@ public class User {
     private String name;
     private String email;
     private String avatar;
+    
+    // Trust-Level für Debate-Teilnehmer
+    @Builder.Default
+    private String trustedRank = "unknown";  // "unknown" oder "trusted"
 }
 

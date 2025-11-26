@@ -74,11 +74,16 @@ public class UserService {
                 boolean emailChanged = !java.util.Objects.equals(existing.getEmail(), user.getEmail());
                 
                 if (nameChanged || emailChanged) {
+                    // Preserve trustedRank when updating from JWT
+                    user.setTrustedRank(existing.getTrustedRank());
                     userRepository.save(user);
                     log.debug("Updated cached user: {}", user.getId());
                 }
             } else {
-                // Save new user
+                // Save new user with default trustedRank "unknown"
+                if (user.getTrustedRank() == null) {
+                    user.setTrustedRank("unknown");
+                }
                 userRepository.save(user);
                 log.debug("Cached new user: {}", user.getId());
             }
@@ -133,6 +138,14 @@ public class UserService {
             int synced = 0;
             for (User user : keycloakUsers) {
                 try {
+                    // Preserve existing trustedRank if user already exists
+                    Optional<User> existingUser = userRepository.findById(user.getId());
+                    if (existingUser.isPresent()) {
+                        user.setTrustedRank(existingUser.get().getTrustedRank());
+                    } else {
+                        user.setTrustedRank("unknown");
+                    }
+                    
                     userRepository.save(user);
                     synced++;
                 } catch (Exception e) {
@@ -146,6 +159,37 @@ public class UserService {
             log.error("✗ Error during user synchronization: {}", e.getMessage(), e);
             return 0;
         }
+    }
+    
+    /**
+     * Aktualisiert den Vertrauens-Rang eines Users
+     */
+    public User updateTrustedRank(String userId, String trustedRank) {
+        log.info("Updating trusted rank for user {} to {}", userId, trustedRank);
+        
+        // Validierung
+        if (!trustedRank.equals("unknown") && !trustedRank.equals("trusted")) {
+            throw new IllegalArgumentException("Invalid trusted rank. Must be 'unknown' or 'trusted'");
+        }
+        
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("User not found: " + userId);
+        }
+        
+        User user = userOpt.get();
+        user.setTrustedRank(trustedRank);
+        User savedUser = userRepository.save(user);
+        
+        log.info("✓ Updated trusted rank for user {} to {}", userId, trustedRank);
+        return savedUser;
+    }
+    
+    /**
+     * Findet alle User mit einem bestimmten Vertrauens-Rang
+     */
+    public List<User> getUsersByTrustedRank(String trustedRank) {
+        return userRepository.findByTrustedRank(trustedRank);
     }
 }
 

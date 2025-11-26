@@ -24,5 +24,10 @@ public interface UserRepository extends MongoRepository<User, String> {
      * Find user by email
      */
     Optional<User> findByEmail(String email);
+    
+    /**
+     * Find users by trusted rank
+     */
+    List<User> findByTrustedRank(String trustedRank);
 }
 
