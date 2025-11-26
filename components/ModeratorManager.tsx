@@ -93,6 +93,9 @@ export function ModeratorManager({
                 Moderatoren können an der Debatte teilnehmen, ohne eine Position zu vertreten.
                 Sie haben eine rot-orangige Farbe im Chat.
               </Text>
+              <Text style={[styles.descriptionText, { color: colors.textSecondary, marginTop: 8, fontStyle: 'italic' }]}>
+                Hinweis: Moderatoren dürfen nicht gleichzeitig Teilnehmer, Juroren oder Owner der Debatte sein.
+              </Text>
             </View>
 
             {/* Moderators List */}
@@ -121,7 +124,7 @@ export function ModeratorManager({
                           {moderator.name}
                         </Text>
                         <Text style={[styles.moderatorEmail, { color: colors.textSecondary }]}>
-                          {moderator.email}
+                          {moderator.email || 'Keine E-Mail'}
                         </Text>
                       </View>
                     </View>

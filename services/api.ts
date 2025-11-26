@@ -441,6 +441,39 @@ class ApiService {
     );
     return response.data;
   }
+
+  // ==================== Judge Endpoints ====================
+
+  /**
+   * Get judges for a debate
+   */
+  async getJudges(debateId: string): Promise<User[]> {
+    const response = await this.get<ApiResponse<User[]>>(
+      `/api/debates/${debateId}/judges`
+    );
+    return response.data;
+  }
+
+  /**
+   * Add judge to debate
+   */
+  async addJudge(debateId: string, judge: User): Promise<Debate> {
+    const response = await this.post<ApiResponse<Debate>>(
+      `/api/debates/${debateId}/judges`,
+      judge
+    );
+    return response.data;
+  }
+
+  /**
+   * Remove judge from debate
+   */
+  async removeJudge(debateId: string, userId: string): Promise<Debate> {
+    const response = await this.delete<ApiResponse<Debate>>(
+      `/api/debates/${debateId}/judges/${userId}`
+    );
+    return response.data;
+  }
 }
 
 // Export singleton instance

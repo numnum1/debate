@@ -18,6 +18,7 @@ import { Colors } from '../../constants/Colors';
 import { Debate, Position, User } from '../../types';
 import { useDebate } from '../../context/DebateContext';
 import { PositionManager } from './settings/PositionManager';
+import { JudgeManager } from '../JudgeManager';
 
 interface PendingDebateViewProps {
   debate: Debate;
@@ -34,12 +35,15 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
     addPosition,
     updatePosition,
     removePosition,
+    addJudge,
+    removeJudge,
   } = useDebate();
   
   const [editTitle, setEditTitle] = useState(debate.title);
   const [editDescription, setEditDescription] = useState(debate.description || '');
   const [editTags, setEditTags] = useState<string[]>(debate.tags || []);
   const [newTag, setNewTag] = useState('');
+  const [showJudgeManager, setShowJudgeManager] = useState(false);
 
   const isOwner = debate.createdBy?.id === currentUser.id;
 
@@ -132,6 +136,22 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
   const handleDeleteDebate = () => {
     if (isOwner) {
       deleteDebate(debate.id);
+    }
+  };
+
+  const handleAddJudge = async (judge: User) => {
+    try {
+      await addJudge(debate.id, judge);
+    } catch (err) {
+      console.error('Error adding judge:', err);
+    }
+  };
+
+  const handleRemoveJudge = async (userId: string) => {
+    try {
+      await removeJudge(debate.id, userId);
+    } catch (err) {
+      console.error('Error removing judge:', err);
     }
   };
 
@@ -311,6 +331,49 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
           onRemovePosition={(positionId) => removePosition(debate.id, positionId)}
         />
 
+        {/* Judges Section */}
+        <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.settingsSectionHeader}>
+            <Ionicons name="ribbon-outline" size={20} color="#8b5cf6" />
+            <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Juroren</Text>
+          </View>
+          <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+            Juroren bewerten die Argumente in der Debatte. Sie haben eine violette Farbe im Chat.
+            {'\n'}
+            <Text style={{ fontStyle: 'italic' }}>
+              Hinweis: Juroren dürfen nicht gleichzeitig Teilnehmer, Moderatoren oder Owner sein.
+            </Text>
+          </Text>
+          
+          {debate.judges && debate.judges.length > 0 ? (
+            <View style={styles.judgesPreviewContainer}>
+              {debate.judges.map((judge) => (
+                <View 
+                  key={judge.id} 
+                  style={[styles.judgeChip, { backgroundColor: '#8b5cf6' + '20', borderColor: '#8b5cf6' }]}
+                >
+                  <Ionicons name="ribbon" size={14} color="#8b5cf6" />
+                  <Text style={[styles.judgeChipText, { color: '#8b5cf6' }]}>{judge.name}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+              Noch keine Juroren hinzugefügt
+            </Text>
+          )}
+          
+          {isOwner && (
+            <TouchableOpacity
+              style={[styles.manageButton, { backgroundColor: '#8b5cf6' }]}
+              onPress={() => setShowJudgeManager(true)}
+            >
+              <Ionicons name="settings-outline" size={18} color="#fff" />
+              <Text style={styles.manageButtonText}>Juroren verwalten</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Start Debate Section */}
         <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.settingsSectionHeader}>
@@ -378,6 +441,16 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
           </View>
         )}
       </ScrollView>
+
+      {/* Judge Manager Modal */}
+      <JudgeManager
+        visible={showJudgeManager}
+        judges={debate.judges || []}
+        currentUserId={currentUser.id}
+        onClose={() => setShowJudgeManager(false)}
+        onAddJudge={handleAddJudge}
+        onRemoveJudge={handleRemoveJudge}
+      />
     </View>
   );
 }
@@ -571,6 +644,43 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  judgesPreviewContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  judgeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  judgeChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  emptyHint: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  manageButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

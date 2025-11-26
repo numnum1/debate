@@ -35,6 +35,8 @@ interface DebateContextType {
   addModerator: (debateId: string, moderator: User) => Promise<void>;
   removeModerator: (debateId: string, userId: string) => Promise<void>;
   isModerator: (debateId: string, userId: string) => Promise<boolean>;
+  addJudge: (debateId: string, judge: User) => Promise<void>;
+  removeJudge: (debateId: string, userId: string) => Promise<void>;
   acceptInvitation: (debateId: string, positionId: string, slotId: string) => Promise<void>;
   declineInvitation: (debateId: string, positionId: string, slotId: string) => Promise<void>;
   hasUserPendingInvitation: (debate: Debate, userId: string) => boolean;
@@ -558,21 +560,16 @@ export function DebateProvider({ children }: { children: ReactNode }) {
    * Remove position from debate
    */
   const removePosition = async (debateId: string, positionId: string) => {
+    // Store removed position for rollback
+    const removedPosition = currentDebate?.positions.find(p => p.id === positionId) || null;
+    
     try {
       setIsLoading(true);
       setError(null);
       
-      // Store removed position for rollback
-      let removedPosition: Position | null = null;
-      
       // Optimistic update - remove position immediately from UI
       setCurrentDebate(prev => {
         if (!prev || prev.id !== debateId) return prev;
-        
-        const positionToRemove = prev.positions.find(p => p.id === positionId);
-        if (positionToRemove) {
-          removedPosition = positionToRemove; // Store for rollback
-        }
         
         return {
           ...prev,
@@ -743,9 +740,6 @@ export function DebateProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // Store original slot for rollback
-      let originalSlot: Slot | null = null;
-      
       // Optimistic update - apply changes immediately to UI
       setCurrentDebate(prev => {
         if (!prev || prev.id !== debateId) return prev;
@@ -758,7 +752,6 @@ export function DebateProvider({ children }: { children: ReactNode }) {
                 ...pos,
                 slots: pos.slots.map(s => {
                   if (s.id === slotId) {
-                    originalSlot = s; // Store for rollback
                     return { ...s, ...updates };
                   }
                   return s;
@@ -843,12 +836,14 @@ export function DebateProvider({ children }: { children: ReactNode }) {
    * Remove slot from position
    */
   const removeSlot = async (debateId: string, positionId: string, slotId: string) => {
+    // Store removed slot for rollback
+    const removedSlot = currentDebate?.positions
+      .find(p => p.id === positionId)?.slots
+      .find(s => s.id === slotId) || null;
+    
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Store removed slot for rollback
-      let removedSlot: Slot | null = null;
       
       // Optimistic update - remove slot immediately from UI
       setCurrentDebate(prev => {
@@ -858,10 +853,6 @@ export function DebateProvider({ children }: { children: ReactNode }) {
           ...prev,
           positions: prev.positions.map(pos => {
             if (pos.id === positionId) {
-              const slotToRemove = pos.slots.find(s => s.id === slotId);
-              if (slotToRemove) {
-                removedSlot = slotToRemove; // Store for rollback
-              }
               return {
                 ...pos,
                 slots: pos.slots.filter(s => s.id !== slotId),
@@ -1024,6 +1015,52 @@ export function DebateProvider({ children }: { children: ReactNode }) {
   };
 
   /**
+   * Add judge to debate
+   */
+  const addJudge = async (debateId: string, judge: User) => {
+    try {
+      setError(null);
+      const updatedDebate = await api.addJudge(debateId, judge);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => d.id === debateId ? updatedDebate : d));
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updatedDebate);
+      }
+      
+      console.log('[DebateContext] ✓ Judge added:', judge.id);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Hinzufügen des Jurors';
+      console.error('[DebateContext] ✗ Error adding judge:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Remove judge from debate
+   */
+  const removeJudge = async (debateId: string, userId: string) => {
+    try {
+      setError(null);
+      const updatedDebate = await api.removeJudge(debateId, userId);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => d.id === debateId ? updatedDebate : d));
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updatedDebate);
+      }
+      
+      console.log('[DebateContext] ✓ Judge removed:', userId);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Entfernen des Jurors';
+      console.error('[DebateContext] ✗ Error removing judge:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
    * Check if user has pending invitation for a debate
    */
   const hasUserPendingInvitation = (debate: Debate, userId: string): boolean => {
@@ -1140,6 +1177,8 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         addModerator,
         removeModerator,
         isModerator,
+        addJudge,
+        removeJudge,
         acceptInvitation,
         declineInvitation,
         hasUserPendingInvitation,

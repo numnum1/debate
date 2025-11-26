@@ -131,7 +131,9 @@ export function InviteParticipantModal({
       </View>
       <View style={styles.userInfo}>
         <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
-        <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{item.email}</Text>
+        <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+          {item.email || 'Keine E-Mail'}
+        </Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
     </TouchableOpacity>

@@ -36,6 +36,7 @@ export interface Debate {
   messages: DebateMessage[];
   tags?: string[];
   moderators?: User[]; // Moderatoren der Debatte (dürfen keine Position vertreten)
+  judges?: User[]; // Juroren der Debatte (bewerten Argumente)
 }
 
 export interface DebateMessage {

@@ -16,6 +16,7 @@ import { DebateMessage, User } from '../types';
 import { InviteParticipantModal } from './InviteParticipantModal';
 import { AiModelSelector } from './AiModelSelector';
 import { ModeratorManager } from './ModeratorManager';
+import { JudgeManager } from './JudgeManager';
 
 export function DebateView() {
   const colorScheme = useColorScheme();
@@ -37,6 +38,8 @@ export function DebateView() {
     sendTypingIndicator,
     addModerator,
     removeModerator,
+    addJudge,
+    removeJudge,
     activeThreadId,
     startThread,
     closeThread,
@@ -64,6 +67,9 @@ export function DebateView() {
   
   // Moderator manager state
   const [showModeratorManager, setShowModeratorManager] = useState(false);
+  
+  // Judge manager state
+  const [showJudgeManager, setShowJudgeManager] = useState(false);
 
   // Initialize edit fields when debate changes
   React.useEffect(() => {
@@ -414,6 +420,31 @@ export function DebateView() {
     } catch (err: any) {
       console.error('[DebateView] ✗ Error removing moderator:', err);
       alert(err.message || 'Fehler beim Entfernen des Moderators');
+    }
+  };
+
+  // Judge management handlers
+  const handleOpenJudgeManager = () => {
+    setShowJudgeManager(true);
+  };
+
+  const handleAddJudgeUser = async (user: User) => {
+    try {
+      await addJudge(currentDebate.id, user);
+      console.log('[DebateView] ✓ Judge added:', user.name);
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error adding judge:', err);
+      alert(err.message || 'Fehler beim Hinzufügen des Jurors');
+    }
+  };
+
+  const handleRemoveJudgeUser = async (userId: string) => {
+    try {
+      await removeJudge(currentDebate.id, userId);
+      console.log('[DebateView] ✓ Judge removed:', userId);
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error removing judge:', err);
+      alert(err.message || 'Fehler beim Entfernen des Jurors');
     }
   };
 
@@ -1081,6 +1112,15 @@ export function DebateView() {
                   <Ionicons name="people-outline" size={20} color="#ff6347" />
                 </TouchableOpacity>
               )}
+              {/* Judge Manager Button - Only for owner */}
+              {currentDebate.createdBy.id === currentUser.id && (
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={handleOpenJudgeManager}
+                >
+                  <Ionicons name="ribbon-outline" size={20} color="#8b5cf6" />
+                </TouchableOpacity>
+              )}
               {/* Close Debate Button - Only for owner on active/completed debates */}
               {currentDebate.createdBy.id === currentUser.id && 
                (currentDebate.status === 'active' || currentDebate.status === 'completed') && (
@@ -1363,6 +1403,16 @@ export function DebateView() {
         onClose={() => setShowModeratorManager(false)}
         onAddModerator={handleAddModeratorUser}
         onRemoveModerator={handleRemoveModeratorUser}
+      />
+
+      {/* Judge Manager Modal */}
+      <JudgeManager
+        visible={showJudgeManager}
+        judges={currentDebate.judges || []}
+        currentUserId={currentUser.id}
+        onClose={() => setShowJudgeManager(false)}
+        onAddJudge={handleAddJudgeUser}
+        onRemoveJudge={handleRemoveJudgeUser}
       />
     </View>
   );
