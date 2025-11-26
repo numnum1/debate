@@ -43,6 +43,9 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
 
   // Check if current user is a moderator
   const isCurrentUserModerator = debate.moderators?.some(m => m.id === currentUser.id) || false;
+  
+  // Check if current user is a judge
+  const isCurrentUserJudge = debate.judges?.some(j => j.id === currentUser.id) || false;
 
   // Find the position and slot of the current user in this debate
   const getUserPositionAndSlot = () => {
@@ -87,6 +90,9 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
 
   const handleSendMessage = () => {
     if (!messageText.trim()) return;
+    
+    // Judges cannot send messages
+    if (isCurrentUserJudge) return;
 
     const { positionId, slotId } = getUserPositionAndSlot();
 
@@ -351,34 +357,43 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
 
       {/* Input Area */}
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <View style={styles.inputRow}>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.background,
-                color: colors.text,
-                borderColor: colors.border,
-              },
-            ]}
-            placeholder="Geben Sie Ihren Beitrag ein..."
-            placeholderTextColor={colors.textSecondary}
-            value={messageText}
-            onChangeText={setMessageText}
-            multiline
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              { backgroundColor: colors.primary },
-              !messageText.trim() && { opacity: 0.5 },
-            ]}
-            onPress={handleSendMessage}
-            disabled={!messageText.trim()}
-          >
-            <Ionicons name="send" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        {isCurrentUserJudge ? (
+          <View style={[styles.judgeNoticeContainer, { backgroundColor: colors.info + '15' }]}>
+            <Ionicons name="ribbon" size={20} color="#8b5cf6" />
+            <Text style={[styles.judgeNoticeText, { color: colors.textSecondary }]}>
+              Als Juror können Sie die Debatte beobachten und bewerten, aber keine Nachrichten verfassen.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.inputRow}>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder="Geben Sie Ihren Beitrag ein..."
+              placeholderTextColor={colors.textSecondary}
+              value={messageText}
+              onChangeText={setMessageText}
+              multiline
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                { backgroundColor: colors.primary },
+                !messageText.trim() && { opacity: 0.5 },
+              ]}
+              onPress={handleSendMessage}
+              disabled={!messageText.trim()}
+            >
+              <Ionicons name="send" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -592,6 +607,20 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 8,
+  },
+  // Judge notice styles
+  judgeNoticeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+    borderRadius: 8,
+    margin: 8,
+  },
+  judgeNoticeText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 
