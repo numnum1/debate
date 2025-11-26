@@ -17,8 +17,6 @@ import { Colors } from '../../constants/Colors';
 import { Debate, DebateMessage, User } from '../../types';
 import { useDebate } from '../../context/DebateContext';
 import { formatTimestamp } from '../../utils/helpers';
-import { ModeratorManager } from '../ModeratorManager';
-import { JudgeManager } from '../JudgeManager';
 
 interface ActiveDebateViewProps {
   debate: Debate;
@@ -34,10 +32,6 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
     addMessageToDebate,
     sendTypingIndicator,
     closeDebate,
-    addModerator,
-    removeModerator,
-    addJudge,
-    removeJudge,
     activeThreadId,
     startThread,
     closeThread,
@@ -45,8 +39,6 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
   
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showModeratorManager, setShowModeratorManager] = useState(false);
-  const [showJudgeManager, setShowJudgeManager] = useState(false);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
   // Check if current user is a moderator
@@ -127,42 +119,6 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
     }
   };
 
-  const handleAddModerator = async (user: User) => {
-    try {
-      await addModerator(debate.id, user);
-    } catch (err: any) {
-      console.error('Error adding moderator:', err);
-      alert(err.message || 'Fehler beim Hinzufügen des Moderators');
-    }
-  };
-
-  const handleRemoveModerator = async (userId: string) => {
-    try {
-      await removeModerator(debate.id, userId);
-    } catch (err: any) {
-      console.error('Error removing moderator:', err);
-      alert(err.message || 'Fehler beim Entfernen des Moderators');
-    }
-  };
-
-  const handleAddJudge = async (user: User) => {
-    try {
-      await addJudge(debate.id, user);
-    } catch (err: any) {
-      console.error('Error adding judge:', err);
-      alert(err.message || 'Fehler beim Hinzufügen des Jurors');
-    }
-  };
-
-  const handleRemoveJudge = async (userId: string) => {
-    try {
-      await removeJudge(debate.id, userId);
-    } catch (err: any) {
-      console.error('Error removing judge:', err);
-      alert(err.message || 'Fehler beim Entfernen des Jurors');
-    }
-  };
-
   const isOwner = debate.createdBy.id === currentUser.id;
 
   return (
@@ -173,24 +129,6 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
           <View style={styles.headerTop}>
             <Text style={[styles.title, { color: colors.text }]}>{debate.title}</Text>
             <View style={styles.headerActions}>
-              {/* Moderator Manager Button - Only for owner */}
-              {isOwner && (
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={() => setShowModeratorManager(true)}
-                >
-                  <Ionicons name="people-outline" size={20} color="#ff6347" />
-                </TouchableOpacity>
-              )}
-              {/* Judge Manager Button - Only for owner */}
-              {isOwner && (
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={() => setShowJudgeManager(true)}
-                >
-                  <Ionicons name="ribbon-outline" size={20} color="#8b5cf6" />
-                </TouchableOpacity>
-              )}
               {/* Close Debate Button - Only for owner on active/completed debates */}
               {isOwner && (debate.status === 'active' || debate.status === 'completed') && (
                 <TouchableOpacity 
@@ -442,26 +380,6 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Moderator Manager Modal */}
-      <ModeratorManager
-        visible={showModeratorManager}
-        moderators={debate.moderators || []}
-        currentUserId={currentUser.id}
-        onClose={() => setShowModeratorManager(false)}
-        onAddModerator={handleAddModerator}
-        onRemoveModerator={handleRemoveModerator}
-      />
-
-      {/* Judge Manager Modal */}
-      <JudgeManager
-        visible={showJudgeManager}
-        judges={debate.judges || []}
-        currentUserId={currentUser.id}
-        onClose={() => setShowJudgeManager(false)}
-        onAddJudge={handleAddJudge}
-        onRemoveJudge={handleRemoveJudge}
-      />
     </View>
   );
 }

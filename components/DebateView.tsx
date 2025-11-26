@@ -65,10 +65,8 @@ export function DebateView() {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [editingSlot, setEditingSlot] = useState<{ positionId: string; slotId: string; currentModel: string } | null>(null);
   
-  // Moderator manager state
+  // Moderator and Judge manager state (only for pending debates)
   const [showModeratorManager, setShowModeratorManager] = useState(false);
-  
-  // Judge manager state
   const [showJudgeManager, setShowJudgeManager] = useState(false);
 
   // Initialize edit fields when debate changes
@@ -398,11 +396,7 @@ export function DebateView() {
     setEditingSlot(null);
   };
 
-  // Moderator management handlers
-  const handleOpenModeratorManager = () => {
-    setShowModeratorManager(true);
-  };
-
+  // Moderator management handlers (only for pending debates)
   const handleAddModeratorUser = async (user: User) => {
     try {
       await addModerator(currentDebate.id, user);
@@ -423,11 +417,7 @@ export function DebateView() {
     }
   };
 
-  // Judge management handlers
-  const handleOpenJudgeManager = () => {
-    setShowJudgeManager(true);
-  };
-
+  // Judge management handlers (only for pending debates)
   const handleAddJudgeUser = async (user: User) => {
     try {
       await addJudge(currentDebate.id, user);
@@ -909,6 +899,92 @@ export function DebateView() {
             </View>
           </View>
 
+          {/* Moderators Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="people-outline" size={20} color="#ff6347" />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Moderatoren</Text>
+            </View>
+            <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+              Moderatoren können an der Debatte teilnehmen, ohne eine Position zu vertreten. Sie haben eine rot-orangige Farbe im Chat.
+              {'\n'}
+              <Text style={{ fontStyle: 'italic' }}>
+                Hinweis: Moderatoren dürfen nicht gleichzeitig Teilnehmer, Juroren oder Owner sein.
+              </Text>
+            </Text>
+            
+            {currentDebate.moderators && currentDebate.moderators.length > 0 ? (
+              <View style={styles.judgesPreviewContainer}>
+                {currentDebate.moderators.map((moderator) => (
+                  <View 
+                    key={moderator.id} 
+                    style={[styles.judgeChip, { backgroundColor: '#ff6347' + '20', borderColor: '#ff6347' }]}
+                  >
+                    <Ionicons name="person" size={14} color="#ff6347" />
+                    <Text style={[styles.judgeChipText, { color: '#ff6347' }]}>{moderator.name}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+                Noch keine Moderatoren hinzugefügt
+              </Text>
+            )}
+            
+            {isOwner && (
+              <TouchableOpacity
+                style={[styles.manageButton, { backgroundColor: '#ff6347' }]}
+                onPress={() => setShowModeratorManager(true)}
+              >
+                <Ionicons name="settings-outline" size={18} color="#fff" />
+                <Text style={styles.manageButtonText}>Moderatoren verwalten</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Judges Section */}
+          <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.settingsSectionHeader}>
+              <Ionicons name="ribbon-outline" size={20} color="#8b5cf6" />
+              <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Juroren</Text>
+            </View>
+            <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+              Juroren bewerten die Argumente in der Debatte. Sie haben eine violette Farbe im Chat.
+              {'\n'}
+              <Text style={{ fontStyle: 'italic' }}>
+                Hinweis: Juroren dürfen nicht gleichzeitig Teilnehmer, Moderatoren oder Owner sein.
+              </Text>
+            </Text>
+            
+            {currentDebate.judges && currentDebate.judges.length > 0 ? (
+              <View style={styles.judgesPreviewContainer}>
+                {currentDebate.judges.map((judge) => (
+                  <View 
+                    key={judge.id} 
+                    style={[styles.judgeChip, { backgroundColor: '#8b5cf6' + '20', borderColor: '#8b5cf6' }]}
+                  >
+                    <Ionicons name="ribbon" size={14} color="#8b5cf6" />
+                    <Text style={[styles.judgeChipText, { color: '#8b5cf6' }]}>{judge.name}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+                Noch keine Juroren hinzugefügt
+              </Text>
+            )}
+            
+            {isOwner && (
+              <TouchableOpacity
+                style={[styles.manageButton, { backgroundColor: '#8b5cf6' }]}
+                onPress={() => setShowJudgeManager(true)}
+              >
+                <Ionicons name="settings-outline" size={18} color="#fff" />
+                <Text style={styles.manageButtonText}>Juroren verwalten</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           {/* Start Debate Section */}
           <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.settingsSectionHeader}>
@@ -1040,6 +1116,26 @@ export function DebateView() {
           onSelect={handleSelectModel}
           onClose={handleCloseModelSelector}
         />
+
+        {/* Moderator Manager Modal */}
+        <ModeratorManager
+          visible={showModeratorManager}
+          moderators={currentDebate.moderators || []}
+          currentUserId={currentUser.id}
+          onClose={() => setShowModeratorManager(false)}
+          onAddModerator={handleAddModeratorUser}
+          onRemoveModerator={handleRemoveModeratorUser}
+        />
+
+        {/* Judge Manager Modal */}
+        <JudgeManager
+          visible={showJudgeManager}
+          judges={currentDebate.judges || []}
+          currentUserId={currentUser.id}
+          onClose={() => setShowJudgeManager(false)}
+          onAddJudge={handleAddJudgeUser}
+          onRemoveJudge={handleRemoveJudgeUser}
+        />
       </View>
     );
   }
@@ -1103,24 +1199,6 @@ export function DebateView() {
           <View style={styles.headerTop}>
             <Text style={[styles.title, { color: colors.text }]}>{currentDebate.title}</Text>
             <View style={styles.headerActions}>
-              {/* Moderator Manager Button - Only for owner */}
-              {currentDebate.createdBy.id === currentUser.id && (
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={handleOpenModeratorManager}
-                >
-                  <Ionicons name="people-outline" size={20} color="#ff6347" />
-                </TouchableOpacity>
-              )}
-              {/* Judge Manager Button - Only for owner */}
-              {currentDebate.createdBy.id === currentUser.id && (
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={handleOpenJudgeManager}
-                >
-                  <Ionicons name="ribbon-outline" size={20} color="#8b5cf6" />
-                </TouchableOpacity>
-              )}
               {/* Close Debate Button - Only for owner on active/completed debates */}
               {currentDebate.createdBy.id === currentUser.id && 
                (currentDebate.status === 'active' || currentDebate.status === 'completed') && (
@@ -1393,26 +1471,6 @@ export function DebateView() {
         currentModel={editingSlot?.currentModel || 'gpt-4'}
         onSelect={handleSelectModel}
         onClose={handleCloseModelSelector}
-      />
-
-      {/* Moderator Manager Modal */}
-      <ModeratorManager
-        visible={showModeratorManager}
-        moderators={currentDebate.moderators || []}
-        currentUserId={currentUser.id}
-        onClose={() => setShowModeratorManager(false)}
-        onAddModerator={handleAddModeratorUser}
-        onRemoveModerator={handleRemoveModeratorUser}
-      />
-
-      {/* Judge Manager Modal */}
-      <JudgeManager
-        visible={showJudgeManager}
-        judges={currentDebate.judges || []}
-        currentUserId={currentUser.id}
-        onClose={() => setShowJudgeManager(false)}
-        onAddJudge={handleAddJudgeUser}
-        onRemoveJudge={handleRemoveJudgeUser}
       />
     </View>
   );
@@ -2083,6 +2141,44 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 8,
+  },
+  // Moderators and Judges Styles
+  judgesPreviewContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  judgeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  judgeChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  emptyHint: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  manageButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

@@ -19,6 +19,7 @@ import { Debate, Position, User } from '../../types';
 import { useDebate } from '../../context/DebateContext';
 import { PositionManager } from './settings/PositionManager';
 import { JudgeManager } from '../JudgeManager';
+import { ModeratorManager } from '../ModeratorManager';
 
 interface PendingDebateViewProps {
   debate: Debate;
@@ -35,6 +36,8 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
     addPosition,
     updatePosition,
     removePosition,
+    addModerator,
+    removeModerator,
     addJudge,
     removeJudge,
   } = useDebate();
@@ -43,6 +46,7 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
   const [editDescription, setEditDescription] = useState(debate.description || '');
   const [editTags, setEditTags] = useState<string[]>(debate.tags || []);
   const [newTag, setNewTag] = useState('');
+  const [showModeratorManager, setShowModeratorManager] = useState(false);
   const [showJudgeManager, setShowJudgeManager] = useState(false);
 
   const isOwner = debate.createdBy?.id === currentUser.id;
@@ -136,6 +140,22 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
   const handleDeleteDebate = () => {
     if (isOwner) {
       deleteDebate(debate.id);
+    }
+  };
+
+  const handleAddModerator = async (moderator: User) => {
+    try {
+      await addModerator(debate.id, moderator);
+    } catch (err) {
+      console.error('Error adding moderator:', err);
+    }
+  };
+
+  const handleRemoveModerator = async (userId: string) => {
+    try {
+      await removeModerator(debate.id, userId);
+    } catch (err) {
+      console.error('Error removing moderator:', err);
     }
   };
 
@@ -331,6 +351,49 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
           onRemovePosition={(positionId) => removePosition(debate.id, positionId)}
         />
 
+        {/* Moderators Section */}
+        <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.settingsSectionHeader}>
+            <Ionicons name="people-outline" size={20} color="#ff6347" />
+            <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Moderatoren</Text>
+          </View>
+          <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+            Moderatoren können an der Debatte teilnehmen, ohne eine Position zu vertreten. Sie haben eine rot-orangige Farbe im Chat.
+            {'\n'}
+            <Text style={{ fontStyle: 'italic' }}>
+              Hinweis: Moderatoren dürfen nicht gleichzeitig Teilnehmer, Juroren oder Owner sein.
+            </Text>
+          </Text>
+          
+          {debate.moderators && debate.moderators.length > 0 ? (
+            <View style={styles.judgesPreviewContainer}>
+              {debate.moderators.map((moderator) => (
+                <View 
+                  key={moderator.id} 
+                  style={[styles.judgeChip, { backgroundColor: '#ff6347' + '20', borderColor: '#ff6347' }]}
+                >
+                  <Ionicons name="person" size={14} color="#ff6347" />
+                  <Text style={[styles.judgeChipText, { color: '#ff6347' }]}>{moderator.name}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+              Noch keine Moderatoren hinzugefügt
+            </Text>
+          )}
+          
+          {isOwner && (
+            <TouchableOpacity
+              style={[styles.manageButton, { backgroundColor: '#ff6347' }]}
+              onPress={() => setShowModeratorManager(true)}
+            >
+              <Ionicons name="settings-outline" size={18} color="#fff" />
+              <Text style={styles.manageButtonText}>Moderatoren verwalten</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Judges Section */}
         <View style={[styles.settingsSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.settingsSectionHeader}>
@@ -441,6 +504,16 @@ export function PendingDebateView({ debate, currentUser }: PendingDebateViewProp
           </View>
         )}
       </ScrollView>
+
+      {/* Moderator Manager Modal */}
+      <ModeratorManager
+        visible={showModeratorManager}
+        moderators={debate.moderators || []}
+        currentUserId={currentUser.id}
+        onClose={() => setShowModeratorManager(false)}
+        onAddModerator={handleAddModerator}
+        onRemoveModerator={handleRemoveModerator}
+      />
 
       {/* Judge Manager Modal */}
       <JudgeManager
