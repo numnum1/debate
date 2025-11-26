@@ -67,7 +67,8 @@ export interface Evaluation {
   debateId: string;
   judgeId: string;
   judgeName: string;
-  messageId?: string; // Optional: reference to a specific message being evaluated
+  messageId?: string; // Optional: reference to a specific message being evaluated (deprecated, use referencedMessageIds)
+  referencedMessageIds?: string[]; // Optional: references to multiple messages/threads being evaluated
   title: string; // Short title for the evaluation
   points: number; // Points awarded (e.g., 1-10)
   comment: string; // Detailed evaluation comment

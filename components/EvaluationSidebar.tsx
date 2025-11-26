@@ -15,9 +15,10 @@ interface EvaluationSidebarProps {
   evaluations: Evaluation[];
   positions: Position[];
   onDeleteEvaluation?: (evaluationId: string) => void;
+  onEditReferences?: (evaluationId: string) => void;
 }
 
-export function EvaluationSidebar({ evaluations, positions, onDeleteEvaluation }: EvaluationSidebarProps) {
+export function EvaluationSidebar({ evaluations, positions, onDeleteEvaluation, onEditReferences }: EvaluationSidebarProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -83,14 +84,24 @@ export function EvaluationSidebar({ evaluations, positions, onDeleteEvaluation }
                       {evaluation.title}
                     </Text>
                   </View>
-                  {onDeleteEvaluation && (
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => onDeleteEvaluation(evaluation.id)}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={colors.error} />
-                    </TouchableOpacity>
-                  )}
+                  <View style={styles.evaluationActions}>
+                    {onEditReferences && (
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => onEditReferences(evaluation.id)}
+                      >
+                        <Ionicons name="pencil-outline" size={16} color="#8b5cf6" />
+                      </TouchableOpacity>
+                    )}
+                    {onDeleteEvaluation && (
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => onDeleteEvaluation(evaluation.id)}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={colors.error} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
 
                 {/* Position Badge */}
@@ -107,6 +118,16 @@ export function EvaluationSidebar({ evaluations, positions, onDeleteEvaluation }
                         {position.name}
                       </Text>
                     </View>
+                  </View>
+                )}
+
+                {/* Referenced Messages Count */}
+                {evaluation.referencedMessageIds && evaluation.referencedMessageIds.length > 0 && (
+                  <View style={styles.referencesContainer}>
+                    <Ionicons name="link" size={14} color="#8b5cf6" />
+                    <Text style={[styles.referencesText, { color: '#8b5cf6' }]}>
+                      {evaluation.referencedMessageIds.length} {evaluation.referencedMessageIds.length === 1 ? 'Nachricht' : 'Nachrichten'} referenziert
+                    </Text>
                   </View>
                 )}
 
@@ -220,8 +241,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
+  evaluationActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    padding: 4,
+  },
   deleteButton: {
     padding: 4,
+  },
+  referencesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  referencesText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   positionBadgeContainer: {
     marginBottom: 8,

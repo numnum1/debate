@@ -46,6 +46,7 @@ export function DebateView() {
     startThread,
     closeThread,
     addEvaluation,
+    updateEvaluation,
     deleteEvaluation,
     getEvaluationsByJudge,
   } = useDebate();
@@ -73,6 +74,11 @@ export function DebateView() {
   // Moderator and Judge manager state (only for pending debates)
   const [showModeratorManager, setShowModeratorManager] = useState(false);
   const [showJudgeManager, setShowJudgeManager] = useState(false);
+  
+  // Evaluation message reference selection state
+  const [evaluationSelectionMode, setEvaluationSelectionMode] = useState(false);
+  const [selectedEvaluationId, setSelectedEvaluationId] = useState<string | null>(null);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
 
   // Initialize edit fields when debate changes
   React.useEffect(() => {
@@ -179,6 +185,59 @@ export function DebateView() {
   
   // Check if current user is a judge
   const isCurrentUserJudge = currentDebate.judges?.some(j => j.id === currentUser.id) || false;
+
+  // Handle editing evaluation references
+  const handleEditEvaluationReferences = (evaluationId: string) => {
+    const evaluation = currentDebate.evaluations?.find(e => e.id === evaluationId);
+    if (evaluation) {
+      setSelectedEvaluationId(evaluationId);
+      setSelectedMessageIds(evaluation.referencedMessageIds || []);
+      setEvaluationSelectionMode(true);
+    }
+  };
+
+  // Handle toggling message selection
+  const handleToggleMessageSelection = (messageId: string) => {
+    if (!evaluationSelectionMode) return;
+    
+    setSelectedMessageIds(prev => {
+      if (prev.includes(messageId)) {
+        return prev.filter(id => id !== messageId);
+      } else {
+        return [...prev, messageId];
+      }
+    });
+  };
+
+  // Handle saving selected message references
+  const handleSaveMessageReferences = async () => {
+    if (!selectedEvaluationId) return;
+    
+    const evaluation = currentDebate.evaluations?.find(e => e.id === selectedEvaluationId);
+    if (evaluation) {
+      const updatedEvaluation = {
+        ...evaluation,
+        referencedMessageIds: selectedMessageIds,
+      };
+      
+      try {
+        await updateEvaluation(currentDebate.id, selectedEvaluationId, updatedEvaluation);
+        // Reset selection mode
+        setEvaluationSelectionMode(false);
+        setSelectedEvaluationId(null);
+        setSelectedMessageIds([]);
+      } catch (error) {
+        console.error('Failed to update evaluation references:', error);
+      }
+    }
+  };
+
+  // Handle canceling message selection
+  const handleCancelMessageSelection = () => {
+    setEvaluationSelectionMode(false);
+    setSelectedEvaluationId(null);
+    setSelectedMessageIds([]);
+  };
 
   const formatTimestamp = (date: Date | string) => {
     // Konvertiere String zu Date, falls nötig
@@ -1279,6 +1338,34 @@ export function DebateView() {
           </View>
         </View>
 
+      {/* Evaluation Selection Mode Toolbar */}
+      {evaluationSelectionMode && (
+        <View style={[styles.selectionModeToolbar, { backgroundColor: '#8b5cf6', borderBottomColor: colors.border }]}>
+          <View style={styles.selectionModeInfo}>
+            <Ionicons name="checkbox" size={20} color="#fff" />
+            <Text style={styles.selectionModeText}>
+              {selectedMessageIds.length} {selectedMessageIds.length === 1 ? 'Nachricht' : 'Nachrichten'} ausgewählt
+            </Text>
+          </View>
+          <View style={styles.selectionModeActions}>
+            <TouchableOpacity 
+              style={[styles.selectionModeButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+              onPress={handleCancelMessageSelection}
+            >
+              <Ionicons name="close" size={18} color="#fff" />
+              <Text style={styles.selectionModeButtonText}>Abbrechen</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.selectionModeButton, { backgroundColor: '#fff' }]}
+              onPress={handleSaveMessageReferences}
+            >
+              <Ionicons name="checkmark" size={18} color="#8b5cf6" />
+              <Text style={[styles.selectionModeButtonText, { color: '#8b5cf6' }]}>Speichern</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Messages */}
       <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
         {currentDebate.messages.length === 0 ? (
@@ -1333,10 +1420,17 @@ export function DebateView() {
               const isHovered = hoveredMessageId === message.id;
               const hasThread = threadsByStarterId.has(message.id);
               const isThreadActive = activeThreadId === message.id;
+              
+              // Check if message is selected or referenced in evaluation selection mode
+              const isSelected = evaluationSelectionMode && selectedMessageIds.includes(message.id);
+              const isReferenced = !evaluationSelectionMode && selectedEvaluationId && 
+                currentDebate.evaluations?.find(e => e.id === selectedEvaluationId)?.referencedMessageIds?.includes(message.id);
 
+              const MessageWrapper = evaluationSelectionMode ? TouchableOpacity : View;
+              
               return (
                 <View key={message.id}>
-                  <View
+                  <MessageWrapper
                     style={[
                       styles.message,
                       isOwn && styles.ownMessage,
@@ -1344,15 +1438,20 @@ export function DebateView() {
                     ]}
                     onMouseEnter={() => !inThread && setHoveredMessageId(message.id)}
                     onMouseLeave={() => !inThread && setHoveredMessageId(null)}
+                    {...(evaluationSelectionMode && {
+                      onPress: () => handleToggleMessageSelection(message.id),
+                      activeOpacity: 0.7,
+                    })}
                   >
                     <View
                       style={[
                         styles.messageBubble,
                         { 
                           backgroundColor: colorScheme === 'dark' ? `${baseColor}22` : messageBackgroundColor,
-                          borderWidth: 1.5,
-                          borderColor: colorScheme === 'dark' ? `${baseColor}66` : messageBorderColor,
+                          borderWidth: isSelected ? 3 : 1.5,
+                          borderColor: isSelected ? '#8b5cf6' : (colorScheme === 'dark' ? `${baseColor}66` : messageBorderColor),
                         },
+                        isSelected && { shadowColor: '#8b5cf6', shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 },
                       ]}
                     >
                       <View style={styles.messageHeader}>
@@ -1398,6 +1497,15 @@ export function DebateView() {
                       ]}>
                         {formatTimestamp(message.timestamp)}
                       </Text>
+                      
+                      {/* Selection indicator */}
+                      {isSelected && (
+                        <View style={[styles.selectedIndicator, { backgroundColor: '#8b5cf6' }]}>
+                          <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                          <Text style={styles.selectedIndicatorText}>Ausgewählt</Text>
+                        </View>
+                      )}
+                      
                       {/* Thread starten Button (nur für Moderatoren, nur beim Hover, nicht in Threads) */}
                       {!inThread && isCurrentUserModerator && isHovered && !hasThread && !isThreadActive && (
                         <TouchableOpacity 
@@ -1408,7 +1516,7 @@ export function DebateView() {
                         </TouchableOpacity>
                       )}
                     </View>
-                  </View>
+                  </MessageWrapper>
 
                   {/* Thread Card */}
                   {(hasThread || isThreadActive) && (
@@ -1524,6 +1632,7 @@ export function DebateView() {
             evaluations={getEvaluationsByJudge(currentDebate.id, currentUser.id)}
             positions={currentDebate.positions}
             onDeleteEvaluation={handleDeleteEvaluation}
+            onEditReferences={handleEditEvaluationReferences}
           />
           <EvaluationForm
             debateId={currentDebate.id}
@@ -2260,6 +2369,56 @@ const styles = StyleSheet.create({
     width: 320,
     borderLeftWidth: 1,
     flexDirection: 'column',
+  },
+  // Evaluation selection mode styles
+  selectionModeToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  selectionModeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  selectionModeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectionModeActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  selectionModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  selectionModeButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  selectedIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  selectedIndicatorText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 
