@@ -3,6 +3,7 @@ export interface User {
   name: string;
   avatar?: string;
   email: string;
+  trustedRank?: 'unknown' | 'trusted'; // Trust rank for debate participants
 }
 
 export interface Slot {
