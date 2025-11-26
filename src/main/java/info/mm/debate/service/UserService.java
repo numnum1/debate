@@ -70,8 +70,10 @@ public class UserService {
             if (existingUser.isPresent()) {
                 // Update existing user if data has changed
                 User existing = existingUser.get();
-                if (!existing.getName().equals(user.getName()) || 
-                    !existing.getEmail().equals(user.getEmail())) {
+                boolean nameChanged = !existing.getName().equals(user.getName());
+                boolean emailChanged = !java.util.Objects.equals(existing.getEmail(), user.getEmail());
+                
+                if (nameChanged || emailChanged) {
                     userRepository.save(user);
                     log.debug("Updated cached user: {}", user.getId());
                 }

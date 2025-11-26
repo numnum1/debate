@@ -42,6 +42,8 @@ public class Debate {
     
     private List<User> moderators; // Moderatoren der Debatte (dürfen keine Position vertreten)
     
+    private List<User> judges; // Juroren der Debatte (bewerten Argumente)
+    
     public enum DebateStatus {
         pending,   // Frontend expects lowercase
         awaiting_acceptance,  // Waiting for invited participants to accept

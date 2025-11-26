@@ -22,6 +22,7 @@ public class PositionService {
     
     private final DebateRepository debateRepository;
     private final ModeratorService moderatorService;
+    private final JudgeService judgeService;
     
     /**
      * Validate that the color is not already used by another position
@@ -139,9 +140,10 @@ public class PositionService {
     public Optional<Slot> addSlot(String debateId, String positionId, Slot slot) {
         log.info("Adding slot to position {} in debate {}", positionId, debateId);
         
-        // Validate that participant (if set) is not a moderator
+        // Validate that participant (if set) is not a moderator or judge
         if (slot.getParticipant() != null) {
             moderatorService.validateUserCanBeParticipant(debateId, slot.getParticipant().getId());
+            judgeService.validateUserCanBeParticipant(debateId, slot.getParticipant().getId());
         }
         
         return debateRepository.findById(debateId)
@@ -219,9 +221,10 @@ public class PositionService {
     public Optional<Slot> updateSlot(String debateId, String positionId, String slotId, Slot updatedSlot) {
         log.info("Updating slot {} in position {} in debate {}", slotId, positionId, debateId);
         
-        // Validate that participant (if being updated) is not a moderator
+        // Validate that participant (if being updated) is not a moderator or judge
         if (updatedSlot.getParticipant() != null) {
             moderatorService.validateUserCanBeParticipant(debateId, updatedSlot.getParticipant().getId());
+            judgeService.validateUserCanBeParticipant(debateId, updatedSlot.getParticipant().getId());
         }
         
         return debateRepository.findById(debateId)

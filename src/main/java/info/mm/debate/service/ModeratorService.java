@@ -24,6 +24,8 @@ public class ModeratorService {
      * Add a moderator to a debate
      * @throws IllegalArgumentException if user is already a participant in a position
      * @throws IllegalArgumentException if user is an AI
+     * @throws IllegalArgumentException if user is the owner
+     * @throws IllegalArgumentException if user is a judge
      * @throws IllegalArgumentException if current user is not the owner
      */
     @Transactional
@@ -37,9 +39,19 @@ public class ModeratorService {
                         throw new IllegalArgumentException("Only the owner can add moderators");
                     }
                     
+                    // Validate that moderator is not the owner
+                    if (isOwner(debate, moderator.getId())) {
+                        throw new IllegalArgumentException("The owner cannot be a moderator");
+                    }
+                    
                     // Validate that moderator is not an AI
                     if (isAiUser(moderator)) {
                         throw new IllegalArgumentException("AI users cannot be moderators");
+                    }
+                    
+                    // Validate that moderator is not a judge
+                    if (isAlreadyJudge(debate, moderator.getId())) {
+                        throw new IllegalArgumentException("Judges cannot be moderators");
                     }
                     
                     // Validate that moderator is not already a participant in any position
@@ -162,6 +174,15 @@ public class ModeratorService {
         
         return debate.getModerators().stream()
                 .anyMatch(mod -> mod.getId().equals(userId));
+    }
+    
+    private boolean isAlreadyJudge(Debate debate, String userId) {
+        if (debate.getJudges() == null) {
+            return false;
+        }
+        
+        return debate.getJudges().stream()
+                .anyMatch(judge -> judge.getId().equals(userId));
     }
 }
 
