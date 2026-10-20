@@ -20,22 +20,28 @@ Dieses Repository ist ein Monorepo aus Frontend und Backend:
 - 🤖 KI-Teilnehmer über die EECC-API (inkl. Tipp-Indikator)
 - 🎨 Light/Dark Mode
 
+![Formular zum Erstellen einer neuen Debatte](docs/screenshots/create-debate.png)
+
 ## Voraussetzungen
 
 - Node.js (LTS) und npm
 - Java 17+ und Maven 3.6+
-- Docker & Docker Compose
+- Docker & Docker Compose (unter Windows: Docker Desktop)
+
+Das Backend hat keinen Maven-Wrapper (`mvnw`), Maven muss also installiert und im `PATH` sein (Windows z. B. `winget install Apache.Maven`). Prüfen mit `java -version`, `mvn -v`, `node -v` und `docker info`.
 
 ## Schnellstart
 
 ### 1. Infrastruktur starten
 
+Docker Desktop muss laufen, sonst schlägt jeder `docker`-Befehl mit `failed to connect to the docker API ... dockerDesktopLinuxEngine` fehl.
+
 ```bash
 cd server
-docker-compose up -d
+docker compose up -d
 ```
 
-Das startet MongoDB (`27017`), Keycloak (`8180`) samt PostgreSQL sowie Mongo Express. Die Keycloak-Einrichtung (Realm `debate`, Clients, Rollen) ist in [server/QUICKSTART.md](server/QUICKSTART.md) und [debate-app/docs/KEYCLOAK_SETUP.md](debate-app/docs/KEYCLOAK_SETUP.md) beschrieben.
+Das startet MongoDB (`27017`), Keycloak (`8180`) samt PostgreSQL sowie Mongo Express (`8081`). Beim ersten Start werden die Images heruntergeladen, das dauert einige Minuten. Keycloak braucht nach dem Start noch etwa eine Minute, bis es bereit ist. Den Status zeigt `docker compose ps`. Die Keycloak-Einrichtung (Realm `debate`, Clients, Rollen) ist in [server/QUICKSTART.md](server/QUICKSTART.md) und [debate-app/docs/KEYCLOAK_SETUP.md](debate-app/docs/KEYCLOAK_SETUP.md) beschrieben.
 
 ### 2. Server starten
 
@@ -66,6 +72,10 @@ npm run web
 Die Web-App läuft unter `http://localhost:10000`. Für mobile Geräte: `npm run android` bzw. `npm run ios`.
 
 Backend-URLs lassen sich über `EXPO_PUBLIC_API_URL` und `EXPO_PUBLIC_WS_URL` anpassen (siehe [debate-app/config/api.config.ts](debate-app/config/api.config.ts)).
+
+### Stoppen
+
+Server und App mit `Ctrl+C` beenden. Die Infrastruktur stoppt `docker compose down` im Ordner `server/`. Die Daten bleiben in den Docker-Volumes erhalten. `docker compose down -v` löscht sie zusätzlich, also auch die Keycloak-Konfiguration.
 
 ## Projektstruktur
 
