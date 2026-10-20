@@ -1,0 +1,18 @@
+{
+  "folders": [
+    {
+      "name": "Frontend (debate-app)",
+      "path": "debate-app"
+    },
+    {
+      "name": "Backend (server)",
+      "path": "server"
+    }
+  ],
+  "settings": {
+    "git.enabled": true,
+    "git.autoRepositoryDetection": true,
+    "git.detectSubmodules": true,
+    "git.detectSubmodulesLimit": 10
+  }
+}
