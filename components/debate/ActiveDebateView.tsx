@@ -35,6 +35,9 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
     activeThreadId,
     startThread,
     closeThread,
+    muteParticipant,
+    unmuteParticipant,
+    isMuted,
   } = useDebate();
   
   const [messageText, setMessageText] = useState('');
@@ -280,6 +283,18 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
                             </Text>
                           </View>
                         )}
+                        {/* Muted Badge */}
+                        {!isModerator && isMuted(debate.id, message.userId) && (
+                          <View style={[
+                            styles.mutedBadge,
+                            { backgroundColor: '#ef444422', borderColor: '#ef4444' }
+                          ]}>
+                            <Ionicons name="volume-mute" size={12} color="#ef4444" />
+                            <Text style={[styles.mutedBadgeText, { color: '#ef4444' }]}>
+                              Gemutet
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <Text style={[
                         styles.messageText,
@@ -303,6 +318,36 @@ export function ActiveDebateView({ debate, currentUser }: ActiveDebateViewProps)
                         </TouchableOpacity>
                       )}
                     </View>
+                    
+                    {/* Mute/Unmute Button (nur für Moderatoren und Owner, nicht für eigene Nachrichten) */}
+                    {(isCurrentUserModerator || debate.createdBy.id === currentUser.id) && 
+                     !isOwn && 
+                     !isModerator && 
+                     message.userId !== currentUser.id && (
+                      <TouchableOpacity
+                        style={[
+                          styles.muteButton,
+                          isMuted(debate.id, message.userId) && styles.mutedButton
+                        ]}
+                        onPress={async () => {
+                          try {
+                            if (isMuted(debate.id, message.userId)) {
+                              await unmuteParticipant(debate.id, message.userId);
+                            } else {
+                              await muteParticipant(debate.id, message.userId);
+                            }
+                          } catch (err) {
+                            console.error('Error toggling mute:', err);
+                          }
+                        }}
+                      >
+                        <Ionicons 
+                          name={isMuted(debate.id, message.userId) ? "volume-mute" : "volume-high"} 
+                          size={16} 
+                          color={isMuted(debate.id, message.userId) ? "#ef4444" : colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   {/* Thread Card */}
@@ -601,6 +646,31 @@ const styles = StyleSheet.create({
   threadMessage: {
     marginLeft: 0,
     marginBottom: 12,
+  },
+  muteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  mutedButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  mutedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  mutedBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   threadEmptyText: {
     fontSize: 13,

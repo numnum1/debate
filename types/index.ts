@@ -39,6 +39,7 @@ export interface Debate {
   moderators?: User[]; // Moderatoren der Debatte (dürfen keine Position vertreten)
   judges?: User[]; // Juroren der Debatte (bewerten Argumente)
   evaluations?: Evaluation[]; // Bewertungen der Juroren
+  mutedParticipants?: string[]; // Liste der User-IDs, die von Moderatoren gemutet wurden
 }
 
 export interface DebateMessage {

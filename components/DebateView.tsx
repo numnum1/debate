@@ -19,6 +19,7 @@ import { ModeratorManager } from './ModeratorManager';
 import { JudgeManager } from './JudgeManager';
 import { EvaluationForm } from './EvaluationForm';
 import { EvaluationSidebar } from './EvaluationSidebar';
+import { ParticipantsSidebar } from './ParticipantsSidebar';
 
 export function DebateView() {
   const colorScheme = useColorScheme();
@@ -49,6 +50,8 @@ export function DebateView() {
     updateEvaluation,
     deleteEvaluation,
     getEvaluationsByJudge,
+    muteParticipant,
+    unmuteParticipant,
   } = useDebate();
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -185,6 +188,9 @@ export function DebateView() {
   
   // Check if current user is a judge
   const isCurrentUserJudge = currentDebate.judges?.some(j => j.id === currentUser.id) || false;
+  
+  // Check if current user is the owner
+  const isOwner = currentDebate.createdBy.id === currentUser.id;
 
   // Handle editing evaluation references
   const handleEditEvaluationReferences = (evaluationId: string) => {
@@ -526,6 +532,27 @@ export function DebateView() {
     } catch (err: any) {
       console.error('[DebateView] ✗ Error deleting evaluation:', err);
       alert(err.message || 'Fehler beim Löschen der Bewertung');
+    }
+  };
+
+  // Mute handlers
+  const handleMuteParticipant = async (userId: string) => {
+    try {
+      await muteParticipant(currentDebate.id, userId);
+      console.log('[DebateView] ✓ Participant muted:', userId);
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error muting participant:', err);
+      alert(err.message || 'Fehler beim Muten des Teilnehmers');
+    }
+  };
+
+  const handleUnmuteParticipant = async (userId: string) => {
+    try {
+      await unmuteParticipant(currentDebate.id, userId);
+      console.log('[DebateView] ✓ Participant unmuted:', userId);
+    } catch (err: any) {
+      console.error('[DebateView] ✗ Error unmuting participant:', err);
+      alert(err.message || 'Fehler beim Unmuten des Teilnehmers');
     }
   };
 
@@ -1642,6 +1669,17 @@ export function DebateView() {
             onSubmit={handleAddEvaluation}
           />
         </View>
+      )}
+
+      {/* Participants Sidebar - For moderators and owner */}
+      {!isCurrentUserJudge && (isCurrentUserModerator || isOwner) && (
+        <ParticipantsSidebar
+          debate={currentDebate}
+          currentUserId={currentUser.id}
+          isModeratorOrOwner={true}
+          onMuteParticipant={handleMuteParticipant}
+          onUnmuteParticipant={handleUnmuteParticipant}
+        />
       )}
     </View>
   );

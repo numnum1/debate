@@ -94,7 +94,7 @@ export function ModeratorManager({
                 Sie haben eine rot-orangige Farbe im Chat.
               </Text>
               <Text style={[styles.descriptionText, { color: colors.textSecondary, marginTop: 8, fontStyle: 'italic' }]}>
-                Hinweis: Moderatoren dürfen nicht gleichzeitig Teilnehmer, Juroren oder Owner der Debatte sein.
+                Hinweis: Moderatoren dürfen nicht gleichzeitig Teilnehmer oder Juroren sein. Der Owner kann auch Moderator sein.
               </Text>
             </View>
 

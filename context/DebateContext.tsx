@@ -46,6 +46,9 @@ interface DebateContextType {
   updateEvaluation: (debateId: string, evaluationId: string, evaluation: Evaluation) => Promise<void>;
   deleteEvaluation: (debateId: string, evaluationId: string) => Promise<void>;
   getEvaluationsByJudge: (debateId: string, judgeId: string) => Evaluation[];
+  muteParticipant: (debateId: string, userId: string) => Promise<void>;
+  unmuteParticipant: (debateId: string, userId: string) => Promise<void>;
+  isMuted: (debateId: string, userId: string) => boolean;
 }
 
 const DebateContext = createContext<DebateContextType | undefined>(undefined);
@@ -1257,6 +1260,80 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     return debate.evaluations.filter(e => e.judgeId === judgeId);
   };
 
+  /**
+   * Mute a participant
+   */
+  const muteParticipant = async (debateId: string, userId: string) => {
+    try {
+      setError(null);
+      console.log('[DebateContext] DEBUG: Attempting to mute participant');
+      console.log('[DebateContext] DEBUG: debateId:', debateId);
+      console.log('[DebateContext] DEBUG: userId:', userId);
+      console.log('[DebateContext] DEBUG: userId type:', typeof userId);
+      
+      // Log all participants in the debate
+      const debate = currentDebate?.id === debateId ? currentDebate : debates.find(d => d.id === debateId);
+      if (debate) {
+        console.log('[DebateContext] DEBUG: All participants in debate:');
+        debate.positions.forEach((position, posIdx) => {
+          position.slots.forEach((slot, slotIdx) => {
+            if (slot.participant) {
+              console.log(`[DebateContext] DEBUG: Position ${posIdx}, Slot ${slotIdx}: participant.id = "${slot.participant.id}" (type: ${typeof slot.participant.id})`);
+            }
+          });
+        });
+      }
+      
+      const updatedDebate = await api.muteParticipant(debateId, userId);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => d.id === debateId ? updatedDebate : d));
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updatedDebate);
+      }
+      
+      console.log('[DebateContext] ✓ Participant muted:', userId);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Muten des Teilnehmers';
+      console.error('[DebateContext] ✗ Error muting participant:', errorMsg);
+      console.error('[DebateContext] ✗ Full error:', err);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Unmute a participant
+   */
+  const unmuteParticipant = async (debateId: string, userId: string) => {
+    try {
+      setError(null);
+      const updatedDebate = await api.unmuteParticipant(debateId, userId);
+      
+      // Update local state
+      setDebates(prev => prev.map(d => d.id === debateId ? updatedDebate : d));
+      if (currentDebate?.id === debateId) {
+        setCurrentDebate(updatedDebate);
+      }
+      
+      console.log('[DebateContext] ✓ Participant unmuted:', userId);
+    } catch (err: any) {
+      const errorMsg = (err as ApiError).message || 'Fehler beim Unmuten des Teilnehmers';
+      console.error('[DebateContext] ✗ Error unmuting participant:', errorMsg);
+      setError(errorMsg);
+      throw err;
+    }
+  };
+
+  /**
+   * Check if a participant is muted
+   */
+  const isMuted = (debateId: string, userId: string): boolean => {
+    const debate = debateId === currentDebate?.id ? currentDebate : debates.find(d => d.id === debateId);
+    if (!debate || !debate.mutedParticipants) return false;
+    return debate.mutedParticipants.includes(userId);
+  };
+
   // Listen for thread start events
   useEffect(() => {
     const handleThreadStart = (data: any) => {
@@ -1352,6 +1429,31 @@ export function DebateProvider({ children }: { children: ReactNode }) {
     };
   }, [currentDebate]);
 
+  // Listen for mute/unmute events
+  useEffect(() => {
+    const handleParticipantMuted = (data: { userId: string; userName: string }) => {
+      console.log('[DebateContext] Participant muted:', data.userName);
+      
+      // The debate update will come through the debate:updated event
+      // This is just for logging/notifications
+    };
+
+    const handleParticipantUnmuted = (data: { userId: string; userName: string }) => {
+      console.log('[DebateContext] Participant unmuted:', data.userName);
+      
+      // The debate update will come through the debate:updated event
+      // This is just for logging/notifications
+    };
+
+    const unsubscribeMuted = websocket.on('debate:participant:muted', handleParticipantMuted);
+    const unsubscribeUnmuted = websocket.on('debate:participant:unmuted', handleParticipantUnmuted);
+
+    return () => {
+      if (unsubscribeMuted) unsubscribeMuted();
+      if (unsubscribeUnmuted) unsubscribeUnmuted();
+    };
+  }, []);
+
   return (
     <DebateContext.Provider
       value={{
@@ -1391,6 +1493,9 @@ export function DebateProvider({ children }: { children: ReactNode }) {
         updateEvaluation,
         deleteEvaluation,
         getEvaluationsByJudge,
+        muteParticipant,
+        unmuteParticipant,
+        isMuted,
       }}
     >
       {children}

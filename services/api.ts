@@ -475,6 +475,39 @@ class ApiService {
     return response.data;
   }
 
+  // ==================== Mute Endpoints ====================
+
+  /**
+   * Mute a participant in a debate
+   */
+  async muteParticipant(debateId: string, userId: string): Promise<Debate> {
+    const response = await this.post<ApiResponse<Debate>>(
+      `/api/debates/${debateId}/mute/${userId}`,
+      {}
+    );
+    return response.data;
+  }
+
+  /**
+   * Unmute a participant in a debate
+   */
+  async unmuteParticipant(debateId: string, userId: string): Promise<Debate> {
+    const response = await this.delete<ApiResponse<Debate>>(
+      `/api/debates/${debateId}/mute/${userId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Check if a participant is muted
+   */
+  async isMuted(debateId: string, userId: string): Promise<boolean> {
+    const response = await this.get<ApiResponse<boolean>>(
+      `/api/debates/${debateId}/mute/${userId}`
+    );
+    return response.data;
+  }
+
   // ==================== Evaluation Endpoints ====================
 
   /**
