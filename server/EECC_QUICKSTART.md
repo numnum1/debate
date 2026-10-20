@@ -18,14 +18,14 @@ Bearbeite `src/main/resources/application.yml`:
 eecc:
   api:
     base-url: https://api.eecc.ai/v1
-    key: 25m7b22W5Z6dwraEc3waKjVpa7YdKZQVko3pd1L9LLR
+    key: <dein-eecc-api-key>
 ```
 
 ### Option B: Umgebungsvariablen (für Production)
 
 ```bash
 export EECC_API_BASE_URL=https://api.eecc.ai/v1
-export EECC_API_KEY=25m7b22W5Z6dwraEc3waKjVpa7YdKZQVko3pd1L9LLR
+export EECC_API_KEY=<dein-eecc-api-key>
 ```
 
 ## Schritt 2: Server starten

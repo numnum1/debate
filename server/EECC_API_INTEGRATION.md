@@ -22,7 +22,7 @@ Die EECC API-Konfiguration befindet sich in `application.yml`:
 eecc:
   api:
     base-url: ${EECC_API_BASE_URL:https://api.eecc.ai/v1}
-    key: ${EECC_API_KEY:25m7b22W5Z6dwraEc3waKjVpa7YdKZQVko3pd1L9LLR}
+    key: ${EECC_API_KEY:}
 ```
 
 ### Umgebungsvariablen

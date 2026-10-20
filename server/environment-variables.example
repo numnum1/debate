@@ -23,5 +23,5 @@ EECC_API_KEY=your-eecc-api-key-here
 
 # Diese Variablen können in der application.yml oder als Umgebungsvariablen verwendet werden
 # Beispiel: export KEYCLOAK_CLIENT_SECRET=ihr-secret
-# Beispiel: export EECC_API_KEY=25m7b22W5Z6dwraEc3waKjVpa7YdKZQVko3pd1L9LLR
+# Beispiel: export EECC_API_KEY=<dein-eecc-api-key>
 
