@@ -46,6 +46,8 @@ public class Debate {
     
     private List<Evaluation> evaluations; // Bewertungen der Juroren
     
+    private List<String> mutedParticipants; // Liste der User-IDs, die von Moderatoren gemutet wurden
+    
     public enum DebateStatus {
         pending,   // Frontend expects lowercase
         awaiting_acceptance,  // Waiting for invited participants to accept

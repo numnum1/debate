@@ -504,5 +504,53 @@ public class DebateWebSocketHandler extends TextWebSocketHandler {
         
         log.info("✓ Evaluation deletion broadcast completed for room: {}", debateId);
     }
+    
+    /**
+     * Broadcast eines Mute-Ereignisses an alle Teilnehmer
+     * 
+     * @param debateId Die ID der Debatte
+     * @param userId Die ID des gemuteten Benutzers
+     * @param userName Der Name des gemuteten Benutzers
+     */
+    public void broadcastParticipantMuted(String debateId, String userId, String userName) {
+        log.info("Broadcasting participant muted to debate room: {} (User: {})", debateId, userName);
+        
+        WebSocketMessage muteMessage = WebSocketMessage.builder()
+                .type("debate:participant:muted")
+                .payload(Map.of(
+                        "userId", userId,
+                        "userName", userName
+                ))
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, muteMessage);
+        
+        log.info("✓ Participant muted broadcast completed for room: {}", debateId);
+    }
+    
+    /**
+     * Broadcast eines Unmute-Ereignisses an alle Teilnehmer
+     * 
+     * @param debateId Die ID der Debatte
+     * @param userId Die ID des unmuted Benutzers
+     * @param userName Der Name des unmuted Benutzers
+     */
+    public void broadcastParticipantUnmuted(String debateId, String userId, String userName) {
+        log.info("Broadcasting participant unmuted to debate room: {} (User: {})", debateId, userName);
+        
+        WebSocketMessage unmuteMessage = WebSocketMessage.builder()
+                .type("debate:participant:unmuted")
+                .payload(Map.of(
+                        "userId", userId,
+                        "userName", userName
+                ))
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        broadcastToDebateRoom(debateId, unmuteMessage);
+        
+        log.info("✓ Participant unmuted broadcast completed for room: {}", debateId);
+    }
 }
 
