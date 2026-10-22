@@ -1,0 +1,13 @@
+# Ergänzungen zur Onyx-Compose-Datei, ohne onyx-main/ anzufassen.
+# Die Werte kommen aus onyx.env.
+
+x-onyx-secrets: &onyx-secrets
+  USER_AUTH_SECRET: ${USER_AUTH_SECRET:?USER_AUTH_SECRET in infra/onyx/onyx.env setzen}
+
+services:
+  api_server:
+    environment: *onyx-secrets
+  background:
+    environment: *onyx-secrets
+  mcp_server:
+    environment: *onyx-secrets

@@ -1,0 +1,41 @@
+# Lokale Defaults passend zu infra/docker-compose.yml.
+# Jeder Wert lässt sich per Umgebungsvariable überschreiben (z. B. SPRING_DATASOURCE_URL).
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: debate-backend
+
+  # Nutzer, Debatten, Regelwerke, Zeitachse
+  mongodb:
+    uri: mongodb://debate:debate@localhost:27017/debate?authSource=admin
+
+  # Ledger, Märkte, Pools
+  datasource:
+    url: jdbc:postgresql://localhost:5433/ledger
+    username: debate
+    password: debate
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/debate
+
+  modulith:
+    events:
+      jdbc:
+        # Tabelle event_publication (Outbox für Modul-Events) in Postgres anlegen
+        schema-initialization:
+          enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,modulith
+  endpoint:
+    health:
+      show-details: always

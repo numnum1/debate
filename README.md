@@ -1,103 +1,87 @@
-# Debate
+# Debate v2
 
-Eine Plattform für strukturierte Debatten: Benutzer erstellen Debatten, laden Teilnehmer ein, diskutieren in Echtzeit mit Pro/Contra-Positionen und lassen Argumente von Juroren bewerten. Optional können KI-Modelle als Debattenteilnehmer mitwirken.
+Second-Screen-Plattform für Live-Debatten: Zuschauer wetten (im POC nur mit Punkten) auf den Ausgang, eine Jury entscheidet per Slider. Produkt: [docs/v2/PRODUKT.md](docs/v2/PRODUKT.md), Architektur und Entscheidungen: [docs/v2/ARCHITEKTUR.md](docs/v2/ARCHITEKTUR.md).
 
-Dieses Repository ist ein Monorepo aus Frontend und Backend:
-
-| Verzeichnis | Inhalt | Stack |
-|---|---|---|
-| [`debate-app/`](debate-app/) | Client (Web, Android, iOS) | Expo 54, React Native 0.81, React 19, TypeScript, Expo Router |
-| [`server/`](server/) | REST- & WebSocket-API | Spring Boot 4, Java 17, MongoDB, Keycloak (OAuth2/JWT), SpringDoc/Swagger |
-
-## Features
-
-- 🔐 Authentifizierung über Keycloak (Login, Registrierung)
-- 📝 Debatten erstellen, öffentliche Debatten durchsuchen, Teilnehmer einladen
-- 💬 Echtzeit-Chat per WebSocket mit Positionen und Slots
-- 🧑‍⚖️ Rollen für Moderatoren und Juroren
-- ⭐ Bewertung von Argumenten durch Juroren (siehe [JURY_EVALUATION_FEATURE.md](JURY_EVALUATION_FEATURE.md))
-- 🔇 Stummschalten von Teilnehmern, Teilnehmer-Sidebar
-- 🤖 KI-Teilnehmer über die EECC-API (inkl. Tipp-Indikator)
-- 🎨 Light/Dark Mode
-
-![Formular zum Erstellen einer neuen Debatte](docs/screenshots/create-debate.png)
+| Verzeichnis | Inhalt |
+|---|---|
+| [`backend/`](backend/) | Spring Boot 4.1, Java 21, Maven Wrapper – **manuell gestartet** |
+| [`web/`](web/) | React 19, Vite, TypeScript – **manuell gestartet** |
+| [`infra/`](infra/) | Docker Compose: Postgres, MongoDB, Keycloak (+ Datenbank-Oberflächen) und separat Onyx |
+| [`docs/v2/`](docs/v2/) | Produkt, Architektur, Entscheidungen |
 
 ## Voraussetzungen
 
-- Node.js (LTS) und npm
-- Java 17+ und Maven 3.6+
-- Docker & Docker Compose (unter Windows: Docker Desktop)
+- Docker Desktop (muss laufen)
+- JDK 21 (`JAVA_HOME` zeigt darauf); Maven ist nicht nötig, das Backend bringt `mvnw` mit
+- Node.js 24 und npm
+- Für Onyx: der Onyx-Quellcode unter `onyx-main/` (wird nicht versioniert, siehe unten) und ausreichend Speicher für Docker (Onyx empfiehlt 16 GB)
 
-Das Backend hat keinen Maven-Wrapper (`mvnw`), Maven muss also installiert und im `PATH` sein (Windows z. B. `winget install Apache.Maven`). Prüfen mit `java -version`, `mvn -v`, `node -v` und `docker info`.
+## Starten
 
-## Schnellstart
-
-### 1. Infrastruktur starten
-
-Docker Desktop muss laufen, sonst schlägt jeder `docker`-Befehl mit `failed to connect to the docker API ... dockerDesktopLinuxEngine` fehl.
+### 1. Infrastruktur
 
 ```bash
-cd server
-docker compose up -d
+docker compose -f infra/docker-compose.yml up -d --wait
 ```
 
-Das startet MongoDB (`27017`), Keycloak (`8180`) samt PostgreSQL sowie Mongo Express (`8081`). Beim ersten Start werden die Images heruntergeladen, das dauert einige Minuten. Keycloak braucht nach dem Start noch etwa eine Minute, bis es bereit ist. Den Status zeigt `docker compose ps`. Die Keycloak-Einrichtung (Realm `debate`, Clients, Rollen) ist in [server/QUICKSTART.md](server/QUICKSTART.md) und [debate-app/docs/KEYCLOAK_SETUP.md](debate-app/docs/KEYCLOAK_SETUP.md) beschrieben.
+### 2. Onyx (optional, nur für KI-Aufgaben)
 
-### 2. Server starten
+`onyx-main/` muss den Onyx-Quellcode enthalten, z. B. per `git clone https://github.com/onyx-dot-app/onyx.git onyx-main`. Genutzt wird nur dessen Compose-Datei; die Image-Version ist in [infra/onyx/onyx.env](infra/onyx/onyx.env) fest eingestellt.
 
 ```bash
-cd server
-mvn spring-boot:run
+docker compose -f infra/onyx/docker-compose.yml up -d
 ```
 
-Die API läuft unter `http://localhost:1933/api`, die Swagger-UI unter `http://localhost:1933/api/swagger-ui.html`.
+Der erste Start lädt rund 20 GB an Images, danach braucht der Stack etwa 4–5 GB RAM. Danach unter http://localhost:3000 einmalig einrichten: Das erste Konto, das sich dort registriert, wird Onyx-Admin. Dann LLM-Anbieter, API-Key für unser Backend und Agents anlegen. Endnutzer melden sich nie bei Onyx an.
 
-Konfiguration erfolgt über Umgebungsvariablen (siehe [server/environment-variables.example](server/environment-variables.example)), u. a.:
+Abweichungen vom Onyx-Standard (in [onyx.env](infra/onyx/onyx.env) und [onyx.override.yml](infra/onyx/onyx.override.yml)): Dateien liegen in Onyx' Postgres statt in einem S3-Objektspeicher, und `USER_AUTH_SECRET` hat einen festen Dev-Wert. Fehler `Failed to load Kubernetes configuration` im `background`-Log sind harmlos (Aufräum-Job der abgeschalteten Craft-Funktion).
 
-| Variable | Standard |
-|---|---|
-| `MONGODB_URI` | `mongodb://admin:password@localhost:27017/debate?authSource=admin` |
-| `KEYCLOAK_ISSUER_URI` | `http://localhost:8180/realms/debate` |
-| `KEYCLOAK_SERVER_URL` | `http://localhost:8180` |
-| `EECC_API_BASE_URL` / `EECC_API_KEY` | für KI-Teilnehmer |
-
-### 3. App starten
+### 3. Backend
 
 ```bash
-cd debate-app
+cd backend
+./mvnw spring-boot:run
+```
+
+Unter Windows ohne Git Bash: `mvnw.cmd spring-boot:run`. Konfiguration in [application.yml](backend/src/main/resources/application.yml), überschreibbar per Umgebungsvariable.
+
+### 4. Frontend
+
+```bash
+cd web
 npm install
-npm run web
+npm run dev
 ```
 
-Die Web-App läuft unter `http://localhost:10000`. Für mobile Geräte: `npm run android` bzw. `npm run ios`.
+Dann http://localhost:5173 öffnen und anmelden.
 
-Backend-URLs lassen sich über `EXPO_PUBLIC_API_URL` und `EXPO_PUBLIC_WS_URL` anpassen (siehe [debate-app/config/api.config.ts](debate-app/config/api.config.ts)).
+## Lokale Dienste
 
-### Stoppen
+| Dienst | Adresse | Zugang |
+|---|---|---|
+| Frontend | http://localhost:5173 | Testnutzer `admin`, `alice`, `bob`, Passwort jeweils `dev` |
+| Backend | http://localhost:8080 | Swagger-UI: http://localhost:8080/swagger-ui.html · Health: http://localhost:8080/actuator/health |
+| Keycloak | http://localhost:8180 | Admin-Konsole: `admin` / `admin`; Realm `debate` aus [infra/keycloak/debate-realm.json](infra/keycloak/debate-realm.json) |
+| PostgreSQL | `localhost:5433` | `debate` / `debate`, Datenbank `ledger` (Port 5433, damit es nicht mit einem lokalen Postgres kollidiert) |
+| MongoDB | `localhost:27017` | `debate` / `debate`, Datenbank `debate`, `authSource=admin` |
+| Mongo Express | http://localhost:8081 | Mongo im Browser |
+| Adminer | http://localhost:8082 | Postgres im Browser (Server `postgres`, Nutzer `debate`) |
+| Onyx | http://localhost:3000 | Admin-Oberfläche, API unter `/api` |
 
-Server und App mit `Ctrl+C` beenden. Die Infrastruktur stoppt `docker compose down` im Ordner `server/`. Die Daten bleiben in den Docker-Volumes erhalten. `docker compose down -v` löscht sie zusätzlich, also auch die Keycloak-Konfiguration.
+Alle Zugangsdaten sind reine Entwicklungswerte.
 
-## Projektstruktur
+Ein Token zum Testen der API per curl liefert der Dev-Client `debate-dev`:
 
-```
-debate/
-├── debate-app/          # Expo/React-Native-Client
-│   ├── app/             # Routen (Expo Router)
-│   ├── components/      # UI-Komponenten
-│   ├── context/         # Auth- und Debate-Context
-│   ├── services/        # REST-Client & WebSocket
-│   ├── config/          # API- & Keycloak-Konfiguration
-│   └── docs/            # Setup-Anleitungen
-├── server/              # Spring-Boot-Backend
-│   ├── src/main/java/info/mm/debate/
-│   │   └── controller/  # Debate, Message, Position, Judge, Moderator, Mute, Evaluation, AI, …
-│   ├── docker-compose.yml
-│   └── *.md             # Detaildokumentation
-└── JURY_EVALUATION_FEATURE.md
+```bash
+curl -s -d client_id=debate-dev -d grant_type=password -d username=alice -d password=dev http://localhost:8180/realms/debate/protocol/openid-connect/token
 ```
 
-## Weitere Dokumentation
+## Stoppen
 
-- Backend: [server/README.md](server/README.md), [server/SWAGGER_DOCUMENTATION.md](server/SWAGGER_DOCUMENTATION.md), [server/AI_DEBATE_INTEGRATION.md](server/AI_DEBATE_INTEGRATION.md), [server/WEBSOCKET_DEBUGGING.md](server/WEBSOCKET_DEBUGGING.md)
-- Frontend: [debate-app/README.md](debate-app/README.md), [debate-app/docs/SCHNELLSTART.md](debate-app/docs/SCHNELLSTART.md), [debate-app/docs/BACKEND_INTEGRATION.md](debate-app/docs/BACKEND_INTEGRATION.md)
-- Postman-Collection: [server/Debate-Server.postman_collection.json](server/Debate-Server.postman_collection.json)
+```bash
+docker compose -f infra/docker-compose.yml down
+```
+
+`down -v` löscht zusätzlich alle Daten. Den Realm importiert Keycloak dann beim nächsten Start neu; Änderungen am Realm-JSON greifen nur so, weil ein bestehender Realm nicht überschrieben wird.
+
+Der Code des ersten Versuchs liegt weiterhin auf `main`.

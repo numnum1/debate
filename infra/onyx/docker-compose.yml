@@ -1,0 +1,16 @@
+# Onyx als headless KI-Backend.
+# Nutzt unverändert die Compose-Datei aus onyx-main/ (liegt nicht im Git, siehe README).
+# onyx.env setzt Variablen (Image-Version, Ports, Secret), onyx.override.yml reicht das Secret an die Dienste durch.
+#
+#   docker compose -f infra/onyx/docker-compose.yml up -d
+#
+# Danach: Admin-Oberfläche unter http://localhost:3000 (nur zum Einrichten: LLM-Anbieter, API-Key, Agents).
+# Unser Backend spricht Onyx unter http://localhost:3000/api an.
+
+name: debate-onyx
+
+include:
+  - path:
+      - ../../onyx-main/deployment/docker_compose/docker-compose.yml
+      - ./onyx.override.yml
+    env_file: ./onyx.env

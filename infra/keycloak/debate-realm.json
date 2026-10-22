@@ -1,0 +1,74 @@
+{
+  "realm": "debate",
+  "enabled": true,
+  "displayName": "Debate",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 900,
+  "roles": {
+    "realm": [
+      { "name": "admin", "description": "Plattform-Administration" },
+      { "name": "platform_moderator", "description": "Moderiert den öffentlichen Chat" },
+      { "name": "resolver", "description": "Bestätigt Grenzfälle bei Point Bets" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "debate-web",
+      "name": "Debate Web",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "rootUrl": "http://localhost:5173",
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    },
+    {
+      "clientId": "debate-dev",
+      "name": "Nur lokal: Tokens per curl holen",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@debate.local",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "alice",
+      "email": "alice@debate.local",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Viewer",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
+      "realmRoles": []
+    },
+    {
+      "username": "bob",
+      "email": "bob@debate.local",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "Viewer",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
+      "realmRoles": []
+    }
+  ]
+}
