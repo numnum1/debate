@@ -18,6 +18,16 @@ Second-Screen-Plattform für Live-Debatten: Zuschauer wetten (im POC nur mit Pun
 
 ## Starten
 
+### Kurzweg: Startskript
+
+```bash
+start-dev.cmd
+```
+
+Startet Docker Desktop, falls nötig, dann Infrastruktur und Onyx Lite, und wartet, bis Keycloak und Onyx antworten. Was schon läuft, bleibt unangetastet; nur fehlende oder gestoppte Dienste werden gestartet. `start-dev.cmd -Rebuild` setzt dagegen alle Container neu auf und holt die Images neu, die Daten in den Volumes bleiben. In PowerShell geht auch `.\start-dev.ps1 [-Rebuild]`. Backend und Frontend startest du danach wie unten in Schritt 3 und 4.
+
+Die Schritte einzeln:
+
 ### 1. Infrastruktur
 
 ```bash
