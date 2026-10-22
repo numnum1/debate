@@ -8,6 +8,19 @@ services:
     # API direkt erreichbar, ohne nginx: http://localhost:3001 (ohne /api-Präfix)
     ports:
       - "${ONYX_API_PORT:-3001}:8080"
+    # Lite-Modus braucht wenig; Obergrenze, damit der PC nicht ausgebremst wird
+    deploy:
+      resources:
+        limits:
+          cpus: 1
+          memory: 2g
+
+  relational_db:
+    deploy:
+      resources:
+        limits:
+          cpus: 1
+          memory: 512m
 
   # Onyx-Admin-Oberfläche nur bei Bedarf: --profile admin-ui (bzw. start-dev -Admin).
   # nginx gehört dazu, weil er nur zwischen Oberfläche und API vermittelt.
