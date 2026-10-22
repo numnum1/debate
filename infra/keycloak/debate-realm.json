@@ -9,9 +9,7 @@
   "accessTokenLifespan": 900,
   "roles": {
     "realm": [
-      { "name": "admin", "description": "Plattform-Administration" },
-      { "name": "platform_moderator", "description": "Moderiert den öffentlichen Chat" },
-      { "name": "resolver", "description": "Bestätigt Grenzfälle bei Point Bets" }
+      { "name": "admin", "description": "Plattform-Administration" }
     ]
   },
   "clients": [
@@ -55,7 +53,7 @@
       "email": "alice@debate.local",
       "emailVerified": true,
       "firstName": "Alice",
-      "lastName": "Viewer",
+      "lastName": "Arnold",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
       "realmRoles": []
@@ -65,7 +63,7 @@
       "email": "bob@debate.local",
       "emailVerified": true,
       "firstName": "Bob",
-      "lastName": "Viewer",
+      "lastName": "Berger",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
       "realmRoles": []
@@ -75,27 +73,27 @@
       "email": "carol@debate.local",
       "emailVerified": true,
       "firstName": "Carol",
-      "lastName": "Moderator",
+      "lastName": "Clausen",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
-      "realmRoles": ["platform_moderator"]
+      "realmRoles": []
     },
     {
       "username": "dave",
       "email": "dave@debate.local",
       "emailVerified": true,
       "firstName": "Dave",
-      "lastName": "Resolver",
+      "lastName": "Dietrich",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
-      "realmRoles": ["resolver"]
+      "realmRoles": []
     },
     {
       "username": "erin",
       "email": "erin@debate.local",
       "emailVerified": true,
       "firstName": "Erin",
-      "lastName": "Viewer",
+      "lastName": "Engel",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
       "realmRoles": []
@@ -105,7 +103,7 @@
       "email": "frank@debate.local",
       "emailVerified": true,
       "firstName": "Frank",
-      "lastName": "Viewer",
+      "lastName": "Fuchs",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
       "realmRoles": []
@@ -115,7 +113,7 @@
       "email": "grace@debate.local",
       "emailVerified": true,
       "firstName": "Grace",
-      "lastName": "Viewer",
+      "lastName": "Graf",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "dev", "temporary": false }],
       "realmRoles": []

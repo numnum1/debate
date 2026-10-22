@@ -53,7 +53,7 @@ export function ProfilePage() {
           <dd>
             <code>{me.id}</code>
           </dd>
-          <dt className="font-medium">Rollen</dt>
+          <dt className="font-medium">Plattform-Rollen</dt>
           <dd>{me.roles.length ? me.roles.join(', ') : '–'}</dd>
         </dl>
       )}

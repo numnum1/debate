@@ -19,6 +19,7 @@ Grundlage: [PRODUKT.md](PRODUKT.md). Lehren aus dem ersten Versuch: [../KERN.md]
 | 2026-10-22 | **Stil: hell und sachlich**, wie eine Nachrichtenseite. |
 | 2026-10-22 | **Die klickbaren Wireframes entstehen direkt in `web/`** (Router, Mock-Daten, ungestylte Platzhalter), damit Layout und Routen in die Umsetzung übergehen. |
 | 2026-10-22 | **Zwei Einstiege:** Die **Landing Page** (`/`, auch ohne Anmeldung) ist ein Explorer mit wenigen promoteten Debatten, laufenden Debatten, einer Liste weiterer Debatten und einem schwebenden Mini-Player unten links; Anmelden/Registrieren oben rechts. Die **Home-Seite** (`/home/:debatte`) hat links eine Leiste wie in Claude Code mit allen Debatten, an denen man teilnimmt (egal in welcher Rolle); rechts steht die aktuelle Debatte, je nach Rolle als Zuschauer-Ansicht, Juror-Raum oder Host-Konsole. Erster Stand mit Mock-Daten, noch offen: wer promotet, ab wann eine Debatte „meine“ ist. |
+| 2026-10-22 | **Nutzer haben keine festen Rollen.** Rollen gelten pro Debatte: Host, Debattierer (mit Team), Juror, Moderator, Resolver. Wer eine Debatte anlegt, ist ihr Host und vergibt die übrigen Rollen. Zuschauer ist keine vergebene Rolle, sondern der Normalfall. Global in Keycloak bleibt nur `admin` für den Plattformbetrieb; `platform_moderator` und `resolver` sind entfallen. |
 
 ## Was sich gegenüber dem ersten Versuch grundlegend ändert
 
@@ -140,9 +141,9 @@ Onyx läuft als **Onyx Lite** (entschieden 2026-10-22) eigenständig neben uns: 
 
 | Wo | Was |
 |---|---|
-| Keycloak | Login, Passwort, E-Mail, Social Logins, **globale** Rollen (`admin`, `platform_moderator`, `resolver`) |
+| Keycloak | Login, Passwort, E-Mail, Social Logins; als **globale** Rolle nur `admin` (Plattformbetrieb) |
 | MongoDB `users` | Profil, verknüpft über Keycloak-`sub`: Anzeigename, Avatar, verknüpfte Twitch/X-Konten, Trusted Rank, Juror-Reputation, Show-up-Rate, Einstellungen |
-| MongoDB, je Debatte | **Debattenbezogene** Rollen (Host, Juror, Debattierer, Team) – nicht in Keycloak, weil die Integritätsregeln („wer darf in *dieser* Debatte wetten") daran hängen und sie sich pro Debatte ändern |
+| MongoDB, je Debatte | **Debattenbezogene** Rollen (Host, Debattierer, Team, Juror, Moderator, Resolver), vom Host vergeben – nicht in Keycloak, weil die Integritätsregeln („wer darf in *dieser* Debatte wetten") daran hängen und sie sich pro Debatte ändern |
 
 Passwörter oder Tokens liegen nie in Mongo. Für Phase 2 kommt KYC über einen spezialisierten Anbieter dazu, dessen Prüfstatus am Profil gespeichert wird; das kann Keycloak nicht.
 

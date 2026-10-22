@@ -25,7 +25,11 @@ export type Debate = {
   promoted?: number
 }
 
-export type DebateRole = 'viewer' | 'juror' | 'host' | 'debater'
+/**
+ * Rolle in einer bestimmten Debatte; Nutzer haben keine festen Rollen. Der Host vergibt die übrigen Rollen,
+ * Zuschauer ist der Normalfall ohne Vergabe.
+ */
+export type DebateRole = 'viewer' | 'juror' | 'host' | 'debater' | 'moderator' | 'resolver'
 
 export type Membership = {
   debateId: string
@@ -199,7 +203,8 @@ export const memberships: Membership[] = [
   { debateId: 'grundeinkommen', role: 'viewer', lastActivity: minutes(-1), pinned: true, unread: true },
   { debateId: 'wehrpflicht', role: 'juror', lastActivity: minutes(-8), attention: 'Urteil abgeben, Frist in 22 Min.' },
   { debateId: 'homeoffice', role: 'host', lastActivity: minutes(-45), attention: 'Regelwerk noch nicht gesperrt' },
-  { debateId: 'tempolimit', role: 'viewer', lastActivity: minutes(-3) },
+  { debateId: 'tempolimit', role: 'moderator', lastActivity: minutes(-3), attention: '2 gemeldete Nachrichten' },
+  { debateId: 'schach-ki', role: 'resolver', lastActivity: minutes(-6) },
   { debateId: 'kernkraft', role: 'viewer', lastActivity: minutes(-60 * 3) },
   { debateId: 'mietendeckel', role: 'juror', lastActivity: minutes(-60 * 20) },
   { debateId: 'mars', role: 'viewer', lastActivity: minutes(-60 * 25) },

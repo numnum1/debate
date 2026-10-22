@@ -56,6 +56,8 @@ export const roleLabel: Record<DebateRole, string> = {
   juror: 'Juror',
   host: 'Host',
   debater: 'Debattierer',
+  moderator: 'Moderator',
+  resolver: 'Resolver',
 }
 
 export const platformLabel: Record<Platform, string> = {

@@ -17,7 +17,8 @@ record UserProfile(
 		Instant createdAt,
 		Instant lastSeenAt) {
 
-	UserProfile seenAt(Instant now) {
+	/** Übernimmt Name und E-Mail aus Keycloak, das dafür die Quelle bleibt, und merkt sich den Besuch. */
+	UserProfile seenAt(Instant now, String username, String displayName, String email) {
 		return new UserProfile(id, username, displayName, email, createdAt, now);
 	}
 

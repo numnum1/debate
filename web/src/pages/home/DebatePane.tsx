@@ -72,12 +72,20 @@ function JurorPane() {
 function HostPane() {
   return (
     <div className="grid h-full grid-cols-2 gap-4" data-testid="host-pane">
-      <Slot
-        testId="host-debate"
-        title="Debatte"
-        note="Thema, Regelwerk, Stream-URL, Debattierer, Jury"
-        className="h-full"
-      />
+      <div className="flex flex-col gap-4">
+        <Slot
+          testId="host-debate"
+          title="Debatte"
+          note="Thema, Regelwerk, Stream-URL"
+          className="flex-1"
+        />
+        <Slot
+          testId="host-roles"
+          title="Rollen vergeben"
+          note="Debattierer und Team, Jury, Moderatoren, Resolver"
+          className="h-40"
+        />
+      </div>
       <div className="flex flex-col gap-4">
         <Slot
           testId="host-status-control"
@@ -91,9 +99,42 @@ function HostPane() {
   )
 }
 
-/** Inhalt der aktuellen Debatte auf der Home-Seite, je nach Rolle des Nutzers. */
+function ModeratorPane({ debate }: { debate: Debate }) {
+  return (
+    <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="moderator-pane">
+      <div className="flex min-h-0 flex-col gap-4">
+        <StreamPlaceholder debate={debate} />
+        <Slot
+          testId="moderator-chat"
+          title="Chat moderieren"
+          note="Öffentlicher Chat mit Aktionen: ausblenden, stummschalten"
+          className="flex-1"
+        />
+      </div>
+      <Slot testId="moderator-reports" title="Gemeldete Nachrichten" note="Warteschlange zum Prüfen" className="h-full" />
+    </div>
+  )
+}
+
+function ResolverPane() {
+  return (
+    <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="resolver-pane">
+      <Slot testId="resolver-protocol" title="Protokoll" note="Mit den Stellen, die die KI markiert hat" className="h-full" />
+      <Slot
+        testId="resolver-cases"
+        title="Grenzfälle"
+        note="Point Bets bestätigen oder verwerfen (nach dem POC)"
+        className="h-full"
+      />
+    </div>
+  )
+}
+
+/** Inhalt der aktuellen Debatte auf der Home-Seite, je nach Rolle des Nutzers in dieser Debatte. */
 export function DebatePane({ debate, role, signedIn }: { debate: Debate; role: DebateRole; signedIn: boolean }) {
   if (role === 'juror') return <JurorPane />
   if (role === 'host') return <HostPane />
+  if (role === 'moderator') return <ModeratorPane debate={debate} />
+  if (role === 'resolver') return <ResolverPane />
   return <ViewerPane debate={debate} signedIn={signedIn} />
 }
