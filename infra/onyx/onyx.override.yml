@@ -1,13 +1,22 @@
-# Ergänzungen zur Onyx-Compose-Datei, ohne onyx-main/ anzufassen.
+# Ergänzungen zur Onyx-Compose-Datei und zum Lite-Overlay, ohne onyx-main/ anzufassen.
 # Die Werte kommen aus onyx.env.
-
-x-onyx-secrets: &onyx-secrets
-  USER_AUTH_SECRET: ${USER_AUTH_SECRET:?USER_AUTH_SECRET in infra/onyx/onyx.env setzen}
 
 services:
   api_server:
-    environment: *onyx-secrets
-  background:
-    environment: *onyx-secrets
+    environment:
+      USER_AUTH_SECRET: ${USER_AUTH_SECRET:?USER_AUTH_SECRET in infra/onyx/onyx.env setzen}
+
+  # Brauchen wir nicht: Onyx als MCP-Server und das Tool "Code ausführen".
+  # Ein Profil, das nie aktiviert wird, verhindert den Start.
   mcp_server:
-    environment: *onyx-secrets
+    profiles: ["disabled"]
+  code-interpreter:
+    profiles: ["disabled"]
+
+  # nginx wartet sonst auf den abgeschalteten mcp_server
+  nginx:
+    depends_on: !override
+      api_server:
+        condition: service_healthy
+      web_server:
+        condition: service_healthy

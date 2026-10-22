@@ -61,8 +61,8 @@ Zu klären: Ist „Betting open" vor dem Live-Start, und läuft der Hauptmarkt *
                        ▼                 ▼          ▼
                  ┌──────────────────────────────────────┐      ┌─────────────────────────┐
                  │   KI-Jobs (unser Worker + Queue)     │─API─▶│ Onyx (headless)         │
-                 │   Claims · Einordnung Ereignis/Meinung│◀────│ Agents, Websuche, RAG,  │
-                 │   Faktencheck · Point-Bet-Erkennung  │      │ Ingestion, Connectors   │
+                 │   Claims · Einordnung Ereignis/Meinung│◀────│ Lite: Agents, Websuche, │
+                 │   Faktencheck · Point-Bet-Erkennung  │      │ Quellenangaben          │
                  │   Bias-Metriken · Zusammenfassungen  │      └─────────────────────────┘
                  └──────────────────┬───────────────────┘
                                     ▼
@@ -104,26 +104,28 @@ Zu klären: Ist „Betting open" vor dem Live-Start, und läuft der Hauptmarkt *
 
 ### Onyx als KI-Backend
 
-Onyx (Python, eigener Stack aus Postgres, Such-Index, Redis, MinIO, Model-Servern und Celery-Workern) läuft als eigenständiger Dienst neben uns. Endnutzer melden sich **nie** bei Onyx an; nur unser Backend spricht mit Onyx, über einen API-Key (in Onyx ist jeder API-Key ein eigener Nutzer). Damit stellt sich die Frage nach OIDC/SSO in Onyx nicht, die laut Doku teils Enterprise-Funktion ist.
+Onyx läuft als **Onyx Lite** (entschieden 2026-10-22) eigenständig neben uns: nur API-Server, Onyx-Postgres, Admin-Oberfläche und nginx, zusammen unter 1 GB RAM. Ohne Suchindex, Model-Server, Redis und Hintergrund-Worker; MCP-Server und Code-Interpreter sind ebenfalls abgeschaltet. Chat, Agents und Tools wie die Websuche funktionieren in Lite vollständig. Endnutzer melden sich **nie** bei Onyx an; nur unser Backend spricht mit Onyx, über einen API-Key (in Onyx ist jeder API-Key ein eigener Nutzer). Damit stellt sich die Frage nach OIDC/SSO in Onyx nicht, die laut Doku teils Enterprise-Funktion ist.
 
 **Was Onyx uns abnimmt:**
 - **Agents (Personas)** mit eigenem Prompt und eigenen Tools, je Aufgabe einer: Claim-Extraktor, Faktenchecker, Zuschauer-Assistent, Juror-Assistent, Point-Bet-Vorschläge, Spotlight-Zusammenfassung, Profil-Autor. Das Sprachmodell (z. B. Claude) wird in Onyx konfiguriert.
 - **Websuche** (Serper, Brave, Google PSE, SearXNG, Exa …) und Crawler für Faktenchecks und Profile.
-- **RAG mit Quellenangaben:** Antworten kommen mit Zitaten auf Dokumente. Das passt zur Regel „every line is sourced".
-- **Ingestion-API:** Wir schieben das Live-Protokoll und Quellen über Debattierer (frühere Aussagen, Interviews) als Dokumente hinein. Assistent und Profile arbeiten dann darauf.
-- **Connectors mit Refresh-Intervall:** Quellen über Debattierer werden regelmäßig neu eingelesen. Das ist die einzige Zeitplanung, die Onyx selbst übernimmt.
+- **Quellenangaben:** Antworten aus der Websuche kommen mit Zitaten. Das passt zur Regel „every line is sourced".
+
+**Kontext ohne Suchindex:** Das Live-Protokoll einer Debatte (ein bis zwei Stunden) passt direkt in den Prompt. Unser Backend gibt dem Agenten bei jedem Aufruf den passenden Ausschnitt der Zeitachse mit, statt ihn in Onyx zu indexieren.
+
+**Später, falls nötig (volles Onyx):** Für Profile und Quellen über viele frühere Debatten kann eine Suche über eigene Dokumente nützlich werden (Ingestion-API, Connectors mit Refresh-Intervall, Antworten mit Zitaten auf Dokumente). Dafür das Lite-Overlay aus `infra/onyx/docker-compose.yml` entfernen. Das ist auch in der Community Edition enthalten, eine Lizenz braucht es dafür nicht.
 
 **Was bei uns bleibt:**
 - **Zeitplanung und Queue der KI-Aufgaben.** Onyx hat keinen allgemeinen Job-Scheduler für externe Aufrufer. Unser Worker entscheidet, *wann* welche Aufgabe läuft (z. B. „neues Transkript-Segment → Claim-Extraktion", „Claim als Ereignis eingestuft → Faktencheck"), ruft Onyx auf (`/chat/send-chat-message`, Streaming-Pakete bis `OverallStop`) und schreibt das Ergebnis als Ereignis auf unsere Zeitachse.
 - **Strukturierte Ausgabe:** Onyx liefert Text mit Zitaten. Wir fordern im Agent-Prompt JSON an und validieren es auf unserer Seite gegen ein Schema; bei Fehlern Retry, dann „Unverified".
-- **Sichtbarkeit:** Quoten, Votes, Wetten und Chat kommen **nie** nach Onyx. Was ein Agent sehen darf, steuern wir über Document Sets je Agent (z. B. Juror-Assistent bei *closed evidence* ohne Faktenchecks und Notes).
+- **Sichtbarkeit:** Quoten, Votes, Wetten und Chat kommen **nie** nach Onyx. Was ein Agent sehen darf, steuern wir beim Aufruf über den mitgegebenen Kontext (z. B. Juror-Assistent bei *closed evidence* ohne Faktenchecks und Notes).
 - **Transkription:** Onyx macht kein Audio, STT bleibt ein eigener Dienst.
 - **Protokollierung:** Zu jeder KI-Ausgabe speichern wir Agent-ID, Prompt-Version, Onyx-Version und Quellen (Nachvollziehbarkeit, Haftung für eigene „Speech").
 
 **Risiken und Gegenmaßnahmen:**
 - **Latenz:** Ein Agent-Lauf mit Suche und Reasoning dauert Sekunden. Für Point-Bet-Erkennung („closes the instant the AI detects") ist das kritisch. Für zeitkritische Aufgaben einen Agent ohne Tools verwenden und messen; notfalls diese eine Aufgabe direkt gegen das Sprachmodell.
 - **API-Stabilität:** Onyx hat Chat-Endpunkte bereits einmal ersetzt (`send-message` → `send-chat-message`, Frist Anfang 2026). Deshalb: Onyx-Version pinnen und hinter einer eigenen Schnittstelle (`AiGateway`) kapseln, die nur unsere Aufgabenarten kennt.
-- **Betriebsgewicht:** Onyx Standard braucht mehrere Container und einiges an RAM. Onyx Lite ist leicht, kann aber nicht indexieren, fällt also für RAG weg.
+- **Prompt-Größe:** Ohne Suchindex wächst der mitgegebene Kontext mit der Debatte. Für lange Debatten nur den relevanten Ausschnitt plus eine laufende Zusammenfassung mitgeben.
 
 ### Identität und Nutzerdaten
 
@@ -178,7 +180,7 @@ Entschieden: Ledger, Märkte und Pools liegen in Postgres, alles andere in Mongo
 | Client | **Nur Web** (entschieden), responsiv | Embeds (Twitch verlangt `parent`-Domain) und Second Screen funktionieren im Web am einfachsten; App-Store-Regeln erst später relevant |
 | Auth | **Keycloak** (entschieden), Realm als JSON im Repo | Bekannt, OIDC, Social Logins; KYC in Phase 2 über Spezialanbieter |
 | STT | Deepgram oder AssemblyAI (Streaming + Diarization) | Echtzeit mit Sprechertrennung |
-| KI | **Onyx headless** (entschieden), Sprachmodell darin z. B. Claude | Agents, Websuche, RAG mit Quellen, Ingestion |
+| KI | **Onyx Lite headless** (entschieden), Sprachmodell darin z. B. Claude | Agents, Websuche mit Quellen; unter 1 GB RAM |
 
 Onyx legt die Sprache nicht fest, es wird nur per HTTP angesprochen. Den `AiGateway` bauen wir in Java im Modul `ai`.
 
@@ -188,7 +190,7 @@ Onyx legt die Sprache nicht fest, es wird nur per HTTP angesprochen. Den `AiGate
 backend/          Spring Boot, Maven Wrapper; ein Paket je Modul unter info.mm.debate (bisher: identity)
 web/              React + Vite + TypeScript; später generierter API-Client unter src/api/generated
 infra/            docker-compose.yml: Postgres (DBs keycloak, ledger), MongoDB, Keycloak, Mongo Express, Adminer
-infra/onyx/       eigene Compose-Datei, bindet onyx-main/deployment/docker_compose ein (Version in onyx.env)
+infra/onyx/       eigene Compose-Datei, bindet Onyx-Standard + Lite-Overlay aus onyx-main/ ein (Version in onyx.env)
 onyx-main/        Onyx-Quellcode, nicht versioniert
 docs/v2/          Produkt, Architektur, Entscheidungen
 ```

@@ -14,7 +14,7 @@ Second-Screen-Plattform für Live-Debatten: Zuschauer wetten (im POC nur mit Pun
 - Docker Desktop (muss laufen)
 - JDK 21 (`JAVA_HOME` zeigt darauf); Maven ist nicht nötig, das Backend bringt `mvnw` mit
 - Node.js 24 und npm
-- Für Onyx: der Onyx-Quellcode unter `onyx-main/` (wird nicht versioniert, siehe unten) und ausreichend Speicher für Docker (Onyx empfiehlt 16 GB)
+- Für Onyx: der Onyx-Quellcode unter `onyx-main/` (wird nicht versioniert, siehe unten)
 
 ## Starten
 
@@ -29,12 +29,12 @@ docker compose -f infra/docker-compose.yml up -d --wait
 `onyx-main/` muss den Onyx-Quellcode enthalten, z. B. per `git clone https://github.com/onyx-dot-app/onyx.git onyx-main`. Genutzt wird nur dessen Compose-Datei; die Image-Version ist in [infra/onyx/onyx.env](infra/onyx/onyx.env) fest eingestellt.
 
 ```bash
-docker compose -f infra/onyx/docker-compose.yml up -d
+docker compose -f infra/onyx/docker-compose.yml up -d --wait
 ```
 
-Der erste Start lädt rund 20 GB an Images, danach braucht der Stack etwa 4–5 GB RAM. Danach unter http://localhost:3000 einmalig einrichten: Das erste Konto, das sich dort registriert, wird Onyx-Admin. Dann LLM-Anbieter, API-Key für unser Backend und Agents anlegen. Endnutzer melden sich nie bei Onyx an.
+Es läuft **Onyx Lite**: nur API-Server, Onyx-Postgres, Admin-Oberfläche und nginx, zusammen unter 1 GB RAM. Chat, Agents und Websuche funktionieren; ein Suchindex über eigene Dokumente ist bewusst nicht dabei (siehe [Architektur](docs/v2/ARCHITEKTUR.md#onyx-als-ki-backend)). Abgeschaltet sind außerdem MCP-Server und Code-Interpreter, siehe [onyx.override.yml](infra/onyx/onyx.override.yml).
 
-Abweichungen vom Onyx-Standard (in [onyx.env](infra/onyx/onyx.env) und [onyx.override.yml](infra/onyx/onyx.override.yml)): Dateien liegen in Onyx' Postgres statt in einem S3-Objektspeicher, und `USER_AUTH_SECRET` hat einen festen Dev-Wert. Fehler `Failed to load Kubernetes configuration` im `background`-Log sind harmlos (Aufräum-Job der abgeschalteten Craft-Funktion).
+Danach unter http://localhost:3000 einmalig einrichten: Das erste Konto, das sich dort registriert, wird Onyx-Admin. Dann LLM-Anbieter, API-Key für unser Backend und Agents anlegen. Endnutzer melden sich nie bei Onyx an. `USER_AUTH_SECRET` in [onyx.env](infra/onyx/onyx.env) hat einen festen Dev-Wert.
 
 ### 3. Backend
 
