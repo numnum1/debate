@@ -2,13 +2,14 @@
 # Nutzt unverändert die Compose-Dateien aus onyx-main/ (liegt nicht im Git, siehe README):
 #   - docker-compose.yml            Onyx-Standard
 #   - docker-compose.onyx-lite.yml  Onyx' eigenes Overlay: kein OpenSearch, keine Model-Server, kein Redis, kein Worker
-#   - onyx.override.yml             unsere Ergänzungen: Secret, kein MCP-Server, kein Code-Interpreter
+#   - onyx.override.yml             unsere Ergänzungen: Secret, API-Port, Admin-UI optional, kein MCP-Server, kein Code-Interpreter
 # onyx.env setzt die Variablen (Image-Version, Ports, Secret).
 #
-#   docker compose -f infra/onyx/docker-compose.yml up -d --wait
+#   docker compose -f infra/onyx/docker-compose.yml up -d --wait                        nur API
+#   docker compose -f infra/onyx/docker-compose.yml --profile admin-ui up -d --wait     mit Admin-Oberfläche
 #
-# Danach: Admin-Oberfläche unter http://localhost:3000 (nur zum Einrichten: LLM-Anbieter, API-Key, Agents).
-# Unser Backend spricht Onyx unter http://localhost:3000/api an.
+# Unser Backend spricht die Onyx-API direkt unter http://localhost:3001 an.
+# Admin-Oberfläche (nur zum Einrichten und Nachschauen: LLM-Anbieter, API-Key, Agents): http://localhost:3000
 
 name: debate-onyx
 

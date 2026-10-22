@@ -5,6 +5,22 @@ services:
   api_server:
     environment:
       USER_AUTH_SECRET: ${USER_AUTH_SECRET:?USER_AUTH_SECRET in infra/onyx/onyx.env setzen}
+    # API direkt erreichbar, ohne nginx: http://localhost:3001 (ohne /api-Präfix)
+    ports:
+      - "${ONYX_API_PORT:-3001}:8080"
+
+  # Onyx-Admin-Oberfläche nur bei Bedarf: --profile admin-ui (bzw. start-dev -Admin).
+  # nginx gehört dazu, weil er nur zwischen Oberfläche und API vermittelt.
+  web_server:
+    profiles: ["admin-ui"]
+  nginx:
+    profiles: ["admin-ui"]
+    # nginx wartet sonst auf den abgeschalteten mcp_server
+    depends_on: !override
+      api_server:
+        condition: service_healthy
+      web_server:
+        condition: service_healthy
 
   # Brauchen wir nicht: Onyx als MCP-Server und das Tool "Code ausführen".
   # Ein Profil, das nie aktiviert wird, verhindert den Start.
@@ -12,11 +28,3 @@ services:
     profiles: ["disabled"]
   code-interpreter:
     profiles: ["disabled"]
-
-  # nginx wartet sonst auf den abgeschalteten mcp_server
-  nginx:
-    depends_on: !override
-      api_server:
-        condition: service_healthy
-      web_server:
-        condition: service_healthy

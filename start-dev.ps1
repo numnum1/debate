@@ -8,12 +8,19 @@
   Container neu aufsetzen: stoppt und entfernt alle Container, holt die Images neu und erstellt alles frisch.
   Daten in den Volumes bleiben erhalten. Standard: aus.
 
+.PARAMETER Admin
+  Startet zusätzlich die Onyx-Admin-Oberfläche (web_server + nginx) unter http://localhost:3000,
+  z. B. zum Einrichten von LLM-Anbieter, API-Key und Agents. Ohne -Admin wird sie nicht gestartet,
+  läuft sie bereits, bleibt sie aber laufen. Standard: aus.
+
 .EXAMPLE
   .\start-dev.ps1
-  .\start-dev.ps1 -Rebuild
+  .\start-dev.ps1 -Admin
+  .\start-dev.ps1 -Rebuild -Admin
 #>
 param(
-	[switch]$Rebuild
+	[switch]$Rebuild,
+	[switch]$Admin
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,21 +36,21 @@ function Invoke-Compose([string]$File, [string[]]$Arguments) {
 	}
 }
 
-function Test-AllServicesRunning([string]$File) {
+function Test-AllServicesRunning([string]$File, [string[]]$ProfileArgs) {
 	$ErrorActionPreference = 'Continue'
-	$services = @(& docker compose -f $File config --services 2> $null)
+	$services = @(& docker compose -f $File @ProfileArgs config --services 2> $null)
 	$running = @(& docker compose -f $File ps --status running --services 2> $null)
 	$missing = @($services | Where-Object { $running -notcontains $_ })
 	return $services.Count -gt 0 -and $missing.Count -eq 0
 }
 
-function Start-Compose([string]$Name, [string]$File, [string[]]$UpArgs) {
-	if (-not $Rebuild -and (Test-AllServicesRunning $File)) {
+function Start-Compose([string]$Name, [string]$File, [string[]]$UpArgs, [string[]]$ProfileArgs = @()) {
+	if (-not $Rebuild -and (Test-AllServicesRunning $File $ProfileArgs)) {
 		Write-Host "$Name läuft bereits, nichts zu tun." -ForegroundColor Green
 		return
 	}
 	Write-Host "Starte $Name ..." -ForegroundColor Cyan
-	Invoke-Compose $File $UpArgs
+	Invoke-Compose $File ($ProfileArgs + $UpArgs)
 }
 
 function Test-DockerRunning {
@@ -107,13 +114,20 @@ if ($Rebuild) {
 # --- Starten ------------------------------------------------------------------
 Start-Compose 'Infrastruktur (Postgres, MongoDB, Keycloak)' $infraCompose $upArgs
 if ($withOnyx) {
-	Start-Compose 'Onyx Lite' $onyxCompose $upArgs
+	if ($Admin) {
+		Start-Compose 'Onyx Lite mit Admin-Oberfläche' $onyxCompose $upArgs @('--profile', 'admin-ui')
+	} else {
+		Start-Compose 'Onyx Lite' $onyxCompose $upArgs
+	}
 }
 
 Write-Host 'Warte auf Dienste ...' -ForegroundColor Cyan
 Wait-Http 'Keycloak' 'http://localhost:8180/realms/debate/.well-known/openid-configuration'
 if ($withOnyx) {
-	Wait-Http 'Onyx' 'http://localhost:3000/api/health'
+	Wait-Http 'Onyx-API' 'http://localhost:3001/health'
+	if ($Admin) {
+		Wait-Http 'Onyx-Admin-Oberfläche' 'http://localhost:3000/'
+	}
 }
 
 Write-Host ''
@@ -124,7 +138,10 @@ Write-Host '  MongoDB        localhost:27017         (debate / debate)'
 Write-Host '  Mongo Express  http://localhost:8081'
 Write-Host '  Adminer        http://localhost:8082'
 if ($withOnyx) {
-	Write-Host '  Onyx           http://localhost:3000'
+	Write-Host '  Onyx-API       http://localhost:3001'
+	if ($Admin) {
+		Write-Host '  Onyx-Admin     http://localhost:3000'
+	}
 }
 Write-Host ''
 Write-Host 'Jetzt Backend und Frontend starten, je in einem eigenen Terminal:'

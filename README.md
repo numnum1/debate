@@ -24,7 +24,7 @@ Second-Screen-Plattform für Live-Debatten: Zuschauer wetten (im POC nur mit Pun
 start-dev.cmd
 ```
 
-Startet Docker Desktop, falls nötig, dann Infrastruktur und Onyx Lite, und wartet, bis Keycloak und Onyx antworten. Was schon läuft, bleibt unangetastet; nur fehlende oder gestoppte Dienste werden gestartet. `start-dev.cmd -Rebuild` setzt dagegen alle Container neu auf und holt die Images neu, die Daten in den Volumes bleiben. In PowerShell geht auch `.\start-dev.ps1 [-Rebuild]`. Backend und Frontend startest du danach wie unten in Schritt 3 und 4.
+Startet Docker Desktop, falls nötig, dann Infrastruktur und Onyx Lite, und wartet, bis Keycloak und Onyx antworten. Was schon läuft, bleibt unangetastet; nur fehlende oder gestoppte Dienste werden gestartet. `start-dev.cmd -Rebuild` setzt dagegen alle Container neu auf und holt die Images neu, die Daten in den Volumes bleiben. `start-dev.cmd -Admin` startet zusätzlich die Onyx-Admin-Oberfläche; ohne `-Admin` wird sie nicht gestartet. In PowerShell geht auch `.\start-dev.ps1 [-Rebuild] [-Admin]`. Backend und Frontend startest du danach wie unten in Schritt 3 und 4.
 
 Die Schritte einzeln:
 
@@ -36,15 +36,21 @@ docker compose -f infra/docker-compose.yml up -d --wait
 
 ### 2. Onyx (optional, nur für KI-Aufgaben)
 
-`onyx-main/` muss den Onyx-Quellcode enthalten, z. B. per `git clone https://github.com/onyx-dot-app/onyx.git onyx-main`. Genutzt wird nur dessen Compose-Datei; die Image-Version ist in [infra/onyx/onyx.env](infra/onyx/onyx.env) fest eingestellt.
+`onyx-main/` muss den Onyx-Quellcode enthalten, z. B. per `git clone https://github.com/onyx-dot-app/onyx.git onyx-main`. Genutzt werden nur dessen Compose-Dateien; die Image-Version ist in [infra/onyx/onyx.env](infra/onyx/onyx.env) fest eingestellt.
 
 ```bash
 docker compose -f infra/onyx/docker-compose.yml up -d --wait
 ```
 
-Es läuft **Onyx Lite**: nur API-Server, Onyx-Postgres, Admin-Oberfläche und nginx, zusammen unter 1 GB RAM. Chat, Agents und Websuche funktionieren; ein Suchindex über eigene Dokumente ist bewusst nicht dabei (siehe [Architektur](docs/v2/ARCHITEKTUR.md#onyx-als-ki-backend)). Abgeschaltet sind außerdem MCP-Server und Code-Interpreter, siehe [onyx.override.yml](infra/onyx/onyx.override.yml).
+Mit Admin-Oberfläche:
 
-Danach unter http://localhost:3000 einmalig einrichten: Das erste Konto, das sich dort registriert, wird Onyx-Admin. Dann LLM-Anbieter, API-Key für unser Backend und Agents anlegen. Endnutzer melden sich nie bei Onyx an. `USER_AUTH_SECRET` in [onyx.env](infra/onyx/onyx.env) hat einen festen Dev-Wert.
+```bash
+docker compose -f infra/onyx/docker-compose.yml --profile admin-ui up -d --wait
+```
+
+Es läuft **Onyx Lite**: standardmäßig nur API-Server und Onyx-Postgres, die API ist direkt unter http://localhost:3001 erreichbar (ohne `/api`-Präfix). Die Admin-Oberfläche (`web_server` + nginx) läuft nur mit dem Profil `admin-ui`. Zusammen unter 1 GB RAM. Chat, Agents und Websuche funktionieren; ein Suchindex über eigene Dokumente ist bewusst nicht dabei (siehe [Architektur](docs/v2/ARCHITEKTUR.md#onyx-als-ki-backend)). Abgeschaltet sind außerdem MCP-Server und Code-Interpreter, siehe [onyx.override.yml](infra/onyx/onyx.override.yml).
+
+Zum Einrichten mit Admin-Oberfläche starten und unter http://localhost:3000 einmalig einrichten: Das erste Konto, das sich dort registriert, wird Onyx-Admin. Dann LLM-Anbieter, API-Key für unser Backend und Agents anlegen. Endnutzer melden sich nie bei Onyx an. `USER_AUTH_SECRET` in [onyx.env](infra/onyx/onyx.env) hat einen festen Dev-Wert.
 
 ### 3. Backend
 
@@ -76,7 +82,8 @@ Dann http://localhost:5173 öffnen und anmelden.
 | MongoDB | `localhost:27017` | `debate` / `debate`, Datenbank `debate`, `authSource=admin` |
 | Mongo Express | http://localhost:8081 | Mongo im Browser |
 | Adminer | http://localhost:8082 | Postgres im Browser (Server `postgres`, Nutzer `debate`) |
-| Onyx | http://localhost:3000 | Admin-Oberfläche, API unter `/api` |
+| Onyx-API | http://localhost:3001 | Für unser Backend, API-Key als Bearer-Token |
+| Onyx-Admin | http://localhost:3000 | Nur mit `-Admin` bzw. Profil `admin-ui` |
 
 Alle Zugangsdaten sind reine Entwicklungswerte.
 
