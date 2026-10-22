@@ -14,6 +14,11 @@ Grundlage: [PRODUKT.md](PRODUKT.md). Lehren aus dem ersten Versuch: [../KERN.md]
 | 2026-10-22 | **Zunächst nur eine Webseite**, keine native App. |
 | 2026-10-22 | **MongoDB** für Nutzer, Debatten, Regelwerke und Zeitachse, **PostgreSQL** für Ledger, Märkte und Pools. Eine kurz erwogene Variante „alles in Mongo" ist verworfen. Begründung siehe [Ledger und Markt in PostgreSQL](#ledger-und-markt-in-postgresql). |
 | 2026-10-22 | **Der POC arbeitet nur mit Punkten, kein echtes Geld.** Damit entfallen im POC Zahlungsanbieter, Ein- und Auszahlung, KYC, Geofencing und Einsatzlimits nach Glücksspielrecht. Das Ledger hat trotzdem ein Währungsfeld (`POINTS`), damit Phase 2 kein Umbau wird. |
+| 2026-10-22 | **UI mit Tailwind CSS + shadcn/ui.** Die Komponenten liegen als eigener Code im Repo, so lassen sich Sonderelemente wie Marktbalken und Jury-Slider frei bauen. Mantine und MUI sind verworfen. |
+| 2026-10-22 | **Der POC wird nur für Desktop gestaltet.** Ein Mobile-Layout ist für den POC nicht nötig. |
+| 2026-10-22 | **Stil: hell und sachlich**, wie eine Nachrichtenseite. |
+| 2026-10-22 | **Die klickbaren Wireframes entstehen direkt in `web/`** (Router, Mock-Daten, ungestylte Platzhalter), damit Layout und Routen in die Umsetzung übergehen. |
+| 2026-10-22 | **Zwei Einstiege:** Die **Landing Page** (`/`, auch ohne Anmeldung) ist ein Explorer mit wenigen promoteten Debatten, laufenden Debatten, einer Liste weiterer Debatten und einem schwebenden Mini-Player unten links; Anmelden/Registrieren oben rechts. Die **Home-Seite** (`/home/:debatte`) hat links eine Leiste wie in Claude Code mit allen Debatten, an denen man teilnimmt (egal in welcher Rolle); rechts steht die aktuelle Debatte, je nach Rolle als Zuschauer-Ansicht, Juror-Raum oder Host-Konsole. Erster Stand mit Mock-Daten, noch offen: wer promotet, ab wann eine Debatte „meine“ ist. |
 
 ## Was sich gegenüber dem ersten Versuch grundlegend ändert
 
@@ -171,13 +176,13 @@ Entschieden: Ledger, Märkte und Pools liegen in Postgres, alles andere in Mongo
 | Backend | **Java** (entschieden): Spring Boot 4.1, Java 21 (LTS, lokal installiert), Maven **mit Wrapper** (`mvnw`) | Bekannt aus dem ersten Versuch; Spring Security (Keycloak) und Spring Data (Mongo, JPA) liefen dort schon. Der fehlende Wrapper war im PoC eine Hürde |
 | Modulgrenzen | Modularer Monolith mit **Spring Modulith**: Module `debate`, `ruleset`, `timeline`, `market`, `ledger`, `jury`, `chat`, `identity`, `ai` | Kein Microservice-Overhead im POC; Modulith prüft in Tests, dass Module nur über ihre öffentliche API und Events miteinander reden |
 | Domäne | Reine Java-Klassen ohne Spring-Abhängigkeit (Lebenszyklus, Markt-Mathematik, Median, Regelwerk-Prüfung) | Ohne Infrastruktur testbar (Leitprinzip 7) |
-| Frontend | **React** (entschieden) mit Vite und TypeScript, als Single-Page-App; Routing z. B. React Router, Server-State mit TanStack Query | Kein Next.js nötig, weil das Backend in Java läuft; Vite ist schlank |
+| Frontend | **React** (entschieden) mit Vite und TypeScript, als Single-Page-App; **Tailwind CSS + shadcn/ui** (entschieden); Routing z. B. React Router, Server-State mit TanStack Query | Kein Next.js nötig, weil das Backend in Java läuft; Vite ist schlank |
 | Vertrag Client ↔ Server | **OpenAPI aus Spring** (springdoc) → TypeScript-Client und -Typen generiert (z. B. orval oder openapi-typescript). Ereignis-Typen für WebSocket ebenfalls als Schemas in der OpenAPI-Spec | Ersetzt die geteilten Typen, die TypeScript auf beiden Seiten gegeben hätte. Kein Handabgleich von DTOs |
 | Datenbank | **MongoDB** (Spring Data MongoDB) für Nutzer, Debatten, Regelwerke, Zeitachse · **PostgreSQL** (Flyway, Spring Data JDBC oder jOOQ) für Ledger, Märkte, Pools (entschieden) | Dokumente dort, wo sie passen; Transaktionen und Constraints dort, wo Punkte bzw. Geld fließen |
 | Jobs (KI-Aufgaben) | **JobRunr** mit Postgres oder MongoDB als Speicher, im selben Prozess oder als zweite Instanz mit Worker-Profil | Persistente Queue mit Retries ohne zusätzlichen Broker |
 | Echtzeit | Spring WebSocket nur **Server → Client** (Ereignisse, nach Audience gefiltert); Token beim Verbindungsaufbau prüfen. Befehle immer per HTTP | Leitprinzip 6. SSE wäre einfacher, aber der Browser-`EventSource` kann keinen Bearer-Token mitschicken |
 | Fan-out bei mehreren Instanzen | Für den POC eine Instanz; später Redis Pub/Sub | Erst einführen, wenn nötig |
-| Client | **Nur Web** (entschieden), responsiv | Embeds (Twitch verlangt `parent`-Domain) und Second Screen funktionieren im Web am einfachsten; App-Store-Regeln erst später relevant |
+| Client | **Nur Web** (entschieden), im POC nur Desktop (entschieden) | Embeds (Twitch verlangt `parent`-Domain) und Second Screen funktionieren im Web am einfachsten; App-Store-Regeln erst später relevant |
 | Auth | **Keycloak** (entschieden), Realm als JSON im Repo | Bekannt, OIDC, Social Logins; KYC in Phase 2 über Spezialanbieter |
 | STT | Deepgram oder AssemblyAI (Streaming + Diarization) | Echtzeit mit Sprechertrennung |
 | KI | **Onyx Lite headless** (entschieden), Sprachmodell darin z. B. Claude | Agents, Websuche mit Quellen; unter 1 GB RAM |

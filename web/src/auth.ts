@@ -1,5 +1,5 @@
 import { WebStorageStateStore } from 'oidc-client-ts'
-import type { AuthProviderProps } from 'react-oidc-context'
+import type { AuthContextProps, AuthProviderProps } from 'react-oidc-context'
 
 // Keycloak-Realm und Client aus infra/keycloak/debate-realm.json
 export const oidcConfig: AuthProviderProps = {
@@ -13,4 +13,20 @@ export const oidcConfig: AuthProviderProps = {
   onSigninCallback: () => {
     window.history.replaceState({}, document.title, window.location.pathname)
   },
+}
+
+// Nach dem Login auf die Seite zurück, von der aus man sich angemeldet hat (Keycloak erlaubt localhost:5173/*)
+const here = () => window.location.origin + window.location.pathname
+
+export function signIn(auth: AuthContextProps) {
+  return auth.signinRedirect({ redirect_uri: here() })
+}
+
+export function register(auth: AuthContextProps) {
+  return auth.signinRedirect({ redirect_uri: here(), prompt: 'create' })
+}
+
+export function displayName(auth: AuthContextProps) {
+  const profile = auth.user?.profile
+  return profile?.name ?? profile?.preferred_username ?? ''
 }
