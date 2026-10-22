@@ -80,7 +80,7 @@ function EntryRow({ entry, active, onTogglePin }: { entry: SidebarEntry; active:
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={active} title={hint}>
+      <SidebarMenuButton asChild isActive={active} title={hint} data-testid={`sidebar-entry-${debate.id}`}>
         <Link to={`/home/${debate.id}`}>
           <StatusIcon status={debate.status} />
           <span className="flex-1 truncate">{debate.topic}</span>
@@ -102,13 +102,13 @@ function EntryRow({ entry, active, onTogglePin }: { entry: SidebarEntry; active:
       </SidebarMenuButton>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <SidebarMenuAction showOnHover>
+          <SidebarMenuAction showOnHover data-testid={`sidebar-entry-menu-${debate.id}`}>
             <MoreHorizontalIcon />
             <span className="sr-only">Mehr</span>
           </SidebarMenuAction>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="start">
-          <DropdownMenuItem onSelect={onTogglePin}>
+          <DropdownMenuItem onSelect={onTogglePin} data-testid={`sidebar-entry-pin-${debate.id}`}>
             {entry.pinned ? <PinOffIcon /> : <PinIcon />}
             {entry.pinned ? 'Lösen' : 'Anpinnen'}
           </DropdownMenuItem>
@@ -158,13 +158,13 @@ function UserFooter() {
 
   if (!auth.isAuthenticated) {
     return (
-      <div className="flex flex-col gap-2 rounded-lg bg-sidebar-accent p-3 text-sm">
+      <div className="flex flex-col gap-2 rounded-lg bg-sidebar-accent p-3 text-sm" data-testid="sidebar-sign-in-prompt">
         <span>Melde dich an, um deine Debatten hier zu sehen.</span>
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => void signIn(auth)}>
+          <Button size="sm" onClick={() => void signIn(auth)} data-testid="sidebar-sign-in-button">
             Anmelden
           </Button>
-          <Button size="sm" variant="outline" onClick={() => void register(auth)}>
+          <Button size="sm" variant="outline" onClick={() => void register(auth)} data-testid="sidebar-register-button">
             Registrieren
           </Button>
         </div>
@@ -178,7 +178,7 @@ function UserFooter() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg">
+            <SidebarMenuButton size="lg" data-testid="sidebar-user-menu-trigger">
               <Avatar className="size-8">
                 <AvatarFallback>{initials(name)}</AvatarFallback>
               </Avatar>
@@ -190,13 +190,13 @@ function UserFooter() {
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-(--radix-dropdown-menu-trigger-width)">
             <DropdownMenuItem asChild>
-              <Link to="/profil">
+              <Link to="/profil" data-testid="sidebar-user-menu-profile">
                 <UserIcon />
                 Profil
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => void auth.signoutRedirect()}>
+            <DropdownMenuItem onSelect={() => void auth.signoutRedirect()} data-testid="sidebar-user-menu-sign-out">
               <LogOutIcon />
               Abmelden
             </DropdownMenuItem>
@@ -220,14 +220,14 @@ export function HomeSidebar({ entries, activeId, onTogglePin }: Props) {
   const rest = filtered.filter((e) => !e.pinned)
 
   return (
-    <Sidebar>
+    <Sidebar data-testid="home-sidebar">
       <SidebarHeader className="gap-1">
         <Link to="/" className="px-2 py-1.5 text-lg font-semibold tracking-tight">
           Debate
         </Link>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild data-testid="sidebar-discover-link">
               <Link to="/">
                 <CompassIcon />
                 <span>Debatten entdecken</span>
@@ -236,7 +236,7 @@ export function HomeSidebar({ entries, activeId, onTogglePin }: Props) {
           </SidebarMenuItem>
         </SidebarMenu>
         {auth.isAuthenticated && (
-          <SidebarInput placeholder="Meine Debatten filtern" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <SidebarInput placeholder="Meine Debatten filtern" data-testid="sidebar-filter-input" value={query} onChange={(e) => setQuery(e.target.value)} />
         )}
       </SidebarHeader>
 
@@ -252,7 +252,7 @@ export function HomeSidebar({ entries, activeId, onTogglePin }: Props) {
           />
         ))}
         {auth.isAuthenticated && filtered.length === 0 && (
-          <p className="px-4 py-2 text-sm text-muted-foreground">Keine Debatten gefunden.</p>
+          <p className="px-4 py-2 text-sm text-muted-foreground" data-testid="sidebar-empty-state">Keine Debatten gefunden.</p>
         )}
       </SidebarContent>
 

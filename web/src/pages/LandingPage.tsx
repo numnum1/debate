@@ -32,7 +32,7 @@ function When({ debate }: { debate: Debate }) {
 
 function FeaturedCard({ debate, ref }: { debate: Debate; ref?: Ref<HTMLDivElement> }) {
   return (
-    <Card ref={ref} className="grid h-full grid-cols-[3fr_2fr] gap-0 py-0">
+    <Card ref={ref} className="grid h-full grid-cols-[3fr_2fr] gap-0 py-0" data-testid="featured-debate-card">
       <Link to={debateLink(debate)} className="block self-center p-4 pr-0">
         <StreamPlaceholder debate={debate} />
       </Link>
@@ -49,7 +49,7 @@ function FeaturedCard({ debate, ref }: { debate: Debate; ref?: Ref<HTMLDivElemen
         <MarketBar a={debate.marketA} sideA={debate.sideA} sideB={debate.sideB} />
         <div className="mt-auto flex items-center justify-between pt-1">
           <span className="text-sm text-muted-foreground">{formatPoints(debate.volume)} im Markt</span>
-          <Button asChild>
+          <Button asChild data-testid="featured-debate-cta">
             <Link to={debateLink(debate)}>Zur Debatte</Link>
           </Button>
         </div>
@@ -60,7 +60,7 @@ function FeaturedCard({ debate, ref }: { debate: Debate; ref?: Ref<HTMLDivElemen
 
 function PromotedCard({ debate }: { debate: Debate }) {
   return (
-    <Card className="gap-3">
+    <Card className="gap-3" data-testid={`promoted-debate-card-${debate.id}`}>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <StatusBadge status={debate.status} />
@@ -82,7 +82,7 @@ function PromotedCard({ debate }: { debate: Debate }) {
 
 function LiveCard({ debate }: { debate: Debate }) {
   return (
-    <Link to={debateLink(debate)} className="group flex flex-col gap-2">
+    <Link to={debateLink(debate)} className="group flex flex-col gap-2" data-testid={`live-debate-card-${debate.id}`}>
       <StreamPlaceholder debate={debate} />
       <span className="line-clamp-2 text-sm leading-snug font-medium group-hover:underline">{debate.topic}</span>
       <MarketBar a={debate.marketA} size="sm" />
@@ -107,21 +107,21 @@ function DebateList() {
   const shown = others.filter((d) => filterMatches[filter](d.status))
 
   return (
-    <section>
+    <section data-testid="debate-list">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Weitere Debatten</h2>
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)} data-testid="debate-list-filter">
           <TabsList>
-            <TabsTrigger value="all">Alle</TabsTrigger>
-            <TabsTrigger value="open">Demnächst</TabsTrigger>
-            <TabsTrigger value="live">Laufend</TabsTrigger>
-            <TabsTrigger value="done">Beendet</TabsTrigger>
+            <TabsTrigger value="all" data-testid="debate-filter-all">Alle</TabsTrigger>
+            <TabsTrigger value="open" data-testid="debate-filter-open">Demnächst</TabsTrigger>
+            <TabsTrigger value="live" data-testid="debate-filter-live">Laufend</TabsTrigger>
+            <TabsTrigger value="done" data-testid="debate-filter-done">Beendet</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
       <ul className="divide-y rounded-xl ring-1 ring-foreground/10">
         {shown.map((d) => (
-          <li key={d.id}>
+          <li key={d.id} data-testid={`debate-list-item-${d.id}`}>
             <Link
               to={debateLink(d)}
               className="grid grid-cols-[7rem_minmax(0,1fr)_10rem_8rem_7rem] items-center gap-4 px-4 py-3 hover:bg-muted/50"
@@ -145,7 +145,7 @@ function DebateList() {
             </Link>
           </li>
         ))}
-        {shown.length === 0 && <li className="px-4 py-6 text-sm text-muted-foreground">Keine Debatten in dieser Auswahl.</li>}
+        {shown.length === 0 && <li className="px-4 py-6 text-sm text-muted-foreground" data-testid="debate-list-empty">Keine Debatten in dieser Auswahl.</li>}
       </ul>
     </section>
   )
@@ -170,14 +170,14 @@ export function LandingPage() {
 
   return (
     <div className="min-h-svh">
-      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur" data-testid="landing-header">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-6">
           <Link to="/" className="text-lg font-semibold tracking-tight">
             Debate
           </Link>
           <div className="relative max-w-sm flex-1">
             <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Debatten, Themen, Personen suchen" className="pl-8" />
+            <Input placeholder="Debatten, Themen, Personen suchen" className="pl-8" data-testid="landing-search-input" />
           </div>
           <div className="ml-auto">
             <AccountControls />
@@ -185,7 +185,7 @@ export function LandingPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-8 pb-40">
+      <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-8 pb-40" data-testid="landing-page">
         <section className="grid grid-cols-3 gap-4">
           <div className="col-span-2">{featured && <FeaturedCard debate={featured} ref={featuredRef} />}</div>
           <div className="flex flex-col gap-4">
@@ -195,7 +195,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section>
+        <section data-testid="live-debate-section">
           <h2 className="mb-3 text-lg font-semibold">Jetzt live</h2>
           <div className="grid grid-cols-4 gap-4">
             {live.map((d) => (

@@ -13,6 +13,7 @@ export function StreamPlaceholder({ debate, className }: { debate: Debate; class
         'relative flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-neutral-200 text-neutral-500',
         className,
       )}
+      data-testid="stream-placeholder"
     >
       <PlayIcon className="size-8" />
       <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white">

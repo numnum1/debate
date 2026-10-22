@@ -46,16 +46,20 @@ export function HomePage() {
     <SidebarProvider style={{ '--sidebar-width': '20rem' } as React.CSSProperties}>
       <HomeSidebar entries={entries} activeId={debateId} onTogglePin={togglePin} />
       <SidebarInset className="h-svh">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4" data-testid="home-header">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
           {debate ? (
             <>
-              <h1 className="truncate font-semibold">{debate.topic}</h1>
+              <h1 className="truncate font-semibold" data-testid="home-debate-title">{debate.topic}</h1>
               <StatusBadge status={debate.status} />
-              {role !== 'viewer' && <Badge variant="secondary">{roleLabel[role]}</Badge>}
+              {role !== 'viewer' && (
+                <Badge variant="secondary" data-testid="home-role-badge">
+                  {roleLabel[role]}
+                </Badge>
+              )}
               {auth.isAuthenticated && membership?.attention && (
-                <span className="flex shrink-0 items-center gap-1.5 text-sm text-amber-700">
+                <span className="flex shrink-0 items-center gap-1.5 text-sm text-amber-700" data-testid="home-attention">
                   <span className="size-2 rounded-full bg-amber-500" />
                   {membership.attention}
                 </span>
@@ -65,19 +69,19 @@ export function HomePage() {
               </span>
             </>
           ) : (
-            <h1 className="font-semibold">Meine Debatten</h1>
+            <h1 className="font-semibold" data-testid="home-page-title">Meine Debatten</h1>
           )}
         </header>
         <div className="min-h-0 flex-1 overflow-auto p-4">
           {debate ? (
             <DebatePane debate={debate} role={role} signedIn={auth.isAuthenticated} />
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center" data-testid="home-empty-state">
               <p className="text-lg font-medium">{debateId ? 'Diese Debatte gibt es nicht.' : 'Wähle links eine Debatte.'}</p>
               <p className="max-w-sm text-sm text-muted-foreground">
                 Hier erscheinen alle Debatten, an denen du teilnimmst, ob als Zuschauer, Juror oder Host.
               </p>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" data-testid="home-discover-link">
                 <Link to="/">
                   <CompassIcon />
                   Debatten entdecken

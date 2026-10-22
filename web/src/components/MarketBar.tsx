@@ -15,7 +15,7 @@ type Props = {
 export function MarketBar({ a, sideA, sideB, verdict, size = 'md', className }: Props) {
   const b = 100 - a
   return (
-    <div className={cn('w-full', className)}>
+    <div className={cn('w-full', className)} data-testid="market-bar">
       {size === 'md' && (
         <div className="mb-1 flex justify-between text-xs text-muted-foreground">
           <span className="truncate">
@@ -43,6 +43,7 @@ export function MarketBar({ a, sideA, sideB, verdict, size = 'md', className }: 
         <div className="relative mt-1 h-4 text-xs">
           <span
             className="absolute -translate-x-1/2 font-medium whitespace-nowrap"
+            data-testid="market-bar-verdict"
             style={{ left: `${verdict}%` }}
           >
             Jury {verdict}

@@ -22,11 +22,11 @@ export function AccountControls() {
 
   if (!auth.isAuthenticated) {
     return (
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" onClick={() => void signIn(auth)} disabled={auth.isLoading}>
+      <div className="flex items-center gap-2" data-testid="account-controls">
+        <Button variant="ghost" onClick={() => void signIn(auth)} disabled={auth.isLoading} data-testid="account-sign-in-button">
           Anmelden
         </Button>
-        <Button onClick={() => void register(auth)} disabled={auth.isLoading}>
+        <Button onClick={() => void register(auth)} disabled={auth.isLoading} data-testid="account-register-button">
           Registrieren
         </Button>
       </div>
@@ -35,16 +35,16 @@ export function AccountControls() {
 
   const name = displayName(auth)
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-sm text-muted-foreground tabular-nums">{formatPoints(balance)}</span>
-      <Button asChild>
+    <div className="flex items-center gap-3" data-testid="account-controls">
+      <span className="text-sm text-muted-foreground tabular-nums" data-testid="account-balance">{formatPoints(balance)}</span>
+      <Button asChild data-testid="account-my-debates-link">
         <Link to="/home">
           <MessagesSquareIcon />
           Meine Debatten
         </Link>
       </Button>
       <DropdownMenu>
-        <DropdownMenuTrigger className="rounded-full">
+        <DropdownMenuTrigger className="rounded-full" data-testid="account-menu-trigger">
           <Avatar>
             <AvatarFallback>{initials(name)}</AvatarFallback>
           </Avatar>
@@ -53,12 +53,12 @@ export function AccountControls() {
           <DropdownMenuLabel>{name}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link to="/profil">
+            <Link to="/profil" data-testid="account-menu-profile">
               <UserIcon />
               Profil
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void auth.signoutRedirect()}>
+          <DropdownMenuItem onSelect={() => void auth.signoutRedirect()} data-testid="account-menu-sign-out">
             <LogOutIcon />
             Abmelden
           </DropdownMenuItem>

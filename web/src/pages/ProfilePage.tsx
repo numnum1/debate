@@ -33,20 +33,20 @@ export function ProfilePage() {
   }, [token])
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-8">
-      <Link to="/" className="text-sm text-muted-foreground hover:underline">
+    <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-8" data-testid="profile-page">
+      <Link to="/" className="text-sm text-muted-foreground hover:underline" data-testid="profile-back-link">
         ← Zurück
       </Link>
       <h1 className="text-2xl font-semibold">Profil</h1>
       {auth.isLoading && <p>Lade …</p>}
       {auth.error && <p className="text-destructive">Login-Fehler: {auth.error.message}</p>}
       {!auth.isLoading && !auth.isAuthenticated && (
-        <Button className="w-fit" onClick={() => void signIn(auth)}>
+        <Button className="w-fit" onClick={() => void signIn(auth)} data-testid="profile-sign-in-button">
           Anmelden
         </Button>
       )}
       {me && (
-        <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
+        <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm" data-testid="profile-details">
           <dt className="font-medium">Nutzer</dt>
           <dd>{me.displayName ?? me.username}</dd>
           <dt className="font-medium">Keycloak-ID</dt>
@@ -57,7 +57,7 @@ export function ProfilePage() {
           <dd>{me.roles.length ? me.roles.join(', ') : '–'}</dd>
         </dl>
       )}
-      {error && <p className="text-destructive">{error}</p>}
+      {error && <p className="text-destructive" data-testid="profile-error">{error}</p>}
     </main>
   )
 }
