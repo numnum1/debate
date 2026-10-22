@@ -11,11 +11,13 @@ function Slot({
   note,
   className = '',
   testId,
+  children,
 }: {
   title: string
   note?: ReactNode
   className?: string
   testId: string
+  children?: ReactNode
 }) {
   return (
     <div
@@ -24,6 +26,7 @@ function Slot({
     >
       <span className="font-medium">{title}</span>
       {note && <span className="text-muted-foreground">{note}</span>}
+      {children}
     </div>
   )
 }
@@ -33,10 +36,6 @@ function ViewerPane({ debate, signedIn }: { debate: Debate; signedIn: boolean })
     <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="viewer-pane">
       <div className="flex min-h-0 flex-col gap-4">
         <StreamPlaceholder debate={debate} />
-        <div className="rounded-lg p-4 ring-1 ring-foreground/10">
-          <MarketBar a={debate.marketA} sideA={debate.sideA} sideB={debate.sideB} verdict={debate.verdict} />
-          <p className="mt-2 text-xs text-muted-foreground">{formatPoints(debate.volume)} im Markt</p>
-        </div>
         <Slot
           testId="viewer-protocol"
           title="Protokoll"
@@ -49,8 +48,13 @@ function ViewerPane({ debate, signedIn }: { debate: Debate; signedIn: boolean })
           testId="viewer-bet-panel"
           title="Wett-Panel"
           note={signedIn ? 'Punktestand, A oder B kaufen' : 'Zum Wetten anmelden'}
-          className="h-48"
-        />
+          className="min-h-48"
+        >
+          <div className="mt-3">
+            <MarketBar a={debate.marketA} sideA={debate.sideA} sideB={debate.sideB} verdict={debate.verdict} />
+            <p className="mt-2 text-xs text-muted-foreground">{formatPoints(debate.volume)} im Markt</p>
+          </div>
+        </Slot>
         <Slot testId="viewer-chat" title="Chat" note="Öffentlicher Chat" className="flex-1" />
       </div>
     </div>
