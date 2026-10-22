@@ -10,6 +10,7 @@ import {
   PinIcon,
   PinOffIcon,
   UserIcon,
+  UsersIcon,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from 'react-oidc-context'
@@ -40,9 +41,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { displayName, register, signIn } from '@/auth'
 import { formatAgo, formatPoints, initials, roleLabel, statusLabel } from '@/lib/format'
-import { type Debate, type DebateStatus, type Membership, balance } from '@/mock/data'
+import { type Debate, type DebateRole, type DebateStatus, type Membership, balance } from '@/mock/data'
 
 export type SidebarEntry = Membership & { debate: Debate }
 
@@ -52,11 +54,54 @@ type Props = {
   onTogglePin: (debateId: string) => void
 }
 
-const groups: { label: string; statuses: DebateStatus[] }[] = [
-  { label: 'Laufend', statuses: ['live', 'verdict'] },
-  { label: 'Demnächst', statuses: ['scheduled', 'betting'] },
-  { label: 'Beendet', statuses: ['settled', 'cancelled'] },
-]
+type SidebarView = 'time' | 'role'
+
+type Group = { key: string; label: string; matches: (e: SidebarEntry) => boolean }
+
+const statusGroup = (key: string, label: string, statuses: DebateStatus[]): Group => ({
+  key,
+  label,
+  matches: (e) => statuses.includes(e.debate.status),
+})
+
+const roleGroup = (role: DebateRole, label: string): Group => ({
+  key: role,
+  label,
+  matches: (e) => e.role === role,
+})
+
+const groupsByView: Record<SidebarView, Group[]> = {
+  time: [
+    statusGroup('running', 'Laufend', ['live', 'verdict']),
+    statusGroup('upcoming', 'Demnächst', ['scheduled', 'betting']),
+    statusGroup('ended', 'Beendet', ['settled', 'cancelled']),
+  ],
+  role: [
+    roleGroup('host', 'Als Host'),
+    roleGroup('juror', 'Als Juror'),
+    roleGroup('debater', 'Als Debattierer'),
+    roleGroup('viewer', 'Als Zuschauer'),
+  ],
+}
+
+// Die gewählte Ansicht merkt sich der Browser; fehlt der Speicher, gilt „zeitlich“
+const VIEW_STORAGE_KEY = 'home-sidebar-view'
+
+function loadView(): SidebarView {
+  try {
+    return localStorage.getItem(VIEW_STORAGE_KEY) === 'role' ? 'role' : 'time'
+  } catch {
+    return 'time'
+  }
+}
+
+function saveView(view: SidebarView) {
+  try {
+    localStorage.setItem(VIEW_STORAGE_KEY, view)
+  } catch {
+    // ohne Speicher gilt die Wahl nur bis zum Neuladen
+  }
+}
 
 function StatusIcon({ status }: { status: DebateStatus }) {
   switch (status) {
@@ -74,7 +119,17 @@ function StatusIcon({ status }: { status: DebateStatus }) {
   }
 }
 
-function EntryRow({ entry, active, onTogglePin }: { entry: SidebarEntry; active: boolean; onTogglePin: () => void }) {
+function EntryRow({
+  entry,
+  active,
+  showRole,
+  onTogglePin,
+}: {
+  entry: SidebarEntry
+  active: boolean
+  showRole: boolean
+  onTogglePin: () => void
+}) {
   const { debate } = entry
   const hint = [statusLabel[debate.status], roleLabel[entry.role], entry.attention].filter(Boolean).join(' · ')
 
@@ -84,7 +139,7 @@ function EntryRow({ entry, active, onTogglePin }: { entry: SidebarEntry; active:
         <Link to={`/home/${debate.id}`}>
           <StatusIcon status={debate.status} />
           <span className="flex-1 truncate">{debate.topic}</span>
-          {entry.role !== 'viewer' && (
+          {showRole && entry.role !== 'viewer' && (
             <span className="shrink-0 rounded bg-sidebar-accent px-1 text-[10px] font-medium text-muted-foreground uppercase group-hover/menu-item:hidden">
               {roleLabel[entry.role]}
             </span>
@@ -119,14 +174,16 @@ function EntryRow({ entry, active, onTogglePin }: { entry: SidebarEntry; active:
 }
 
 function EntryGroup({
+  testId,
   label,
   entries,
   activeId,
+  showRole,
   onTogglePin,
-}: { label: string; entries: SidebarEntry[] } & Omit<Props, 'entries'>) {
+}: { testId: string; label: string; entries: SidebarEntry[]; showRole: boolean } & Omit<Props, 'entries'>) {
   if (entries.length === 0) return null
   return (
-    <Collapsible defaultOpen className="group/collapsible">
+    <Collapsible defaultOpen className="group/collapsible" data-testid={`sidebar-group-${testId}`}>
       <SidebarGroup className="py-1">
         <SidebarGroupLabel asChild>
           <CollapsibleTrigger className="w-full hover:bg-sidebar-accent">
@@ -142,6 +199,7 @@ function EntryGroup({
                   key={e.debateId}
                   entry={e}
                   active={e.debateId === activeId}
+                  showRole={showRole}
                   onTogglePin={() => onTogglePin(e.debateId)}
                 />
               ))}
@@ -211,6 +269,14 @@ function UserFooter() {
 export function HomeSidebar({ entries, activeId, onTogglePin }: Props) {
   const auth = useAuth()
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<SidebarView>(loadView)
+
+  const changeView = (next: string) => {
+    // Radix erlaubt das Abwählen des aktiven Eintrags; dann bleibt die Ansicht, wie sie ist
+    if (next !== 'time' && next !== 'role') return
+    setView(next)
+    saveView(next)
+  }
 
   const q = query.trim().toLowerCase()
   const filtered = entries
@@ -236,18 +302,49 @@ export function HomeSidebar({ entries, activeId, onTogglePin }: Props) {
           </SidebarMenuItem>
         </SidebarMenu>
         {auth.isAuthenticated && (
-          <SidebarInput placeholder="Meine Debatten filtern" data-testid="sidebar-filter-input" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <>
+            <SidebarInput placeholder="Meine Debatten filtern" data-testid="sidebar-filter-input" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
+              value={view}
+              onValueChange={changeView}
+              className="w-full"
+              aria-label="Ansicht der Seitenleiste"
+              data-testid="sidebar-view-toggle"
+            >
+              <ToggleGroupItem value="time" className="flex-1" data-testid="sidebar-view-time">
+                <ClockIcon />
+                Zeitlich
+              </ToggleGroupItem>
+              <ToggleGroupItem value="role" className="flex-1" data-testid="sidebar-view-role">
+                <UsersIcon />
+                Nach Rolle
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </>
         )}
       </SidebarHeader>
 
       <SidebarContent>
-        <EntryGroup label="Angepinnt" entries={pinned} activeId={activeId} onTogglePin={onTogglePin} />
-        {groups.map((g) => (
+        <EntryGroup
+          testId="pinned"
+          label="Angepinnt"
+          entries={pinned}
+          activeId={activeId}
+          showRole
+          onTogglePin={onTogglePin}
+        />
+        {groupsByView[view].map((g) => (
           <EntryGroup
-            key={g.label}
+            key={g.key}
+            testId={g.key}
             label={g.label}
-            entries={rest.filter((e) => g.statuses.includes(e.debate.status))}
+            entries={rest.filter(g.matches)}
             activeId={activeId}
+            showRole={view === 'time'}
             onTogglePin={onTogglePin}
           />
         ))}
