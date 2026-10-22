@@ -132,7 +132,7 @@ if ($withOnyx) {
 
 Write-Host ''
 Write-Host 'Docker-Umgebung läuft:' -ForegroundColor Green
-Write-Host '  Keycloak       http://localhost:8180   (Admin: admin / admin, Testnutzer: admin, alice, bob / dev)'
+Write-Host '  Keycloak       http://localhost:8180   (Admin: admin / admin, Testnutzer: admin, alice, bob, carol, dave, erin, frank, grace / dev)'
 Write-Host '  PostgreSQL     localhost:5433          (debate / debate, DB ledger)'
 Write-Host '  MongoDB        localhost:27017         (debate / debate)'
 Write-Host '  Mongo Express  http://localhost:8081'

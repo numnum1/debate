@@ -75,7 +75,7 @@ Dann http://localhost:5173 öffnen und anmelden.
 
 | Dienst | Adresse | Zugang |
 |---|---|---|
-| Frontend | http://localhost:5173 | Testnutzer `admin`, `alice`, `bob`, Passwort jeweils `dev` |
+| Frontend | http://localhost:5173 | Testnutzer `admin` (Rolle admin), `carol` (platform_moderator), `dave` (resolver), `alice`, `bob`, `erin`, `frank`, `grace` (ohne Rolle), Passwort jeweils `dev` |
 | Backend | http://localhost:8080 | Swagger-UI: http://localhost:8080/swagger-ui.html · Health: http://localhost:8080/actuator/health |
 | Keycloak | http://localhost:8180 | Admin-Konsole: `admin` / `admin`; Realm `debate` aus [infra/keycloak/debate-realm.json](infra/keycloak/debate-realm.json) |
 | PostgreSQL | `localhost:5433` | `debate` / `debate`, Datenbank `ledger` (Port 5433, damit es nicht mit einem lokalen Postgres kollidiert) |
