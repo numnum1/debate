@@ -1,2 +1,8 @@
 # Onyx-Quellcode liegt lokal neben dem Projekt, wird aber nicht mitversioniert (siehe README)
 /onyx-main/
+
+# Build- und Abhängigkeitsordner
+node_modules/
+target/
+.expo/
+.idea/
