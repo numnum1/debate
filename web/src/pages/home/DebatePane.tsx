@@ -42,7 +42,7 @@ function ViewerPane({ debate, signedIn }: { debate: Debate; signedIn: boolean })
   return (
     <div className={`grid h-full gap-4 ${columns(expanded)}`} data-testid="viewer-pane">
       <div className="flex min-h-0 flex-col gap-4">
-        <StreamPlaceholder debate={debate} expanded={expanded} onToggleExpanded={() => setExpanded((v) => !v)} />
+        <StreamPlaceholder debate={debate} embed expanded={expanded} onToggleExpanded={() => setExpanded((v) => !v)} />
         <Slot
           testId="viewer-protocol"
           title="Protokoll"
@@ -115,7 +115,7 @@ function ModeratorPane({ debate }: { debate: Debate }) {
   return (
     <div className={`grid h-full gap-4 ${columns(expanded)}`} data-testid="moderator-pane">
       <div className="flex min-h-0 flex-col gap-4">
-        <StreamPlaceholder debate={debate} expanded={expanded} onToggleExpanded={() => setExpanded((v) => !v)} />
+        <StreamPlaceholder debate={debate} embed expanded={expanded} onToggleExpanded={() => setExpanded((v) => !v)} />
         <ChatPanel debateId={debate.id} />
       </div>
       <Slot testId="moderator-reports" title="Gemeldete Nachrichten" note="Warteschlange zum Prüfen" className="h-full" />

@@ -24,12 +24,11 @@ export function FloatingStream({ debate }: { debate: Debate }) {
       >
         <XIcon />
       </Button>
-      <Link to={`/home/${debate.id}`} className="block" data-testid="floating-stream-link">
-        <StreamPlaceholder debate={debate} />
-        <div className="flex flex-col gap-2 px-1 pt-2 pb-1">
-          <span className="line-clamp-1 text-sm font-medium">{debate.topic}</span>
-          <MarketBar a={debate.marketA} size="sm" />
-        </div>
+      {/* Der Player liegt außerhalb des Links, damit Klicks im Video den Player bedienen und nicht navigieren */}
+      <StreamPlaceholder debate={debate} embed />
+      <Link to={`/home/${debate.id}`} className="flex flex-col gap-2 px-1 pt-2 pb-1" data-testid="floating-stream-link">
+        <span className="line-clamp-1 text-sm font-medium hover:underline">{debate.topic}</span>
+        <MarketBar a={debate.marketA} size="sm" />
       </Link>
     </div>
   )

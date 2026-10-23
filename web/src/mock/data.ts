@@ -19,6 +19,8 @@ export type Debate = {
   /** Gesamteinsatz im Hauptmarkt in Punkten */
   volume: number
   viewers?: number
+  /** Video-ID des YouTube-Streams für das Embed; fehlt = nur Platzhalter */
+  youtubeId?: string
   /** Jury-Urteil (Median), nur bei beendeten Debatten */
   verdict?: number
   /** Position auf der Landing Page, kleiner = prominenter; fehlt = nicht promotet */
@@ -56,6 +58,7 @@ export const debates: Debate[] = [
     marketA: 58,
     volume: 184_200,
     viewers: 12_480,
+    youtubeId: 'M7lc1UVf-VE',
     promoted: 1,
   },
   {
