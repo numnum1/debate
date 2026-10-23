@@ -1,5 +1,4 @@
 import { Maximize2Icon, Minimize2Icon, PlayIcon } from 'lucide-react'
-import { useState } from 'react'
 
 import { LiveDot } from '@/components/StatusBadge'
 import { formatCount, platformLabel } from '@/lib/format'
@@ -8,33 +7,31 @@ import type { Debate } from '@/mock/data'
 
 /**
  * Platzhalter für das Stream-Embed (Twitch/YouTube/X), bis echte Embeds eingebaut sind.
- * Mit `expandable` ist er klein und lässt sich über den Button unten rechts auf die volle Breite vergrößern.
+ * Mit `onToggleExpanded` zeigt er beim Hover einen Button unten rechts; die Größe steuert der Aufrufer über `expanded`.
  */
 export function StreamPlaceholder({
   debate,
   className,
-  expandable = false,
+  expanded = false,
+  onToggleExpanded,
 }: {
   debate: Debate
   className?: string
-  expandable?: boolean
+  expanded?: boolean
+  onToggleExpanded?: () => void
 }) {
-  const [expanded, setExpanded] = useState(false)
-  const small = expandable && !expanded
-
   return (
     <div
       className={cn(
         'group relative flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-neutral-200 text-neutral-500',
-        small && 'w-80 shrink-0',
         className,
       )}
       data-testid="stream-placeholder"
     >
-      {expandable && (
+      {onToggleExpanded && (
         <button
           type="button"
-          onClick={() => setExpanded((current) => !current)}
+          onClick={onToggleExpanded}
           aria-label={expanded ? 'Verkleinern' : 'Vergrößern'}
           className="absolute right-2 bottom-2 rounded bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/80 focus-visible:opacity-100"
           data-testid="stream-expand-button"

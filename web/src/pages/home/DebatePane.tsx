@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { MarketBar } from '@/components/MarketBar'
 import { StreamPlaceholder } from '@/components/StreamPlaceholder'
@@ -32,11 +32,17 @@ function Slot({
   )
 }
 
+/** Die linke Spalte (Stream und Protokoll bzw. Chat) ist klein und wächst mit dem Stream auf die volle Breite. */
+function columns(expanded: boolean) {
+  return expanded ? 'grid-cols-[minmax(0,1fr)_22rem]' : 'grid-cols-[20rem_minmax(0,1fr)]'
+}
+
 function ViewerPane({ debate, signedIn }: { debate: Debate; signedIn: boolean }) {
+  const [expanded, setExpanded] = useState(false)
   return (
-    <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="viewer-pane">
+    <div className={`grid h-full gap-4 ${columns(expanded)}`} data-testid="viewer-pane">
       <div className="flex min-h-0 flex-col gap-4">
-        <StreamPlaceholder debate={debate} expandable />
+        <StreamPlaceholder debate={debate} expanded={expanded} onToggleExpanded={() => setExpanded((v) => !v)} />
         <Slot
           testId="viewer-protocol"
           title="Protokoll"
@@ -105,10 +111,11 @@ function HostPane() {
 }
 
 function ModeratorPane({ debate }: { debate: Debate }) {
+  const [expanded, setExpanded] = useState(false)
   return (
-    <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="moderator-pane">
+    <div className={`grid h-full gap-4 ${columns(expanded)}`} data-testid="moderator-pane">
       <div className="flex min-h-0 flex-col gap-4">
-        <StreamPlaceholder debate={debate} expandable />
+        <StreamPlaceholder debate={debate} expanded={expanded} onToggleExpanded={() => setExpanded((v) => !v)} />
         <ChatPanel debateId={debate.id} />
       </div>
       <Slot testId="moderator-reports" title="Gemeldete Nachrichten" note="Warteschlange zum Prüfen" className="h-full" />
