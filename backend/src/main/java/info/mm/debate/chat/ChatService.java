@@ -13,6 +13,7 @@ import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import info.mm.debate.ai.AiModel;
 import info.mm.debate.chat.ChatAccess.WriteBlock;
 import info.mm.debate.debate.Debate;
 import info.mm.debate.debate.DebateRole;
@@ -30,15 +31,18 @@ class ChatService {
 	private final ChatMessages messages;
 	private final ChatMuteRepository mutes;
 	private final ChatTicker ticker;
+	private final ChatAssistant assistant;
 	private final Clock clock = Clock.systemUTC();
 	/** Letzte Nachricht je Debatte und Nutzer, für das Rate-Limit */
 	private final Map<String, Instant> lastPost = new ConcurrentHashMap<>();
 
-	ChatService(Debates debates, ChatMessages messages, ChatMuteRepository mutes, ChatTicker ticker) {
+	ChatService(Debates debates, ChatMessages messages, ChatMuteRepository mutes, ChatTicker ticker,
+			ChatAssistant assistant) {
 		this.debates = debates;
 		this.messages = messages;
 		this.mutes = mutes;
 		this.ticker = ticker;
+		this.assistant = assistant;
 	}
 
 	/** @param user {@code null}, wenn niemand angemeldet ist */
@@ -56,7 +60,10 @@ class ChatService {
 		return new ChatSnapshot(debateId, tick, latest.stream().map(ChatSnapshot.MessageView::of).toList(),
 				new ChatSnapshot.Permissions(access.canWrite(), access.canModerate(), access.writeBlock(),
 						debate.bettingClosesAt(), user == null ? null : mutedUntil(debateId, user.id(), now).orElse(null),
-						MAX_LENGTH));
+						MAX_LENGTH),
+				assistant.models().stream()
+					.map(model -> new ChatSnapshot.Assistant(model.name(), model.displayName()))
+					.toList());
 	}
 
 	List<ChatTick> ticksAfter(String debateId, ChatUser user, long afterTick) {
@@ -85,10 +92,15 @@ class ChatService {
 			}
 			lastPost.put(key, now);
 		}
+		Optional<AiModel> mentioned = assistant.mentioned(trimmed);
+		if (mentioned.isPresent()) {
+			assistant.claim(debateId, user.id());
+		}
 		Set<DebateRole> roles = debate.rolesOf(user.id());
-		ChatMessage message = new ChatMessage(new ObjectId().toHexString(), debateId, 0, 0, user.id(), user.name(),
-				ChatBadge.of(roles, user.admin()), trimmed, clientNonce, now, null, null);
+		ChatMessage message = ChatMessage.fromUser(new ObjectId().toHexString(), debateId, user,
+				ChatBadge.of(roles, user.admin()), trimmed, clientNonce, now);
 		ticker.post(message);
+		mentioned.ifPresent(model -> assistant.answerLater(debate, message, model));
 		return message;
 	}
 

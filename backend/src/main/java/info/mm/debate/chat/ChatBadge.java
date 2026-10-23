@@ -10,7 +10,9 @@ enum ChatBadge {
 	HOST,
 	MODERATOR,
 	RESOLVER,
-	ADMIN;
+	ADMIN,
+	/** Antwort einer KI, die jemand mit {@code @name} gerufen hat */
+	AI;
 
 	/** @return {@code null} für Zuschauer */
 	static ChatBadge of(Set<DebateRole> roles, boolean admin) {

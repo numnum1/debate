@@ -35,6 +35,40 @@ spring:
         schema-initialization:
           enabled: true
 
+debate:
+  ai:
+    onyx:
+      # Onyx-API direkt, ohne nginx (infra/onyx/onyx.env, ONYX_API_PORT)
+      url: http://localhost:3001
+      # In Onyx unter Admin → API Keys anlegen. Leer: Im Chat antwortet eine Attrappe statt der KI
+      api-key: ${ONYX_API_KEY:}
+      # Agent in Onyx, dessen Tools der Aufruf nutzt; 0 ist der Standard-Agent
+      persona-id: 0
+      # Nur diese Tools des Agents (IDs aus der Onyx-Tabelle tool): 3 = web_search, 7 = open_url.
+      # Damit erzeugt die KI im Chat z. B. keine Bilder und führt keinen Code aus. Leer: alle Tools des Agents
+      tool-ids: [3, 7]
+    # Name hinter dem @ im Chat (Groß-/Kleinschreibung egal) → Modell in Onyx.
+    # provider ist der Anzeigename des LLM-Anbieters in Onyx, version der Modellname dort; beides muss zur
+    # Einrichtung in Onyx passen. EECC ist ein OpenAI-kompatibles Gateway mit allen Modellen; bezahlt ist
+    # im Moment nur Gemma, die übrigen antworten erst, wenn ihr Guthaben aufgeladen ist
+    models:
+      grok:
+        display-name: Grok
+        provider: EECC
+        version: grok-4-latest
+      gpt:
+        display-name: ChatGPT
+        provider: EECC
+        version: gpt-5.5
+      claude:
+        display-name: Claude
+        provider: EECC
+        version: claude-sonnet-5-5
+      gemma:
+        display-name: Gemma
+        provider: EECC
+        version: gemma-4-e4b-vision
+
 management:
   endpoints:
     web:

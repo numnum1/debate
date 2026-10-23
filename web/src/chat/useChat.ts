@@ -5,6 +5,7 @@ import { ApiError, api } from '@/api/client'
 import {
   chatPath,
   chatTopic,
+  type ChatAssistant,
   type ChatMessage,
   type ChatPermissions,
   type ChatSnapshot,
@@ -28,6 +29,7 @@ const wsUrl = () => `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://$
 export function useChat(debateId: string, token: string | undefined, userId: string | undefined) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [permissions, setPermissions] = useState<ChatPermissions | null>(null)
+  const [assistants, setAssistants] = useState<ChatAssistant[]>([])
   const [pending, setPending] = useState<PendingMessage[]>([])
   const [connection, setConnection] = useState<Connection>('connecting')
   const [error, setError] = useState<string | null>(null)
@@ -82,6 +84,7 @@ export function useChat(debateId: string, token: string | undefined, userId: str
           if (stopped) return
           canModerateRef.current = snapshot.permissions.canModerate
           setPermissions(snapshot.permissions)
+          setAssistants(snapshot.assistants)
           setMessages(snapshot.messages)
           lastTick = snapshot.tick
         } else {
@@ -222,5 +225,5 @@ export function useChat(debateId: string, token: string | undefined, userId: str
     [debateId],
   )
 
-  return { messages, pending, permissions, connection, error, send, hide, mute }
+  return { messages, pending, permissions, assistants, connection, error, send, hide, mute }
 }

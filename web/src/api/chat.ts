@@ -1,9 +1,14 @@
 // Typen passend zu info.mm.debate.chat im Backend, bis der Client aus der OpenAPI-Spec generiert wird.
 
-export type ChatBadge = 'HOST' | 'MODERATOR' | 'RESOLVER' | 'ADMIN'
+export type ChatBadge = 'HOST' | 'MODERATOR' | 'RESOLVER' | 'ADMIN' | 'AI'
 
 /** Warum man gerade nicht schreiben kann */
 export type WriteBlock = 'SIGN_IN' | 'JUROR' | 'NOT_OPEN_YET' | 'CLOSED' | 'MUTED'
+
+/** Bei KI-Antworten: die Frage, auf die sie antwortet */
+export type ChatReplyTo = { messageId: string; userName: string; excerpt: string }
+
+export type ChatSource = { title: string; url: string }
 
 export type ChatMessage = {
   id: string
@@ -16,6 +21,8 @@ export type ChatMessage = {
   sentAt: string
   /** Kommt nur bei Moderatoren vor; alle anderen bekommen ausgeblendete Nachrichten nicht */
   hidden: boolean
+  replyTo: ChatReplyTo | null
+  sources: ChatSource[]
 }
 
 export type ChatEvent =
@@ -35,7 +42,16 @@ export type ChatPermissions = {
   maxLength: number
 }
 
-export type ChatSnapshot = { debateId: string; tick: number; messages: ChatMessage[]; permissions: ChatPermissions }
+/** Eine KI, die sich mit `@name` rufen lässt; `name` ist klein geschrieben */
+export type ChatAssistant = { name: string; displayName: string }
+
+export type ChatSnapshot = {
+  debateId: string
+  tick: number
+  messages: ChatMessage[]
+  permissions: ChatPermissions
+  assistants: ChatAssistant[]
+}
 
 export const chatPath = (debateId: string) => `/api/debates/${encodeURIComponent(debateId)}/chat`
 
