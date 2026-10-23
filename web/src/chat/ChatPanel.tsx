@@ -29,6 +29,11 @@ const time = new Intl.DateTimeFormat('de', { hour: '2-digit', minute: '2-digit',
 export function ChatPanel({ debateId }: { debateId: string }) {
   const auth = useAuth()
   const userId = auth.user?.profile.sub
+  // Erst verbinden, wenn feststeht, wer angemeldet ist. Sonst baut der Chat beim Laden erst eine anonyme
+  // Verbindung auf und bricht sie beim Remount ab, was Browser als Verbindungsfehler melden
+  if (auth.isLoading) {
+    return <section className="flex min-h-0 flex-1 flex-col rounded-lg border bg-card" data-testid="chat-panel" />
+  }
   // Neu mounten, wenn sich Debatte oder Nutzer ändern, damit kein alter Stand stehen bleibt
   return <Chat key={`${debateId}:${userId ?? ''}`} debateId={debateId} userId={userId} />
 }

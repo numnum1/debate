@@ -21,7 +21,8 @@ export function HomePage() {
   const [openedAt] = useState(() => new Date())
 
   const myRoles = useMyRoles(auth.user?.access_token)
-  const rolesLoading = auth.isAuthenticated && myRoles === null
+  // Solange Login oder Rollen laden, ist die Ansicht noch unklar (Juror-Raum oder Zuschauer mit Chat)
+  const rolesLoading = auth.isLoading || (auth.isAuthenticated && myRoles === null)
 
   // Die Rollen kommen aus dem Backend; Aktivität, Anheften und Hinweise sind vorerst noch Mock-Daten
   const ids = new Set([...memberships.map((m) => m.debateId), ...(myRoles?.keys() ?? [])])
