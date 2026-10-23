@@ -39,6 +39,7 @@
   ],
   "users": [
     {
+      "id": "00000000-0000-4000-8000-000000000001",
       "username": "admin",
       "email": "admin@debate.local",
       "emailVerified": true,
@@ -49,6 +50,7 @@
       "realmRoles": ["admin"]
     },
     {
+      "id": "00000000-0000-4000-8000-000000000002",
       "username": "alice",
       "email": "alice@debate.local",
       "emailVerified": true,
@@ -59,6 +61,7 @@
       "realmRoles": []
     },
     {
+      "id": "00000000-0000-4000-8000-000000000003",
       "username": "bob",
       "email": "bob@debate.local",
       "emailVerified": true,
@@ -69,6 +72,7 @@
       "realmRoles": []
     },
     {
+      "id": "00000000-0000-4000-8000-000000000004",
       "username": "carol",
       "email": "carol@debate.local",
       "emailVerified": true,
@@ -79,6 +83,7 @@
       "realmRoles": []
     },
     {
+      "id": "00000000-0000-4000-8000-000000000005",
       "username": "dave",
       "email": "dave@debate.local",
       "emailVerified": true,
@@ -89,6 +94,7 @@
       "realmRoles": []
     },
     {
+      "id": "00000000-0000-4000-8000-000000000006",
       "username": "erin",
       "email": "erin@debate.local",
       "emailVerified": true,
@@ -99,6 +105,7 @@
       "realmRoles": []
     },
     {
+      "id": "00000000-0000-4000-8000-000000000007",
       "username": "frank",
       "email": "frank@debate.local",
       "emailVerified": true,
@@ -109,6 +116,7 @@
       "realmRoles": []
     },
     {
+      "id": "00000000-0000-4000-8000-000000000008",
       "username": "grace",
       "email": "grace@debate.local",
       "emailVerified": true,

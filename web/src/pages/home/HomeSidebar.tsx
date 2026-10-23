@@ -79,7 +79,6 @@ const groupsByView: Record<SidebarView, Group[]> = {
   role: [
     roleGroup('host', 'Als Host'),
     roleGroup('juror', 'Als Juror'),
-    roleGroup('debater', 'Als Debattierer'),
     roleGroup('moderator', 'Als Moderator'),
     roleGroup('resolver', 'Als Resolver'),
     roleGroup('viewer', 'Als Zuschauer'),

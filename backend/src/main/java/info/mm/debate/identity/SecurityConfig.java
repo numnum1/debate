@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,6 +27,10 @@ class SecurityConfig {
 		http
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+				// Debatten und Chat lesen geht ohne Anmeldung; Juroren sperrt der Chat selbst aus
+				.requestMatchers(HttpMethod.GET, "/api/debates", "/api/debates/**").permitAll()
+				// WebSocket-Handshake; das Token kommt erst im STOMP-CONNECT (siehe chat.ChatSubscriptionGuard)
+				.requestMatchers("/api/ws", "/api/ws/**").permitAll()
 				.anyRequest().authenticated())
 			.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakAuthenticationConverter())))
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

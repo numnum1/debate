@@ -61,6 +61,8 @@ cd backend
 
 Unter Windows ohne Git Bash: `mvnw.cmd spring-boot:run`. Konfiguration in [application.yml](backend/src/main/resources/application.yml), überschreibbar per Umgebungsvariable.
 
+Ohne gesetztes Profil läuft das Profil `dev`. Darin legt der Dev-Seed beim Start Beispieldebatten mit Rollen für die Testnutzer an (`backend/.../debate/DevSeed.java`), soweit sie noch fehlen. Die Rollen hängen an den festen Keycloak-IDs der Testnutzer aus dem Realm-JSON. Stammt dein Realm aus der Zeit vor diesen festen IDs, importiere ihn einmal neu (siehe [Stoppen](#stoppen)).
+
 ### 4. Frontend
 
 ```bash
