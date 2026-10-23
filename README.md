@@ -50,7 +50,7 @@ docker compose -f infra/onyx/docker-compose.yml --profile admin-ui up -d --wait
 
 Es läuft **Onyx Lite**: standardmäßig nur API-Server und Onyx-Postgres, die API ist direkt unter http://localhost:3001 erreichbar (ohne `/api`-Präfix). Die Admin-Oberfläche (`web_server` + nginx) läuft nur mit dem Profil `admin-ui`. Zusammen unter 1 GB RAM. Chat, Agents und Websuche funktionieren; ein Suchindex über eigene Dokumente ist bewusst nicht dabei (siehe [Architektur](docs/v2/ARCHITEKTUR.md#onyx-als-ki-backend)). Abgeschaltet sind außerdem MCP-Server und Code-Interpreter, siehe [onyx.override.yml](infra/onyx/onyx.override.yml).
 
-Zum Einrichten mit Admin-Oberfläche starten und unter http://localhost:3000 einmalig einrichten: Das erste Konto, das sich dort registriert, wird Onyx-Admin. Dann LLM-Anbieter, API-Key für unser Backend und Agents anlegen. Endnutzer melden sich nie bei Onyx an. `USER_AUTH_SECRET` in [onyx.env](infra/onyx/onyx.env) hat einen festen Dev-Wert.
+Zum Einrichten mit Admin-Oberfläche starten und unter http://localhost:3000 einmalig einrichten: Das erste Konto, das sich dort registriert, wird Onyx-Admin. Dann LLM-Anbieter und Agents anlegen und ein Access Token für unser Backend erzeugen, siehe [backend/README.md](backend/README.md#ki-im-chat-onyx). Endnutzer melden sich nie bei Onyx an. `USER_AUTH_SECRET` in [onyx.env](infra/onyx/onyx.env) hat einen festen Dev-Wert.
 
 ### 3. Backend
 
@@ -59,7 +59,7 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-Unter Windows ohne Git Bash: `mvnw.cmd spring-boot:run`. Konfiguration in [application.yml](backend/src/main/resources/application.yml), überschreibbar per Umgebungsvariable.
+Unter Windows ohne Git Bash: `mvnw.cmd spring-boot:run`. Konfiguration in [application.yml](backend/src/main/resources/application.yml), überschreibbar per Umgebungsvariable oder lokal in `application-local.yml`, die nicht ins Git kommt (siehe [backend/README.md](backend/README.md#lokale-einstellungen)).
 
 Ohne gesetztes Profil läuft das Profil `dev`. Darin legt der Dev-Seed beim Start Beispieldebatten mit Rollen für die Testnutzer an (`backend/.../debate/DevSeed.java`), soweit sie noch fehlen. Die Rollen hängen an den festen Keycloak-IDs der Testnutzer aus dem Realm-JSON. Stammt dein Realm aus der Zeit vor diesen festen IDs, importiere ihn einmal neu (siehe [Stoppen](#stoppen)).
 
@@ -84,7 +84,7 @@ Dann http://localhost:5173 öffnen und anmelden.
 | MongoDB | `localhost:27017` | `debate` / `debate`, Datenbank `debate`, `authSource=admin` |
 | Mongo Express | http://localhost:8081 | Mongo im Browser |
 | Adminer | http://localhost:8082 | Postgres im Browser (Server `postgres`, Nutzer `debate`) |
-| Onyx-API | http://localhost:3001 | Für unser Backend, API-Key als Bearer-Token |
+| Onyx-API | http://localhost:3001 | Für unser Backend, Access Token als Bearer-Token |
 | Onyx-Admin | http://localhost:3000 | Nur mit `-Admin` bzw. Profil `admin-ui` |
 
 Alle Zugangsdaten sind reine Entwicklungswerte.

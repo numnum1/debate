@@ -8,6 +8,10 @@ spring:
   application:
     name: debate-backend
 
+  # Lokale Einstellungen mit Geheimnissen, nicht im Git (backend/.gitignore); überschreiben Werte aus dieser Datei
+  config:
+    import: optional:classpath:application-local.yml
+
   # Ohne ausdrücklich gesetztes Profil läuft lokal "dev" (u. a. Beispieldebatten aus DevSeed)
   profiles:
     default: dev
@@ -40,7 +44,8 @@ debate:
     onyx:
       # Onyx-API direkt, ohne nginx (infra/onyx/onyx.env, ONYX_API_PORT)
       url: http://localhost:3001
-      # In Onyx unter Admin → API Keys anlegen. Leer: Im Chat antwortet eine Attrappe statt der KI
+      # Persönliches Access Token aus Onyx (Scope write:chat), lokal in application-local.yml eintragen,
+      # Anleitung in backend/README.md. Leer: Im Chat antwortet eine Attrappe statt der KI
       api-key: ${ONYX_API_KEY:}
       # Agent in Onyx, dessen Tools der Aufruf nutzt; 0 ist der Standard-Agent
       persona-id: 0
