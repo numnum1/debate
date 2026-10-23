@@ -17,7 +17,8 @@ export default defineConfig({
     strictPort: true,
     // API-Aufrufe gehen an das manuell gestartete Spring-Boot-Backend, dadurch kein CORS nötig
     proxy: {
-      '/api': 'http://localhost:8080',
+      // ws: auch den WebSocket des Chats (/api/ws) durchreichen
+      '/api': { target: 'http://localhost:8080', ws: true },
     },
   },
 })

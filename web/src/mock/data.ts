@@ -27,9 +27,9 @@ export type Debate = {
 
 /**
  * Rolle in einer bestimmten Debatte; Nutzer haben keine festen Rollen. Der Host vergibt die übrigen Rollen,
- * Zuschauer ist der Normalfall ohne Vergabe.
+ * Zuschauer ist der Normalfall ohne Vergabe. Debattierer sind keine Nutzer der App.
  */
-export type DebateRole = 'viewer' | 'juror' | 'host' | 'debater' | 'moderator' | 'resolver'
+export type DebateRole = 'viewer' | 'juror' | 'host' | 'moderator' | 'resolver'
 
 export type Membership = {
   debateId: string

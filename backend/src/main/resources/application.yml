@@ -8,6 +8,10 @@ spring:
   application:
     name: debate-backend
 
+  # Ohne ausdrücklich gesetztes Profil läuft lokal "dev" (u. a. Beispieldebatten aus DevSeed)
+  profiles:
+    default: dev
+
   # Nutzer, Debatten, Regelwerke, Zeitachse
   mongodb:
     uri: mongodb://debate:debate@localhost:27017/debate?authSource=admin

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { MarketBar } from '@/components/MarketBar'
 import { StreamPlaceholder } from '@/components/StreamPlaceholder'
+import { ChatPanel } from '@/chat/ChatPanel'
 import { formatPoints } from '@/lib/format'
 import type { Debate, DebateRole } from '@/mock/data'
 
@@ -55,7 +56,7 @@ function ViewerPane({ debate, signedIn }: { debate: Debate; signedIn: boolean })
             <p className="mt-2 text-xs text-muted-foreground">{formatPoints(debate.volume)} im Markt</p>
           </div>
         </Slot>
-        <Slot testId="viewer-chat" title="Chat" note="Öffentlicher Chat" className="flex-1" />
+        <ChatPanel debateId={debate.id} />
       </div>
     </div>
   )
@@ -108,12 +109,7 @@ function ModeratorPane({ debate }: { debate: Debate }) {
     <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="moderator-pane">
       <div className="flex min-h-0 flex-col gap-4">
         <StreamPlaceholder debate={debate} />
-        <Slot
-          testId="moderator-chat"
-          title="Chat moderieren"
-          note="Öffentlicher Chat mit Aktionen: ausblenden, stummschalten"
-          className="flex-1"
-        />
+        <ChatPanel debateId={debate.id} />
       </div>
       <Slot testId="moderator-reports" title="Gemeldete Nachrichten" note="Warteschlange zum Prüfen" className="h-full" />
     </div>

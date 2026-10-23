@@ -20,6 +20,11 @@ Grundlage: [PRODUKT.md](PRODUKT.md). Lehren aus dem ersten Versuch: [../KERN.md]
 | 2026-10-22 | **Die klickbaren Wireframes entstehen direkt in `web/`** (Router, Mock-Daten, ungestylte Platzhalter), damit Layout und Routen in die Umsetzung übergehen. |
 | 2026-10-22 | **Zwei Einstiege:** Die **Landing Page** (`/`, auch ohne Anmeldung) ist ein Explorer mit wenigen promoteten Debatten, laufenden Debatten, einer Liste weiterer Debatten und einem schwebenden Mini-Player unten links; Anmelden/Registrieren oben rechts. Die **Home-Seite** (`/home/:debatte`) hat links eine Leiste wie in Claude Code mit allen Debatten, an denen man teilnimmt (egal in welcher Rolle); rechts steht die aktuelle Debatte, je nach Rolle als Zuschauer-Ansicht, Juror-Raum oder Host-Konsole. Erster Stand mit Mock-Daten, noch offen: wer promotet, ab wann eine Debatte „meine“ ist. |
 | 2026-10-22 | **Nutzer haben keine festen Rollen.** Rollen gelten pro Debatte: Host, Debattierer (mit Team), Juror, Moderator, Resolver. Wer eine Debatte anlegt, ist ihr Host und vergibt die übrigen Rollen. Zuschauer ist keine vergebene Rolle, sondern der Normalfall. Global in Keycloak bleibt nur `admin` für den Plattformbetrieb; `platform_moderator` und `resolver` sind entfallen. |
+| 2026-10-23 | **Debattierer sind nicht in der App.** Die Debatte findet ausschließlich auf Twitch, YouTube oder X statt; Debattierer stehen nur als Namen (Seite A, Seite B) in der Debatte und sind keine Nutzer. Die Rolle Debattierer (mit Team) entfällt. Vergebene Rollen pro Debatte sind damit Host, Juror, Moderator und Resolver. |
+| 2026-10-23 | **Keine Wetten während der Debatte.** Hauptmarkt und Point Bets schließen zum **Wettschluss**, einer festen Zeit, die der Host beim Anlegen angibt (Vorschlag: Start − 30 Minuten). Sie gehört zum gesperrten Regelwerk und lässt sich danach weder vorziehen noch verlängern. Zwischen Wettschluss und Live-Start liegt die Phase **Vorlauf**; „Live“ setzt der Host per Hand. Point Bets werden während der Debatte nur noch aufgelöst. Damit ist offene Frage 3 beantwortet, und das Stornieren von Wetten im Stream-Delay entfällt. Weicht von PRODUKT.md ab („bets placed in the stream-delay window are voided“). |
+| 2026-10-23 | **Chat:** eigener Live-Chat pro Debatte. **Senden per HTTP-POST, Empfangen per WebSocket** (STOMP, ein Topic pro Debatte). Der Server sammelt Nachrichten und verschickt sie im **Tick von 250 ms** als Paket; jeder nicht leere Tick bekommt pro Debatte die nächste Nummer, leere Ticks werden nicht gesendet. Clients erkennen Lücken an der Nummer und holen fehlende Ticks per HTTP nach. Moderationsaktionen laufen im selben Strom. Der Tick gilt vorerst nur für den Chat. Nachrichten werden **dauerhaft** in MongoDB (`chat_messages`) gespeichert. |
+| 2026-10-23 | **Wer chattet:** Lesen darf jeder, auch ohne Anmeldung, außer Juroren der Debatte. Schreiben dürfen alle Angemeldeten außer Juroren und Stummgeschalteten, und zwar vom Wettschluss bis zum Ende von „Urteil läuft“; danach ist der Chat nur noch lesbar. Ausblenden und Stummschalten dürfen Host, Moderatoren und globale Admins. Hat jemand mehrere Rollen, gilt die strengste (Juror). Weil Chat und offener Markt sich zeitlich nie überschneiden und die Jury den Chat nicht sieht, hat der Chat keinen Einfluss auf Wetten oder Urteil. Keine automatischen Systemzeilen. Später geplant: KI im Chat aufrufen (`@grok …`), Faktenchecks in Nachrichten verweisen, Farben je Rolle; ein Abzeichen mit der Seite der eigenen Wette kommt frühestens mit dem Markt. |
+| 2026-10-23 | **Debatten und Rollen im Backend:** Collection `debates`, Rollen als Liste `{userId, role}` im Debatten-Dokument (wenige, wächst nicht unbegrenzt). Bis es das Anlegen von Debatten gibt (nächster Schritt), legt ein **Dev-Seed** im Profil `dev` Beispieldebatten mit Rollen für die Testnutzer an; die Testnutzer haben dafür feste IDs im Realm-JSON. |
 
 ## Was sich gegenüber dem ersten Versuch grundlegend ändert
 
@@ -32,15 +37,18 @@ Im ersten Versuch *fand die Debatte in der App statt* (Chat mit Positionen und S
 
 Alles andere (Faktencheck, Spotlight, Profile, Bias-Check, Watch-along) sind Anreicherungen an der Zeitachse.
 
-## Lebenszyklus (vermutet, Diagramm fehlt)
+## Lebenszyklus
 
 ```
-1 Setup ──▶ 2 Betting open ──▶ 3 Live ──▶ 4 Verdict ──▶ 5 Settlement
-   │        (Regelwerk gesperrt)                          (Geld/Punkte fließen)
+1 Setup ──▶ 2 Betting open ──▶ Vorlauf ──▶ 3 Live ──▶ 4 Verdict ──▶ 5 Settlement
+   │        (Regelwerk gesperrt) (ab Wettschluss)                    (Geld/Punkte fließen)
    └──────────── Ausnahme: No-show / Walkout ──▶ Refund (+ Deposit verfällt)
+
+Markt:  offen in 2, geschlossen ab Wettschluss
+Chat:   schreibbar in Vorlauf, 3 und 4; danach nur lesbar
 ```
 
-Zu klären: Ist „Betting open" vor dem Live-Start, und läuft der Hauptmarkt *während* der Debatte weiter (Live-Handel)? Die Produktbeschreibung („one bar shows where the market stands during the stream") spricht für ja.
+Entschieden (2026-10-23): Gewettet wird nur vor dem Wettschluss, einer festen Zeit vor dem Start. Der Hauptmarkt läuft während der Debatte nicht weiter; der Balken zeigt während des Streams den Stand beim Wettschluss. Den Übergang in den Vorlauf löst die Zeit aus, den Übergang zu „Live“ der Host.
 
 ## Leitprinzipien
 
@@ -86,7 +94,7 @@ Zu klären: Ist „Betting open" vor dem Live-Start, und läuft der Hauptmarkt *
 
 - **Audio aus Livestreams:** HLS des Streams abgreifen (z. B. streamlink/yt-dlp → ffmpeg) und an einen Streaming-STT mit Sprechertrennung schicken (Deepgram, AssemblyAI o. ä.). Claude selbst verarbeitet kein Audio. *Risiko:* Plattform-ToS beim Mitschneiden; Alternative ist ein zusätzlicher RTMP-Push vom Host an uns.
 - **Sprecherzuordnung:** STT liefert „Speaker 1/2/3", der Host (oder ein Resolver) ordnet zu Beginn einmal zu. Später ggf. automatisch per Stimmprofil.
-- **Stream-Delay:** Zuschauer sehen den Stream mit Verzögerung, unser Ingest ebenfalls (anders). Vorschlag für den POC: Regelwerk definiert ein Delay-Fenster *D*. Wird ein Punkt bei Medienzeit *t* erkannt, schließt die Point Bet sofort, und alle Wetten mit Zeitstempel > *t − D* (in Wanduhrzeit umgerechnet) werden storniert. Genauer wird es später, wenn der Client seine Abspielposition mitsendet.
+- **Stream-Delay:** Zuschauer sehen den Stream mit Verzögerung, unser Ingest ebenfalls (anders). Für Wetten spielt das keine Rolle mehr, weil alle Wetten vor dem Start schließen (entschieden 2026-10-23). Für das Protokoll und das Auflösen von Point Bets bleibt die Medienzeit wichtig.
 - **X-Textdebatten:** gleiche Zeitachse, nur ohne STT; Beiträge kommen per X-API-Polling. Kosten pro gelesenem Post beachten.
 
 ### Markt
@@ -94,7 +102,7 @@ Zu klären: Ist „Betting open" vor dem Live-Start, und läuft der Hauptmarkt *
 - **Hauptmarkt (Slider-Markt):** A- und B-Anteile, A + B zahlen zusammen immer 100. Für Phase 1 (Punkte) ein **automatischer Market Maker** (LMSR oder Constant-Product), damit es immer einen Preis gibt, auch mit wenigen Nutzern. Die Plattform stellt die Liquidität (begrenzter, berechenbarer Verlust). Auszahlung: A = Slider, B = 100 − Slider.
 - **Point Bets:** Parimutuel-Pools (Ja/Nein, Gewinner teilen den Topf minus Gebühr). Einfach, kein Market Maker nötig.
 - **Konsistenz:** pro Markt ein einziger Schreiber (serialisierte Trades pro Markt, siehe [Ledger und Markt in PostgreSQL](#ledger-und-markt-in-postgresql)). Jeder Trade = Ledger-Buchung in derselben Transaktion.
-- **Integritätsprüfung vor jedem Trade:** Rolle in dieser Debatte (Debattierer, Team, Juror, Host → gesperrt), Einsatzlimits, Regelwerk-Status.
+- **Integritätsprüfung vor jedem Trade:** Rolle in dieser Debatte (Juror, Host, Resolver → gesperrt), Wettschluss, Einsatzlimits, Regelwerk-Status. Debattierer und ihre Teams haben keine Konten in der App; die Regel „Debattierer wetten nicht gegen sich selbst" lässt sich erst mit KYC (Phase 2) durchsetzen.
 
 ### Jury
 
@@ -143,7 +151,7 @@ Onyx läuft als **Onyx Lite** (entschieden 2026-10-22) eigenständig neben uns: 
 |---|---|
 | Keycloak | Login, Passwort, E-Mail, Social Logins; als **globale** Rolle nur `admin` (Plattformbetrieb) |
 | MongoDB `users` | Profil, verknüpft über Keycloak-`sub`: Anzeigename, Avatar, verknüpfte Twitch/X-Konten, Trusted Rank, Juror-Reputation, Show-up-Rate, Einstellungen |
-| MongoDB, je Debatte | **Debattenbezogene** Rollen (Host, Debattierer, Team, Juror, Moderator, Resolver), vom Host vergeben – nicht in Keycloak, weil die Integritätsregeln („wer darf in *dieser* Debatte wetten") daran hängen und sie sich pro Debatte ändern |
+| MongoDB, je Debatte | **Debattenbezogene** Rollen (Host, Juror, Moderator, Resolver), vom Host vergeben – nicht in Keycloak, weil die Integritätsregeln („wer darf in *dieser* Debatte wetten") daran hängen und sie sich pro Debatte ändern |
 
 Passwörter oder Tokens liegen nie in Mongo. Für Phase 2 kommt KYC über einen spezialisierten Anbieter dazu, dessen Prüfstatus am Profil gespeichert wird; das kann Keycloak nicht.
 
@@ -181,7 +189,7 @@ Entschieden: Ledger, Märkte und Pools liegen in Postgres, alles andere in Mongo
 | Vertrag Client ↔ Server | **OpenAPI aus Spring** (springdoc) → TypeScript-Client und -Typen generiert (z. B. orval oder openapi-typescript). Ereignis-Typen für WebSocket ebenfalls als Schemas in der OpenAPI-Spec | Ersetzt die geteilten Typen, die TypeScript auf beiden Seiten gegeben hätte. Kein Handabgleich von DTOs |
 | Datenbank | **MongoDB** (Spring Data MongoDB) für Nutzer, Debatten, Regelwerke, Zeitachse · **PostgreSQL** (Flyway, Spring Data JDBC oder jOOQ) für Ledger, Märkte, Pools (entschieden) | Dokumente dort, wo sie passen; Transaktionen und Constraints dort, wo Punkte bzw. Geld fließen |
 | Jobs (KI-Aufgaben) | **JobRunr** mit Postgres oder MongoDB als Speicher, im selben Prozess oder als zweite Instanz mit Worker-Profil | Persistente Queue mit Retries ohne zusätzlichen Broker |
-| Echtzeit | Spring WebSocket nur **Server → Client** (Ereignisse, nach Audience gefiltert); Token beim Verbindungsaufbau prüfen. Befehle immer per HTTP | Leitprinzip 6. SSE wäre einfacher, aber der Browser-`EventSource` kann keinen Bearer-Token mitschicken |
+| Echtzeit | Spring WebSocket mit STOMP und eingebautem Broker, nur **Server → Client** (Ereignisse, nach Audience gefiltert); Endpunkt `/api/ws`, Token optional im STOMP-`CONNECT`, Rechte beim Abonnieren prüfen. Befehle immer per HTTP | Leitprinzip 6. SSE wäre einfacher, aber der Browser-`EventSource` kann keinen Bearer-Token mitschicken |
 | Fan-out bei mehreren Instanzen | Für den POC eine Instanz; später Redis Pub/Sub | Erst einführen, wenn nötig |
 | Client | **Nur Web** (entschieden), im POC nur Desktop (entschieden) | Embeds (Twitch verlangt `parent`-Domain) und Second Screen funktionieren im Web am einfachsten; App-Store-Regeln erst später relevant |
 | Auth | **Keycloak** (entschieden), Realm als JSON im Repo | Bekannt, OIDC, Social Logins; KYC in Phase 2 über Spezialanbieter |
@@ -193,7 +201,7 @@ Onyx legt die Sprache nicht fest, es wird nur per HTTP angesprochen. Den `AiGate
 ### Repo-Struktur auf `v2`
 
 ```
-backend/          Spring Boot, Maven Wrapper; ein Paket je Modul unter info.mm.debate (bisher: identity)
+backend/          Spring Boot, Maven Wrapper; ein Paket je Modul unter info.mm.debate (bisher: identity, debate, chat)
 web/              React + Vite + TypeScript; später generierter API-Client unter src/api/generated
 infra/            docker-compose.yml: Postgres (DBs keycloak, ledger), MongoDB, Keycloak, Mongo Express, Adminer
 infra/onyx/       eigene Compose-Datei, bindet Onyx-Standard + Lite-Overlay aus onyx-main/ ein (Version in onyx.env)
@@ -222,7 +230,7 @@ docs/v2/          Produkt, Architektur, Entscheidungen
 
 1. ~~Stack~~ → Java + React (entschieden).
 2. ~~Client~~ → nur Web (entschieden).
-3. **Live-Handel:** Läuft der Hauptmarkt während der Debatte weiter oder schließt er beim Start?
+3. ~~Live-Handel~~ → Keine Wetten während der Debatte, Wettschluss als feste Zeit vor dem Start (entschieden).
 4. **Market Maker:** Ist die Plattform Gegenpartei (AMM, Subvention), oder Orderbuch/Pool auch im Hauptmarkt? Für Phase 2 auch eine rechtliche Frage.
 5. **Ingest:** Dürfen wir Streams mitschneiden, oder verlangen wir vom Host einen zusätzlichen Push an uns?
 6. **Jurys:** Wer wählt sie aus, und brauchen wir im POC schon einen Juror-Pool mit Reputation?

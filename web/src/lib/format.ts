@@ -55,7 +55,6 @@ export const roleLabel: Record<DebateRole, string> = {
   viewer: 'Zuschauer',
   juror: 'Juror',
   host: 'Host',
-  debater: 'Debattierer',
   moderator: 'Moderator',
   resolver: 'Resolver',
 }

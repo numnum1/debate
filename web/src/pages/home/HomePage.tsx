@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { roleLabel } from '@/lib/format'
-import { debates, findDebate, memberships } from '@/mock/data'
+import { useMyRoles } from '@/api/debates'
+import { debates, findDebate, memberships, type Membership } from '@/mock/data'
 import { DebatePane } from './DebatePane'
 import { HomeSidebar, type SidebarEntry } from './HomeSidebar'
 
@@ -19,13 +20,32 @@ export function HomePage() {
   const [pins, setPins] = useState(() => new Set(memberships.filter((m) => m.pinned).map((m) => m.debateId)))
   const [openedAt] = useState(() => new Date())
 
+  const myRoles = useMyRoles(auth.user?.access_token)
+  const rolesLoading = auth.isAuthenticated && myRoles === null
+
+  // Die Rollen kommen aus dem Backend; Aktivität, Anheften und Hinweise sind vorerst noch Mock-Daten
+  const ids = new Set([...memberships.map((m) => m.debateId), ...(myRoles?.keys() ?? [])])
+  const mine: Membership[] = [...ids].map((id) => {
+    const mock = memberships.find((m) => m.debateId === id)
+    const role = myRoles?.get(id) ?? 'viewer'
+    return {
+      debateId: id,
+      role,
+      lastActivity: mock?.lastActivity ?? openedAt,
+      pinned: mock?.pinned,
+      unread: mock?.unread,
+      // Hinweise wie „Urteil abgeben“ passen nur zur Rolle, für die sie geschrieben sind
+      attention: mock?.role === role ? mock.attention : undefined,
+    }
+  })
+
   const debate = findDebate(debateId)
-  const membership = memberships.find((m) => m.debateId === debateId)
+  const membership = mine.find((m) => m.debateId === debateId)
 
   // Annahme fürs Wireframe: Wer eine Debatte öffnet, hat sie danach in der Leiste, wie einen neuen Chat
   const opened = debate && !membership ? [{ debateId: debate.id, role: 'viewer' as const, lastActivity: openedAt }] : []
   const entries: SidebarEntry[] = auth.isAuthenticated
-    ? [...memberships, ...opened].map((m) => ({
+    ? [...mine, ...opened].map((m) => ({
         ...m,
         pinned: pins.has(m.debateId),
         debate: debates.find((d) => d.id === m.debateId)!,
@@ -73,7 +93,12 @@ export function HomePage() {
           )}
         </header>
         <div className="min-h-0 flex-1 overflow-auto p-4">
-          {debate ? (
+          {debate && rolesLoading ? (
+            // Erst die Rolle kennen, sonst blitzt z. B. für Juroren kurz die Zuschauer-Ansicht mit Chat auf
+            <p className="text-sm text-muted-foreground" data-testid="home-roles-loading">
+              Lade …
+            </p>
+          ) : debate ? (
             <DebatePane debate={debate} role={role} signedIn={auth.isAuthenticated} />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center" data-testid="home-empty-state">
