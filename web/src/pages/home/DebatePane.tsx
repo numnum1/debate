@@ -36,7 +36,7 @@ function ViewerPane({ debate, signedIn }: { debate: Debate; signedIn: boolean })
   return (
     <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="viewer-pane">
       <div className="flex min-h-0 flex-col gap-4">
-        <StreamPlaceholder debate={debate} />
+        <StreamPlaceholder debate={debate} expandable />
         <Slot
           testId="viewer-protocol"
           title="Protokoll"
@@ -108,7 +108,7 @@ function ModeratorPane({ debate }: { debate: Debate }) {
   return (
     <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-4" data-testid="moderator-pane">
       <div className="flex min-h-0 flex-col gap-4">
-        <StreamPlaceholder debate={debate} />
+        <StreamPlaceholder debate={debate} expandable />
         <ChatPanel debateId={debate.id} />
       </div>
       <Slot testId="moderator-reports" title="Gemeldete Nachrichten" note="Warteschlange zum Prüfen" className="h-full" />
