@@ -41,8 +41,9 @@ class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
 	@Override
 	public void configureMessageBroker(MessageBrokerRegistry registry) {
+		// /topic für alle einer Debatte, /queue für Hinweise an einzelne Nutzer (abonniert als /user/queue/...).
 		// Heartbeats alle 10 s in beide Richtungen, damit tote Verbindungen auffallen
-		registry.enableSimpleBroker("/topic")
+		registry.enableSimpleBroker("/topic", "/queue")
 			.setHeartbeatValue(new long[] { 10_000, 10_000 })
 			.setTaskScheduler(heartbeatScheduler);
 	}

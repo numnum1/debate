@@ -16,12 +16,14 @@ import org.springframework.stereotype.Component;
 
 /**
  * Prüft STOMP-Frames vom Client: Beim {@code CONNECT} ist ein Keycloak-Token optional (ohne Token liest man
- * anonym), beim {@code SUBSCRIBE} gelten dieselben Leserechte wie per HTTP. {@code SEND} gibt es nicht.
+ * anonym), beim {@code SUBSCRIBE} gelten dieselben Leserechte wie per HTTP; die eigenen Hinweise
+ * ({@code /user/queue/chat}) gibt es nur mit Anmeldung. {@code SEND} gibt es nicht.
  */
 @Component
 class ChatSubscriptionGuard implements ChannelInterceptor {
 
 	private static final Pattern CHAT_TOPIC = Pattern.compile("^/topic/debates/([^/]+)/chat$");
+	private static final String NOTICE_QUEUE = "/user" + ChatNotices.QUEUE;
 
 	private final JwtDecoder jwtDecoder;
 	private final ChatService chat;
@@ -46,6 +48,13 @@ class ChatSubscriptionGuard implements ChannelInterceptor {
 			}
 		}
 		else if (command == StompCommand.SUBSCRIBE) {
+			if (NOTICE_QUEUE.equals(accessor.getDestination())) {
+				// Eigene Hinweise; Spring stellt sie nur an die Sitzung des jeweiligen Nutzers zu
+				if (accessor.getUser() == null) {
+					throw new MessageDeliveryException("Hinweise gibt es nur mit Anmeldung");
+				}
+				return message;
+			}
 			Matcher matcher = CHAT_TOPIC.matcher(String.valueOf(accessor.getDestination()));
 			if (!matcher.matches()) {
 				throw new MessageDeliveryException("Unbekanntes Ziel: " + accessor.getDestination());

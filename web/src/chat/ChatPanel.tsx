@@ -1,8 +1,8 @@
 import { ArrowDownIcon, EyeOffIcon, MoreHorizontalIcon, SendIcon, VolumeXIcon } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useAuth } from 'react-oidc-context'
 
-import type { ChatAssistant, ChatBadge, ChatMessage, ChatPermissions } from '@/api/chat'
+import type { ChatAssistant, ChatBadge, ChatMessage, ChatNotice, ChatPermissions } from '@/api/chat'
 import { signIn } from '@/auth'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { formatStart } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { firstMention, splitMentions } from './mentions'
+import { DEFAULT_ASSISTANT, activeMention, firstMention, splitMentions, suggestAssistants } from './mentions'
 import { useChat, type Connection } from './useChat'
 
 const badgeStyle: Record<ChatBadge, { label: string; className: string }> = {
@@ -31,6 +31,18 @@ const time = new Intl.DateTimeFormat('de', { hour: '2-digit', minute: '2-digit',
 const THINKING_MS = 90_000
 
 type Thinking = { messageId: string; assistant: ChatAssistant; userName: string }
+
+/** Eigene Hinweise zeitlich zwischen die Nachrichten sortieren */
+function interleave(messages: ChatMessage[], notices: ChatNotice[]): (ChatMessage | ChatNotice)[] {
+  if (notices.length === 0) return messages
+  const result: (ChatMessage | ChatNotice)[] = []
+  let next = 0
+  for (const message of messages) {
+    while (next < notices.length && notices[next].sentAt < message.sentAt) result.push(notices[next++])
+    result.push(message)
+  }
+  return [...result, ...notices.slice(next)]
+}
 
 /** Fragen an eine KI, auf die noch keine Antwort im Chat steht */
 function openQuestions(messages: ChatMessage[], assistants: ChatAssistant[], now: number): Thinking[] {
@@ -79,7 +91,7 @@ function Chat({ debateId, userId }: { debateId: string; userId: string | undefin
   useLayoutEffect(() => {
     const list = listRef.current
     if (list && atBottom) list.scrollTop = list.scrollHeight
-  }, [chat.messages, chat.pending, waiting, atBottom])
+  }, [chat.messages, chat.pending, chat.notices, waiting, atBottom])
 
   const onScroll = () => {
     const list = listRef.current
@@ -110,22 +122,33 @@ function Chat({ debateId, userId }: { debateId: string; userId: string | undefin
           className="h-full overflow-y-auto px-3 py-2 text-sm"
           data-testid="chat-messages"
         >
-          {chat.messages.length === 0 && chat.pending.length === 0 && (
+          {chat.messages.length === 0 && chat.pending.length === 0 && chat.notices.length === 0 && (
             <p className="py-6 text-center text-muted-foreground" data-testid="chat-empty">
               {chat.connection === 'connecting' ? 'Verbinde …' : 'Noch keine Nachrichten.'}
             </p>
           )}
-          {chat.messages.map((message) => (
-            <ChatLine
-              key={message.id}
-              message={message}
-              assistants={chat.assistants}
-              canModerate={chat.permissions?.canModerate ?? false}
-              own={message.userId === userId}
-              onHide={() => void chat.hide(message.id)}
-              onMute={(minutes) => void chat.mute(message.userId, minutes)}
-            />
-          ))}
+          {interleave(chat.messages, chat.notices).map((item) =>
+            'userId' in item ? (
+              <ChatLine
+                key={item.id}
+                message={item}
+                assistants={chat.assistants}
+                canModerate={chat.permissions?.canModerate ?? false}
+                own={item.userId === userId}
+                onHide={() => void chat.hide(item.id)}
+                onMute={(minutes) => void chat.mute(item.userId, minutes)}
+              />
+            ) : (
+              <p
+                key={`${item.messageId}:${item.sentAt}`}
+                className="my-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900"
+                data-testid="chat-notice"
+              >
+                <span className="font-semibold">Nur für dich: </span>
+                {item.text}
+              </p>
+            ),
+          )}
           {thinking.map((t) => (
             <p key={t.messageId} className="flex items-center gap-1.5 px-1 py-0.5 text-muted-foreground" data-testid="chat-ai-thinking">
               <span className="size-1.5 animate-pulse rounded-full bg-foreground/60" />
@@ -161,7 +184,7 @@ function Chat({ debateId, userId }: { debateId: string; userId: string | undefin
       <footer className="border-t p-2">
         <Composer
           permissions={chat.permissions}
-          assistant={chat.assistants.find((a) => a.name === 'grok') ?? chat.assistants[0]}
+          assistants={chat.assistants}
           onSend={chat.send}
           onSignIn={() => void signIn(auth)}
         />
@@ -283,18 +306,57 @@ function ChatLine({
 
 function Composer({
   permissions,
-  assistant,
+  assistants,
   onSend,
   onSignIn,
 }: {
   permissions: ChatPermissions | null
-  /** Für den Hinweis im Eingabefeld */
-  assistant: ChatAssistant | undefined
+  assistants: ChatAssistant[]
   onSend: (text: string) => Promise<string | null>
   onSignIn: () => void
 }) {
   const [text, setText] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Vorschläge für @name: offen, solange der Cursor in einem @wort steht, zu dem eine KI passt
+  const [caret, setCaret] = useState(0)
+  const [focused, setFocused] = useState(false)
+  const [highlight, setHighlight] = useState(0)
+  /** Anfang des @worts, für das die Vorschläge mit Escape geschlossen wurden */
+  const [dismissed, setDismissed] = useState<number | null>(null)
+  const mention = focused ? activeMention(text, caret) : undefined
+  const suggestions = mention && mention.start !== dismissed ? suggestAssistants(mention.query, assistants) : []
+  const active = Math.min(highlight, suggestions.length - 1)
+  const fallback = assistants.find((a) => a.name === DEFAULT_ASSISTANT) ?? assistants[0]
+
+  const choose = (assistant: ChatAssistant) => {
+    if (!mention) return
+    const before = text.slice(0, mention.start) + `@${assistant.name} `
+    const next = before + text.slice(mention.end).replace(/^ /, '')
+    setText(next)
+    setCaret(before.length)
+    // Erst nach dem Rendern steht der neue Text im Feld, dann den Cursor hinter die Erwähnung setzen
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.setSelectionRange(before.length, before.length)
+    })
+  }
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (suggestions.length === 0 || !mention) return
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const step = e.key === 'ArrowDown' ? 1 : -1
+      setHighlight((active + step + suggestions.length) % suggestions.length)
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      choose(suggestions[active])
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setDismissed(mention.start)
+    }
+  }
 
   if (!permissions) return <p className="px-1 py-1.5 text-sm text-muted-foreground">…</p>
 
@@ -325,6 +387,7 @@ function Composer({
     const message = text.trim()
     if (!message) return
     setText('')
+    setCaret(0)
     setError(null)
     const failure = await onSend(message)
     if (failure) {
@@ -338,14 +401,72 @@ function Composer({
   return (
     <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-1" data-testid="chat-composer">
       <div className="flex gap-2">
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          maxLength={permissions.maxLength}
-          placeholder={assistant ? `Nachricht senden oder @${assistant.name} fragen` : 'Nachricht senden'}
-          aria-label="Nachricht"
-          data-testid="chat-input"
-        />
+        <div className="relative flex-1">
+          <Input
+            ref={inputRef}
+            value={text}
+            onChange={(e) => {
+              const caretAt = e.target.selectionStart ?? e.target.value.length
+              setText(e.target.value)
+              setCaret(caretAt)
+              setHighlight(0)
+              if (!activeMention(e.target.value, caretAt)) setDismissed(null)
+            }}
+            onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+            onKeyDown={onKeyDown}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            maxLength={permissions.maxLength}
+            placeholder={fallback ? `Nachricht senden oder @${fallback.name} fragen` : 'Nachricht senden'}
+            aria-label="Nachricht"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={suggestions.length > 0}
+            aria-controls="chat-mention-list"
+            aria-activedescendant={suggestions.length > 0 ? `chat-mention-${suggestions[active].name}` : undefined}
+            data-testid="chat-input"
+          />
+          {suggestions.length > 0 && (
+            <ul
+              id="chat-mention-list"
+              role="listbox"
+              aria-label="KI fragen"
+              className="absolute bottom-full left-0 z-10 mb-1 w-full min-w-56 rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-md"
+              data-testid="chat-mention-suggestions"
+            >
+              <li role="presentation" className="px-2 pt-1 pb-0.5 text-xs text-muted-foreground">
+                KI fragen
+              </li>
+              {suggestions.map((assistant, i) => (
+                <li
+                  key={assistant.name}
+                  id={`chat-mention-${assistant.name}`}
+                  role="option"
+                  aria-selected={i === active}
+                  // mousedown statt click, damit das Eingabefeld den Fokus behält
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    choose(assistant)
+                  }}
+                  onMouseEnter={() => setHighlight(i)}
+                  className={cn(
+                    'flex cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5',
+                    i === active && 'bg-accent text-accent-foreground',
+                  )}
+                  data-testid="chat-mention-option"
+                >
+                  <span>
+                    <span className="font-semibold">@{assistant.name}</span>{' '}
+                    <span className="text-muted-foreground">{assistant.displayName}</span>
+                  </span>
+                  {assistant.name === DEFAULT_ASSISTANT && (
+                    <span className="text-xs text-muted-foreground">Standard</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <Button type="submit" size="icon" disabled={!text.trim()} aria-label="Senden" data-testid="chat-send">
           <SendIcon />
         </Button>

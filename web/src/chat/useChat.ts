@@ -4,9 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, api } from '@/api/client'
 import {
   chatPath,
+  chatNoticeQueue,
   chatTopic,
   type ChatAssistant,
   type ChatMessage,
+  type ChatNotice,
   type ChatPermissions,
   type ChatSnapshot,
   type ChatTick,
@@ -30,6 +32,7 @@ export function useChat(debateId: string, token: string | undefined, userId: str
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [permissions, setPermissions] = useState<ChatPermissions | null>(null)
   const [assistants, setAssistants] = useState<ChatAssistant[]>([])
+  const [notices, setNotices] = useState<ChatNotice[]>([])
   const [pending, setPending] = useState<PendingMessage[]>([])
   const [connection, setConnection] = useState<Connection>('connecting')
   const [error, setError] = useState<string | null>(null)
@@ -138,6 +141,13 @@ export function useChat(debateId: string, token: string | undefined, userId: str
       },
       onConnect: () => {
         client.subscribe(chatTopic(debateId), (frame) => onTick(JSON.parse(frame.body) as ChatTick))
+        // Eigene Hinweise gibt es nur angemeldet; sie kommen für alle Debatten über dieselbe Queue
+        if (tokenRef.current) {
+          client.subscribe(chatNoticeQueue, (frame) => {
+            const notice = JSON.parse(frame.body) as ChatNotice
+            if (notice.debateId === debateId) setNotices((previous) => [...previous, notice])
+          })
+        }
         // Nach einem Abbruch ist lastTick gesetzt, dann werden nur die verpassten Ticks nachgeholt
         void sync()
       },
@@ -225,5 +235,5 @@ export function useChat(debateId: string, token: string | undefined, userId: str
     [debateId],
   )
 
-  return { messages, pending, permissions, assistants, connection, error, send, hide, mute }
+  return { messages, pending, notices, permissions, assistants, connection, error, send, hide, mute }
 }

@@ -53,6 +53,12 @@ export type ChatSnapshot = {
   assistants: ChatAssistant[]
 }
 
-export const chatPath = (debateId: string) => `/api/debates/${encodeURIComponent(debateId)}/chat`
+/** Hinweis nur für den eigenen Nutzer, z. B. wenn eine KI nicht antworten konnte; wird nicht gespeichert */
+export type ChatNotice = { debateId: string; text: string; messageId: string | null; sentAt: string }
+
+/** Eigene Hinweise aus allen Debatten; der Client filtert nach `debateId` */
+export const chatNoticeQueue = '/user/queue/chat'
+
+export const chatPath =(debateId: string) => `/api/debates/${encodeURIComponent(debateId)}/chat`
 
 export const chatTopic = (debateId: string) => `/topic/debates/${debateId}/chat`

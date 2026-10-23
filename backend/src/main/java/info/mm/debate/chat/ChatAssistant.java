@@ -42,8 +42,8 @@ class ChatAssistant {
 	static final Duration COOLDOWN = Duration.ofSeconds(30);
 	static final int MAX_ANSWER_LENGTH = 1000;
 	static final int EXCERPT_LENGTH = 80;
-	static final String FAILED_TEXT = "Ich kann gerade nicht antworten. Versuch es gleich noch einmal.";
-	static final String BUSY_TEXT = "Gerade sind zu viele Fragen offen. Versuch es gleich noch einmal.";
+	/** Steht als {@code hiddenBy} an Fragen, die entfernt wurden, weil die KI nicht antworten konnte */
+	static final String HIDDEN_UNAVAILABLE = "system:ai-unavailable";
 
 	// Wie bei X: das @ steht am Anfang oder nach einem Leerzeichen/Satzzeichen, nicht mitten in einer Mail-Adresse
 	private static final Pattern MENTION = Pattern.compile("(?<![\\p{L}\\p{N}_@.])@([\\p{L}\\p{N}_]{1,32})");
@@ -54,6 +54,7 @@ class ChatAssistant {
 	private final AiGateway gateway;
 	private final ChatMessages messages;
 	private final ChatTicker ticker;
+	private final ChatNotices notices;
 	private final Clock clock = Clock.systemUTC();
 	/** Letzte Frage an eine KI je Debatte und Nutzer */
 	private final Map<String, Instant> lastQuestion = new ConcurrentHashMap<>();
@@ -61,11 +62,13 @@ class ChatAssistant {
 	private final ThreadPoolExecutor executor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.MILLISECONDS,
 			new ArrayBlockingQueue<>(32), Thread.ofPlatform().name("chat-ai-", 0).daemon().factory());
 
-	ChatAssistant(AiModels models, AiGateway gateway, ChatMessages messages, ChatTicker ticker) {
+	ChatAssistant(AiModels models, AiGateway gateway, ChatMessages messages, ChatTicker ticker,
+			ChatNotices notices) {
 		this.models = models;
 		this.gateway = gateway;
 		this.messages = messages;
 		this.ticker = ticker;
+		this.notices = notices;
 	}
 
 	List<AiModel> models() {
@@ -105,7 +108,8 @@ class ChatAssistant {
 			executor.execute(() -> answer(question, model, mention));
 		}
 		catch (RejectedExecutionException e) {
-			ticker.post(reply(question, model, BUSY_TEXT, List.of(), null));
+			log.warn("Zu viele offene KI-Fragen, @{} auf Nachricht {} abgewiesen", model.name(), question.id());
+			unavailable(question, model);
 		}
 	}
 
@@ -119,13 +123,26 @@ class ChatAssistant {
 		}
 		catch (RuntimeException e) {
 			log.warn("KI-Antwort von @{} auf Nachricht {} fehlgeschlagen", model.name(), question.id(), e);
-			reply = reply(question, model, FAILED_TEXT, List.of(), null);
+			unavailable(question, model);
+			return;
 		}
 		// Wurde die Frage inzwischen ausgeblendet, soll die Antwort sie nicht wieder sichtbar machen
 		if (messages.find(question.debateId(), question.id()).map(ChatMessage::hidden).orElse(false)) {
 			return;
 		}
 		ticker.post(reply);
+	}
+
+	/**
+	 * Kann die KI nicht antworten (Fehler beim Anbieter, Rate-Limit, zu viele offene Fragen), verschwindet die Frage
+	 * aus dem Chat und nur der Fragende erfährt, warum. Ausgeblendet statt gelöscht, damit sich jeder Tick weiter
+	 * nachholen lässt; die Nachricht läuft im selben Strom wie die Frage, also nie vor ihr.
+	 */
+	private void unavailable(ChatMessage question, AiModel model) {
+		ticker.hide(question.debateId(), question.id(), HIDDEN_UNAVAILABLE);
+		notices.send(question.userId(), new ChatNotices.Notice(question.debateId(),
+				model.displayName() + " ist gerade nicht verfügbar. Deine Nachricht wurde aus dem Chat entfernt.",
+				question.id(), clock.instant()));
 	}
 
 	private ChatMessage reply(ChatMessage question, AiModel model, String text, List<Source> sources, AiOrigin ai) {
