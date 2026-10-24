@@ -62,8 +62,8 @@ class ChatAssistantTest {
 		}, mock(ChatMessages.class), ticker, notices);
 		ChatMessage question = ChatMessage.fromUser("m1", "d1", new ChatUser("u1", "Alice", false), null,
 				"@grok stimmt das?", null, Instant.now());
-		Debate debate = new Debate("d1", "Thema", "A", "B", null, null, DebateStatus.LIVE, Instant.now(),
-				Instant.now(), List.of());
+		Debate debate = new Debate("d1", "Thema", "A", "B", null, null, null, DebateStatus.LIVE, Instant.now(),
+				Instant.now(), null, List.of());
 
 		failing.answerLater(debate, question, grok);
 

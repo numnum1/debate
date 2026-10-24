@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
 import info.mm.debate.debate.Debate.RoleAssignment;
 
 /**
- * Nur lokal: Legt Beispieldebatten mit Rollen für die Testnutzer an, solange es das Anlegen von Debatten noch nicht
- * gibt. Debatten, die schon existieren, bleiben unangetastet; die IDs entsprechen den Mock-Daten im Frontend.
+ * Nur lokal: Legt Beispieldebatten mit Rollen für die Testnutzer an, damit nach dem Start etwas zu sehen ist.
+ * Debatten, die schon existieren, bleiben unangetastet; die IDs entsprechen den Mock-Daten im Frontend.
  */
 @Component
 @Profile("dev")
@@ -101,8 +101,8 @@ class DevSeed implements ApplicationRunner {
 	private static Debate debate(Instant now, String id, String topic, String sideA, String sideB, String category,
 			Platform platform, DebateStatus status, int startsInMinutes, RoleAssignment... roles) {
 		Instant startsAt = now.plus(Duration.ofMinutes(startsInMinutes));
-		return new Debate(id, topic, sideA, sideB, category, platform, status, startsAt,
-				startsAt.minus(Duration.ofMinutes(30)), List.of(roles));
+		return new Debate(id, topic, sideA, sideB, category, platform, null, status, startsAt,
+				startsAt.minus(Duration.ofMinutes(30)), null, List.of(roles));
 	}
 
 	private static RoleAssignment role(String userId, DebateRole role) {

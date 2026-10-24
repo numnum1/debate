@@ -1,4 +1,4 @@
-import { LogOutIcon, MessagesSquareIcon, UserIcon } from 'lucide-react'
+import { LogOutIcon, MessagesSquareIcon, PlusIcon, UserIcon } from 'lucide-react'
 import { useAuth } from 'react-oidc-context'
 import { Link } from 'react-router'
 
@@ -37,6 +37,12 @@ export function AccountControls() {
   return (
     <div className="flex items-center gap-3" data-testid="account-controls">
       <span className="text-sm text-muted-foreground tabular-nums" data-testid="account-balance">{formatPoints(balance)}</span>
+      <Button asChild variant="outline" data-testid="account-new-debate-link">
+        <Link to="/home/neu">
+          <PlusIcon />
+          Debatte anlegen
+        </Link>
+      </Button>
       <Button asChild data-testid="account-my-debates-link">
         <Link to="/home">
           <MessagesSquareIcon />

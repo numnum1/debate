@@ -12,21 +12,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCount, formatPoints, formatRelative, formatStart, platformLabel } from '@/lib/format'
-import { type Debate, type DebateStatus, debates } from '@/mock/data'
+import { useDebates } from '@/api/debates-context'
+import { type Debate, type DebateStatus } from '@/mock/data'
 
 const debateLink = (d: Debate) => `/home/${d.id}`
 
-const promoted = debates
-  .filter((d) => d.promoted !== undefined)
-  .sort((x, y) => x.promoted! - y.promoted!)
-const live = debates
-  .filter((d) => d.status === 'live' && d.promoted === undefined)
-  .sort((x, y) => (y.viewers ?? 0) - (x.viewers ?? 0))
-const others = debates.filter((d) => d.promoted === undefined)
-
 function When({ debate }: { debate: Debate }) {
   if (debate.status === 'live') return <>seit {formatRelative(debate.startsAt).replace('vor ', '')}</>
-  if (debate.status === 'scheduled' || debate.status === 'betting') return <>{formatStart(debate.startsAt)}</>
+  if (debate.status === 'scheduled' || debate.status === 'betting' || debate.status === 'leadin') return <>{formatStart(debate.startsAt)}</>
   return <>{formatRelative(debate.startsAt)}</>
 }
 
@@ -97,12 +90,12 @@ type Filter = 'all' | 'open' | 'live' | 'done'
 
 const filterMatches: Record<Filter, (s: DebateStatus) => boolean> = {
   all: () => true,
-  open: (s) => s === 'scheduled' || s === 'betting',
+  open: (s) => s === 'scheduled' || s === 'betting' || s === 'leadin',
   live: (s) => s === 'live' || s === 'verdict',
   done: (s) => s === 'settled' || s === 'cancelled',
 }
 
-function DebateList() {
+function DebateList({ others }: { others: Debate[] }) {
   const [filter, setFilter] = useState<Filter>('all')
   const shown = others.filter((d) => filterMatches[filter](d.status))
 
@@ -152,6 +145,14 @@ function DebateList() {
 }
 
 export function LandingPage() {
+  const { debates } = useDebates()
+  const promoted = debates
+    .filter((d) => d.promoted !== undefined)
+    .sort((x, y) => x.promoted! - y.promoted!)
+  const live = debates
+    .filter((d) => d.status === 'live' && d.promoted === undefined)
+    .sort((x, y) => (y.viewers ?? 0) - (x.viewers ?? 0))
+  const others = debates.filter((d) => d.promoted === undefined)
   const [featured, ...morePromoted] = promoted
   const floating = promoted.find((d) => d.status === 'live')
 
@@ -207,7 +208,7 @@ export function LandingPage() {
           </p>
         </section>
 
-        <DebateList />
+        <DebateList others={others} />
       </main>
 
       {floating && !featuredVisible && <FloatingStream debate={floating} />}

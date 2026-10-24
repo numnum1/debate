@@ -9,6 +9,7 @@ import {
   MoreHorizontalIcon,
   PinIcon,
   PinOffIcon,
+  PlusIcon,
   UserIcon,
   UsersIcon,
 } from 'lucide-react'
@@ -73,7 +74,7 @@ const roleGroup = (role: DebateRole, label: string): Group => ({
 const groupsByView: Record<SidebarView, Group[]> = {
   time: [
     statusGroup('running', 'Laufend', ['live', 'verdict']),
-    statusGroup('upcoming', 'Demnächst', ['scheduled', 'betting']),
+    statusGroup('upcoming', 'Demnächst', ['scheduled', 'betting', 'leadin']),
     statusGroup('ended', 'Beendet', ['settled', 'cancelled']),
   ],
   role: [
@@ -112,6 +113,7 @@ function StatusIcon({ status }: { status: DebateStatus }) {
       return <GavelIcon className="text-muted-foreground" />
     case 'scheduled':
     case 'betting':
+    case 'leadin':
       return <ClockIcon className="text-muted-foreground" />
     case 'settled':
       return <CheckIcon className="text-muted-foreground" />
@@ -293,6 +295,14 @@ export function HomeSidebar({ entries, activeId, onTogglePin }: Props) {
           Debate
         </Link>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={activeId === 'neu'} data-testid="sidebar-new-debate-link">
+              <Link to="/home/neu">
+                <PlusIcon />
+                <span>Neue Debatte</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild data-testid="sidebar-discover-link">
               <Link to="/">

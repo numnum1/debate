@@ -93,7 +93,7 @@ function HostPane() {
         <Slot
           testId="host-roles"
           title="Rollen vergeben"
-          note="Debattierer und Team, Jury, Moderatoren, Resolver"
+          note="Jury, Moderatoren, Resolver"
           className="h-40"
         />
       </div>

@@ -15,8 +15,8 @@ class DebateTest {
 	private static final Instant CLOSES = Instant.parse("2026-10-23T19:30:00Z");
 
 	private static Debate debate(DebateStatus status, RoleAssignment... roles) {
-		return new Debate("d", "Thema", "A", "B", "Politik", Platform.YOUTUBE, status,
-				CLOSES.plus(Duration.ofMinutes(30)), CLOSES, List.of(roles));
+		return new Debate("d", "Thema", "A", "B", "Politik", Platform.YOUTUBE, null, status,
+				CLOSES.plus(Duration.ofMinutes(30)), CLOSES, null, List.of(roles));
 	}
 
 	@Test

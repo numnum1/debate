@@ -7,10 +7,15 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -41,6 +46,22 @@ class DebateController {
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 	}
 
+	/** Legt eine Debatte an; wer sie anlegt, ist ihr Host und vergibt die übrigen Rollen gleich mit. */
+	@PostMapping("/api/debates")
+	@ResponseStatus(HttpStatus.CREATED)
+	DebateResponse create(@RequestBody NewDebate request, @AuthenticationPrincipal Jwt jwt) {
+		Instant now = clock.instant();
+		return DebateResponse.of(debates.create(request, jwt.getSubject(), now), now);
+	}
+
+	@ExceptionHandler
+	ProblemDetail handle(DebateException e) {
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(e.status(), e.getMessage());
+		problem.setProperty("code", e.code());
+		problem.setProperty("field", e.field());
+		return problem;
+	}
+
 	/** Die Debatten, in denen der angemeldete Nutzer eine Rolle hat, mit diesen Rollen. */
 	@GetMapping("/api/me/debates")
 	List<MyRoles> mine(@AuthenticationPrincipal Jwt jwt) {
@@ -56,13 +77,16 @@ class DebateController {
 			String sideB,
 			String category,
 			Platform platform,
+			String streamUrl,
 			DebateStatus status,
 			Instant startsAt,
-			Instant bettingClosesAt) {
+			Instant bettingClosesAt,
+			Ruleset ruleset) {
 
 		static DebateResponse of(Debate debate, Instant now) {
 			return new DebateResponse(debate.id(), debate.topic(), debate.sideA(), debate.sideB(), debate.category(),
-					debate.platform(), debate.statusAt(now), debate.startsAt(), debate.bettingClosesAt());
+					debate.platform(), debate.streamUrl(), debate.statusAt(now), debate.startsAt(),
+					debate.bettingClosesAt(), debate.ruleset());
 		}
 
 	}

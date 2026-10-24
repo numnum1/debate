@@ -13,7 +13,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * {@code sideB}), keine Nutzer. Die Rollen stehen im Dokument, weil es pro Debatte nur wenige sind.
  *
  * @param status gespeicherte Phase; die aktuelle liefert {@link #statusAt(Instant)}
+ * @param streamUrl Adresse des Streams auf der Plattform; fehlt bei älteren Dokumenten
  * @param bettingClosesAt Wettschluss, fest vom Host gewählt; ab hier ist der Markt zu und der Chat offen
+ * @param ruleset Regelwerk; fehlt es bei älteren Dokumenten, gilt das Template "standard"
  */
 @Document("debates")
 public record Debate(
@@ -23,12 +25,15 @@ public record Debate(
 		String sideB,
 		String category,
 		Platform platform,
+		String streamUrl,
 		DebateStatus status,
 		Instant startsAt,
 		Instant bettingClosesAt,
+		Ruleset ruleset,
 		List<RoleAssignment> roles) {
 
 	public Debate {
+		ruleset = ruleset == null ? Ruleset.standard() : ruleset;
 		roles = roles == null ? List.of() : List.copyOf(roles);
 	}
 

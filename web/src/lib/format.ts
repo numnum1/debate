@@ -45,6 +45,7 @@ export function formatStart(date: Date) {
 export const statusLabel: Record<DebateStatus, string> = {
   scheduled: 'Demnächst',
   betting: 'Wetten offen',
+  leadin: 'Vorlauf',
   live: 'Live',
   verdict: 'Urteil läuft',
   settled: 'Beendet',

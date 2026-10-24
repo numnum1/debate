@@ -1,7 +1,7 @@
 import { CompassIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from 'react-oidc-context'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 
 import { StatusBadge } from '@/components/StatusBadge'
 import { Badge } from '@/components/ui/badge'
@@ -10,17 +10,25 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { roleLabel } from '@/lib/format'
 import { useMyRoles } from '@/api/debates'
-import { debates, findDebate, memberships, type Membership } from '@/mock/data'
+import { useDebates } from '@/api/debates-context'
+import { memberships, type Membership } from '@/mock/data'
 import { DebatePane } from './DebatePane'
 import { HomeSidebar, type SidebarEntry } from './HomeSidebar'
+import { NewDebateWizard } from './NewDebateWizard'
+
+/** Pfad zum Assistenten; eine Debatte kann nicht so heißen, siehe Debates.RESERVED_IDS im Backend */
+const NEW_DEBATE = 'neu'
 
 export function HomePage() {
   const auth = useAuth()
   const { debateId } = useParams()
+  const navigate = useNavigate()
+  const creating = debateId === NEW_DEBATE
+  const { debates, loading: debatesLoading, reload: reloadDebates } = useDebates()
   const [pins, setPins] = useState(() => new Set(memberships.filter((m) => m.pinned).map((m) => m.debateId)))
   const [openedAt] = useState(() => new Date())
 
-  const myRoles = useMyRoles(auth.user?.access_token)
+  const { roles: myRoles, reload: reloadRoles } = useMyRoles(auth.user?.access_token)
   // Solange Login oder Rollen laden, ist die Ansicht noch unklar (Juror-Raum oder Zuschauer mit Chat)
   const rolesLoading = auth.isLoading || (auth.isAuthenticated && myRoles === null)
 
@@ -40,17 +48,16 @@ export function HomePage() {
     }
   })
 
-  const debate = findDebate(debateId)
+  const debate = creating ? undefined : debates.find((d) => d.id === debateId)
   const membership = mine.find((m) => m.debateId === debateId)
 
   // Annahme fürs Wireframe: Wer eine Debatte öffnet, hat sie danach in der Leiste, wie einen neuen Chat
   const opened = debate && !membership ? [{ debateId: debate.id, role: 'viewer' as const, lastActivity: openedAt }] : []
   const entries: SidebarEntry[] = auth.isAuthenticated
-    ? [...mine, ...opened].map((m) => ({
-        ...m,
-        pinned: pins.has(m.debateId),
-        debate: debates.find((d) => d.id === m.debateId)!,
-      }))
+    ? [...mine, ...opened].flatMap((m) => {
+        const entryDebate = debates.find((d) => d.id === m.debateId)
+        return entryDebate ? [{ ...m, pinned: pins.has(m.debateId), debate: entryDebate }] : []
+      })
     : []
 
   const togglePin = (id: string) =>
@@ -90,7 +97,7 @@ export function HomePage() {
               </span>
             </>
           ) : (
-            <h1 className="font-semibold" data-testid="home-page-title">Meine Debatten</h1>
+            <h1 className="font-semibold" data-testid="home-page-title">{creating ? 'Neue Debatte' : 'Meine Debatten'}</h1>
           )}
         </header>
         <div className="min-h-0 flex-1 overflow-auto p-4">
@@ -99,8 +106,20 @@ export function HomePage() {
             <p className="text-sm text-muted-foreground" data-testid="home-roles-loading">
               Lade …
             </p>
+          ) : creating ? (
+            <NewDebateWizard
+              onCreated={async (created) => {
+                // Erst Debatten und Rollen neu laden, sonst sähe der neue Host seine Debatte kurz als Zuschauer
+                await Promise.all([reloadDebates(), reloadRoles()])
+                void navigate(`/home/${created.id}`)
+              }}
+            />
           ) : debate ? (
             <DebatePane debate={debate} role={role} signedIn={auth.isAuthenticated} />
+          ) : debateId && debatesLoading ? (
+            <p className="text-sm text-muted-foreground" data-testid="home-debate-loading">
+              Lade …
+            </p>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center" data-testid="home-empty-state">
               <p className="text-lg font-medium">{debateId ? 'Diese Debatte gibt es nicht.' : 'Wähle links eine Debatte.'}</p>

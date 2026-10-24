@@ -1,9 +1,20 @@
 // Mock-Daten für die ersten Wireframes, solange es im Backend noch keine Debatten gibt.
 // Zeiten sind relativ zu jetzt, damit die Ansichten immer aktuell wirken.
 
-export type DebateStatus = 'scheduled' | 'betting' | 'live' | 'verdict' | 'settled' | 'cancelled'
+export type DebateStatus = 'scheduled' | 'betting' | 'leadin' | 'live' | 'verdict' | 'settled' | 'cancelled'
 
 export type Platform = 'twitch' | 'youtube' | 'x'
+
+/** Regelwerk, wie es der Host im Assistenten einstellt; alles Übrige steht fest im Template „Standard“ */
+export type Ruleset = {
+  template: string
+  /** Größe der Jury, ungerade */
+  jurors: 3 | 5 | 7
+  evidence: 'CLOSED' | 'OPEN'
+  pointBets: 'OFF' | 'PRESET'
+  /** gesperrt, sobald die Wetten offen sind */
+  locked: boolean
+}
 
 export type Debate = {
   id: string
@@ -14,6 +25,11 @@ export type Debate = {
   platform: Platform
   status: DebateStatus
   startsAt: Date
+  /** Adresse des Streams auf der Plattform */
+  streamUrl?: string
+  /** Wettschluss; danach sind Markt und Point Bets zu */
+  bettingClosesAt?: Date
+  ruleset?: Ruleset
   /** Preis der A-Anteile im Hauptmarkt, 0–100; B = 100 − A */
   marketA: number
   /** Gesamteinsatz im Hauptmarkt in Punkten */
